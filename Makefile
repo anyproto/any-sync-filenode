@@ -1,4 +1,4 @@
-.PHONY: proto build test
+.PHONY: build test
 export GOPRIVATE=github.com/anytypeio
 
 build:
@@ -7,3 +7,6 @@ build:
 
 test:
 	go test ./... --cover
+
+deps:
+	go mod download
