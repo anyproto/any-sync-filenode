@@ -24,7 +24,7 @@ import (
 var log = logger.NewNamed("main")
 
 var (
-	flagConfigFile = flag.String("c", "etc/config.yml", "path to config file")
+	flagConfigFile = flag.String("c", "etc/any-sync-filenode.yml", "path to config file")
 	flagVersion    = flag.Bool("v", false, "show version and exit")
 	flagHelp       = flag.Bool("h", false, "show help and exit")
 )
