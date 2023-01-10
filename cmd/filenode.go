@@ -4,21 +4,14 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/anytypeio/any-sync-filenode/config"
+	"github.com/anytypeio/any-sync-filenode/filepogreb"
+	"github.com/anytypeio/any-sync-filenode/fileserver"
 	"github.com/anytypeio/any-sync/app"
 	"github.com/anytypeio/any-sync/app/logger"
-	"github.com/anytypeio/any-sync/commonspace"
 	"github.com/anytypeio/any-sync/metric"
-	"github.com/anytypeio/any-sync/net/dialer"
-	"github.com/anytypeio/any-sync/net/pool"
 	"github.com/anytypeio/any-sync/net/rpc/server"
 	"github.com/anytypeio/any-sync/net/secureservice"
-	"github.com/anytypeio/any-sync/nodeconf"
-	"github.com/anytypeio/go-anytype-infrastructure-experiments/node/account"
-	"github.com/anytypeio/go-anytype-infrastructure-experiments/node/config"
-	"github.com/anytypeio/go-anytype-infrastructure-experiments/node/debug/nodedebugrpc"
-	"github.com/anytypeio/go-anytype-infrastructure-experiments/node/nodespace"
-	"github.com/anytypeio/go-anytype-infrastructure-experiments/node/nodespace/nodecache"
-	"github.com/anytypeio/go-anytype-infrastructure-experiments/node/storage"
 	"go.uber.org/zap"
 	"net/http"
 	_ "net/http/pprof"
@@ -92,16 +85,9 @@ func main() {
 }
 
 func Bootstrap(a *app.App) {
-	a.Register(account.New()).
-		Register(metric.New()).
-		Register(storage.New()).
-		Register(nodecache.New(200)).
-		Register(nodeconf.New()).
-		Register(secureservice.New()).
-		Register(dialer.New()).
-		Register(pool.New()).
-		Register(nodespace.New()).
-		Register(commonspace.New()).
+	a.Register(secureservice.New()).
 		Register(server.New()).
-		Register(nodedebugrpc.New())
+		Register(filepogreb.New()).
+		Register(fileserver.New()).
+		Register(metric.New())
 }

@@ -1,29 +1,9 @@
+.PHONY: proto build test
 export GOPRIVATE=github.com/anytypeio
 
-ifndef $(GOPATH)
-    GOPATH=$(shell go env GOPATH)
-    export GOPATH
-endif
-
-ifndef $(GOROOT)
-    GOROOT=$(shell go env GOROOT)
-    export GOROOT
-endif
-
-export PATH=$(GOPATH)/bin:$(shell echo $$PATH)
-
-proto:
-	$(MAKE) -C consensus proto
-	$(MAKE) -C client proto
-
 build:
-	$(MAKE) -C node build
-	$(MAKE) -C filenode build
-	$(MAKE) -C consensus build
-	$(MAKE) -C client build
+	@$(eval FLAGS := $$(shell govvv -flags -pkg github.com/anytypeio/go-anytype-infrastructure-experiments/filenode))
+	go build -v -o bin/any-sync-filenode -ldflags "$(FLAGS)" github.com/anytypeio/any-sync-filenode/cmd
 
 test:
-	$(MAKE) -C node test
-	$(MAKE) -C filenode test
-	$(MAKE) -C consensus test
-	$(MAKE) -C client test
+	go test ./... --cover

@@ -3,10 +3,10 @@ package filepogreb
 import (
 	"context"
 	"github.com/akrylysov/pogreb"
+	"github.com/anytypeio/any-sync-filenode/config"
 	"github.com/anytypeio/any-sync/app"
 	"github.com/anytypeio/any-sync/app/logger"
 	"github.com/anytypeio/any-sync/commonfile/fileblockstore"
-	"github.com/anytypeio/go-anytype-infrastructure-experiments/filenode/config"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	"go.uber.org/zap"
