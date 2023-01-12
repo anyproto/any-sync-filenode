@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/anytypeio/any-sync-filenode/s3store"
 	commonaccount "github.com/anytypeio/any-sync/accountservice"
 	"github.com/anytypeio/any-sync/app"
 	"github.com/anytypeio/any-sync/metric"
@@ -24,10 +25,11 @@ func NewFromFile(path string) (c *Config, err error) {
 }
 
 type Config struct {
-	Account         commonaccount.Config `yaml:"account"`
-	GrpcServer      net.Config           `yaml:"grpcServer"`
-	Metric          metric.Config        `yaml:"metric"`
-	FileStorePogreb FileStorePogreb      `yaml:"fileStorePogreb"`
+	Account      commonaccount.Config `yaml:"account"`
+	GrpcServer   net.Config           `yaml:"grpcServer"`
+	Metric       metric.Config        `yaml:"metric"`
+	S3Store      s3store.Config       `yaml:"s3Store"`
+	FileDevStore FileDevStore         `yaml:"fileDevStore"`
 }
 
 func (c *Config) Init(a *app.App) (err error) {
@@ -42,8 +44,12 @@ func (c Config) GetAccount() commonaccount.Config {
 	return c.Account
 }
 
-func (c Config) GetFileStorePogreb() FileStorePogreb {
-	return c.FileStorePogreb
+func (c Config) GetS3Store() s3store.Config {
+	return c.S3Store
+}
+
+func (c Config) GetDevStore() FileDevStore {
+	return c.FileDevStore
 }
 
 func (c Config) GetNet() net.Config {

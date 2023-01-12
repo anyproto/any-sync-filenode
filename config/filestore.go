@@ -1,5 +1,5 @@
 package config
 
-type FileStorePogreb struct {
+type FileDevStore struct {
 	Path string `yaml:"path"`
 }
