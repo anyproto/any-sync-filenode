@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/anytypeio/any-sync-filenode/config"
-	"github.com/anytypeio/any-sync-filenode/filepogreb"
 	"github.com/anytypeio/any-sync-filenode/fileserver"
 	"github.com/anytypeio/any-sync/app"
 	"github.com/anytypeio/any-sync/app/logger"
@@ -86,8 +85,8 @@ func main() {
 
 func Bootstrap(a *app.App) {
 	a.Register(secureservice.New()).
+		Register(store()).
 		Register(server.New()).
-		Register(filepogreb.New()).
 		Register(fileserver.New()).
 		Register(metric.New())
 }

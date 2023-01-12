@@ -23,7 +23,7 @@ debug.json
 vendor
 
 # database
-db
+# db
 
 # artefacts for Intelli-J fleet
 .fleet

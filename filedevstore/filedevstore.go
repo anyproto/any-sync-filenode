@@ -1,15 +1,16 @@
-package filepogreb
+package filedevstore
 
 import (
 	"context"
-	"github.com/akrylysov/pogreb"
+	"fmt"
 	"github.com/anytypeio/any-sync-filenode/config"
 	"github.com/anytypeio/any-sync/app"
 	"github.com/anytypeio/any-sync/app/logger"
 	"github.com/anytypeio/any-sync/commonfile/fileblockstore"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
-	"go.uber.org/zap"
+	"os"
+	"path/filepath"
 )
 
 const CName = fileblockstore.CName
@@ -26,16 +27,18 @@ type Store interface {
 }
 
 type configSource interface {
-	GetFileStorePogreb() config.FileStorePogreb
+	GetDevStore() config.FileDevStore
 }
 
 type store struct {
-	db   *pogreb.DB
-	conf config.FileStorePogreb
+	path string
 }
 
 func (s *store) Init(a *app.App) (err error) {
-	s.conf = a.MustComponent("config").(configSource).GetFileStorePogreb()
+	s.path = a.MustComponent("config").(configSource).GetDevStore().Path
+	if s.path == "" {
+		return fmt.Errorf("you must specify path for local store")
+	}
 	return
 }
 
@@ -44,18 +47,15 @@ func (s *store) Name() (name string) {
 }
 
 func (s *store) Run(ctx context.Context) (err error) {
-	if s.db, err = pogreb.Open(s.conf.Path, &pogreb.Options{}); err != nil {
-		return
-	}
 	return
 }
 
 func (s *store) Get(ctx context.Context, k cid.Cid) (blocks.Block, error) {
-	val, err := s.db.Get(k.Bytes())
+	val, err := os.ReadFile(filepath.Join(s.path, k.String()))
 	if err != nil {
-		return nil, fileblockstore.ErrCIDNotFound
+		return nil, err
 	}
-	return blocks.NewBlock(val), nil
+	return blocks.NewBlockWithCid(val, k)
 }
 
 func (s *store) GetMany(ctx context.Context, ks []cid.Cid) <-chan blocks.Block {
@@ -79,8 +79,7 @@ func (s *store) GetMany(ctx context.Context, ks []cid.Cid) <-chan blocks.Block {
 
 func (s *store) Add(ctx context.Context, bs []blocks.Block) error {
 	for _, b := range bs {
-		log.Debug("put cid", zap.String("cid", b.Cid().String()))
-		if err := s.db.Put(b.Cid().Bytes(), b.RawData()); err != nil {
+		if err := os.WriteFile(filepath.Join(s.path, b.Cid().String()), b.RawData(), 0777); err != nil {
 			return err
 		}
 	}
@@ -88,12 +87,9 @@ func (s *store) Add(ctx context.Context, bs []blocks.Block) error {
 }
 
 func (s *store) Delete(ctx context.Context, c cid.Cid) error {
-	return s.db.Delete(c.Bytes())
+	return os.Remove(filepath.Join(s.path, c.String()))
 }
 
 func (s *store) Close(ctx context.Context) (err error) {
-	if s.db != nil {
-		return s.db.Close()
-	}
 	return
 }

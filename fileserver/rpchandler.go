@@ -7,6 +7,7 @@ import (
 	"github.com/anytypeio/any-sync/commonfile/fileproto/fileprotoerr"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
+	"go.uber.org/zap"
 )
 
 type rpcHandler struct {
@@ -53,6 +54,7 @@ func (r *rpcHandler) PushBlock(ctx context.Context, req *fileproto.PushBlockRequ
 		return nil, err
 	}
 	if err = r.store.Add(fileblockstore.CtxWithSpaceId(ctx, req.SpaceId), []blocks.Block{b}); err != nil {
+		log.Warn("can't add to store", zap.Error(err))
 		return nil, fileprotoerr.ErrUnexpected
 	}
 	return &fileproto.PushBlockResponse{}, nil
@@ -63,7 +65,8 @@ func (r *rpcHandler) DeleteBlocks(ctx context.Context, req *fileproto.DeleteBloc
 		c, err := cid.Cast(cd)
 		if err == nil {
 			if err = r.store.Delete(fileblockstore.CtxWithSpaceId(ctx, req.SpaceId), c); err != nil {
-				// TODO: log
+				log.Warn("can't delete from store", zap.Error(err))
+				return nil, err
 			}
 		}
 	}

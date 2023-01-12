@@ -11,6 +11,12 @@ grpcServer:
         timeoutMilliseconds: 1000
         maxMsgSizeMb: 256
 metric:
-    addr: ""
-fileStorePogreb:
-    path: db/file/1
+    addr: ":7010"
+s3Store:
+    region: eu-central-1
+    profile: default
+    bucket: anytype-test
+    maxThreads: 16
+
+fileDevStore:
+    path: db

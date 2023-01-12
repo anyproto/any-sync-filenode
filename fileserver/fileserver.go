@@ -2,12 +2,15 @@ package fileserver
 
 import (
 	"github.com/anytypeio/any-sync/app"
+	"github.com/anytypeio/any-sync/app/logger"
 	"github.com/anytypeio/any-sync/commonfile/fileblockstore"
 	"github.com/anytypeio/any-sync/commonfile/fileproto"
 	"github.com/anytypeio/any-sync/net/rpc/server"
 )
 
-const CName = "common.commonfile.fileservice"
+const CName = "filenode.fileserver"
+
+var log = logger.NewNamed(CName)
 
 func New() FileServer {
 	return &fileServer{}
