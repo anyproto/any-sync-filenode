@@ -17,7 +17,7 @@ var ctx = context.Background()
 func TestS3store_GetMany(t *testing.T) {
 	// skip the test because it needs amazon credentials
 	t.Skip()
-	
+
 	a := new(app.App)
 	store := New()
 	a.Register(&config{})
