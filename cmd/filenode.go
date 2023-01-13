@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/anytypeio/any-sync-filenode/account"
 	"github.com/anytypeio/any-sync-filenode/config"
 	"github.com/anytypeio/any-sync-filenode/fileserver"
 	"github.com/anytypeio/any-sync/app"
@@ -84,7 +85,8 @@ func main() {
 }
 
 func Bootstrap(a *app.App) {
-	a.Register(secureservice.New()).
+	a.Register(account.New()).
+		Register(secureservice.New()).
 		Register(store()).
 		Register(server.New()).
 		Register(fileserver.New()).
