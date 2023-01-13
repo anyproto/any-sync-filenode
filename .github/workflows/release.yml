@@ -6,7 +6,7 @@ on:
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     env:
       GOPRIVATE: github.com/anytypeio
     steps:
@@ -53,16 +53,16 @@ jobs:
       - name: create archives
         run: |
           zip --junk-paths ${{ github.event.repository.name }}-${{ steps.release-version.outputs.RELEASE_VERSION }}.zip bin/*
-          tar --create --gzip --verbose --file=${{ github.event.repository.name }}-${{ steps.release-version.outputs.RELEASE_VERSION }}.tgz --directory=bin/ .
+          tar --create --gzip --verbose --exclude='.gitignore' --file=${{ github.event.repository.name }}-${{ steps.release-version.outputs.RELEASE_VERSION }}.tgz --directory=bin/ .
       - name: create package deb
         uses: bpicode/github-action-fpm@master
         with:
-          fpm_opts: "--debug --name ${{ github.event.repository.name }} --output-type deb --version ${{ steps.release-version.outputs.RELEASE_VERSION }} --input-type dir"
+          fpm_opts: "--debug --name ${{ github.event.repository.name }} --output-type deb --version ${{ steps.release-version.outputs.RELEASE_VERSION }} --exclude '*/.gitignore' --exclude '*/.git' --input-type dir"
           fpm_args: "./bin"
       - name: create package rpm
         uses: bpicode/github-action-fpm@master
         with:
-          fpm_opts: "--debug --name ${{ github.event.repository.name }} --output-type rpm --version ${{ steps.release-version.outputs.RELEASE_VERSION }} --input-type dir"
+          fpm_opts: "--debug --name ${{ github.event.repository.name }} --output-type rpm --version ${{ steps.release-version.outputs.RELEASE_VERSION }} --exclude '*/.gitignore' --exclude '*/.git' --input-type dir"
           fpm_args: "./bin"
       # }}
 
