@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"github.com/anytypeio/any-sync-filenode/config"
+	"github.com/anytypeio/any-sync-filenode/serverstore"
 	"github.com/anytypeio/any-sync/app"
 	"github.com/anytypeio/any-sync/app/logger"
 	"github.com/anytypeio/any-sync/commonfile/fileblockstore"
+	"github.com/anytypeio/any-sync/commonfile/fileproto"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	"os"
@@ -23,7 +25,7 @@ func New() Store {
 
 type Store interface {
 	app.ComponentRunnable
-	fileblockstore.BlockStore
+	serverstore.ServerStore
 }
 
 type configSource interface {
@@ -91,5 +93,25 @@ func (s *store) Delete(ctx context.Context, c cid.Cid) error {
 }
 
 func (s *store) Close(ctx context.Context) (err error) {
+	return
+}
+
+func (s *store) Check(ctx context.Context, spaceId string, cids ...cid.Cid) (result []*fileproto.BlockAvailability, err error) {
+	for _, c := range cids {
+		filename := filepath.Join(s.path, c.String())
+		_, statErr := os.Stat(filename)
+		var status = fileproto.AvailabilityStatus_Exists
+		if statErr != nil {
+			if os.IsNotExist(statErr) {
+				status = fileproto.AvailabilityStatus_NotExists
+			} else {
+				return nil, statErr
+			}
+		}
+		result = append(result, &fileproto.BlockAvailability{
+			Cid:    c.Bytes(),
+			Status: status,
+		})
+	}
 	return
 }

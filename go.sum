@@ -44,6 +44,10 @@ github.com/alecthomas/units v0.0.0-20190717042225-c3de453c63f4/go.mod h1:ybxpYRF
 github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d/go.mod h1:rBZYJk541a8SKzHPHnH3zbiI+7dagKZ0cgpgrD7Fyho=
 github.com/anytypeio/any-sync v0.0.2 h1:Se/wfJ/KQsdUb73NTsMiUnmpBBwiF5U4nVm5OQkexSE=
 github.com/anytypeio/any-sync v0.0.2/go.mod h1:8mSfz9bJypBb3rmRh4csswCskzYjzr0neHf1Bhz2Ow8=
+github.com/anytypeio/any-sync v0.0.5 h1:bf5yyoRZGLnyiAdbthdWJIHE+ajDNzsc2EdvPefga5A=
+github.com/anytypeio/any-sync v0.0.5/go.mod h1:mV4G+5MaTn7CMkYJ2joUDY7fsHLsSN9N/6kRFW443No=
+github.com/anytypeio/any-sync v0.0.6-0.20230130171952-22ee12e28cb4 h1:kU01oShc3yiIw+YBOV7FdRZls8zYyAKYwbotiveN9W8=
+github.com/anytypeio/any-sync v0.0.6-0.20230130171952-22ee12e28cb4/go.mod h1:mV4G+5MaTn7CMkYJ2joUDY7fsHLsSN9N/6kRFW443No=
 github.com/aws/aws-sdk-go v1.44.178 h1:4igreoWPEA7xVLnOeSXLhDXTsTSPKQONZcQ3llWAJw0=
 github.com/aws/aws-sdk-go v1.44.178/go.mod h1:aVsgQcEevwlmQ7qHE9I3h+dtQgpqhFB+i8Phjh7fkwI=
 github.com/benbjohnson/clock v1.1.0/go.mod h1:J11/hYXuz8f4ySSvYwY0FKfm+ezbsZBKZxNJlLklBHA=

@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/anytypeio/any-sync-filenode/serverstore"
 	"github.com/anytypeio/any-sync/app"
 	"github.com/anytypeio/any-sync/app/logger"
 	"github.com/anytypeio/any-sync/commonfile/fileblockstore"
+	"github.com/anytypeio/any-sync/commonfile/fileproto"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	blocks "github.com/ipfs/go-block-format"
@@ -27,7 +30,7 @@ func New() S3Store {
 }
 
 type S3Store interface {
-	fileblockstore.BlockStore
+	serverstore.ServerStore
 	app.ComponentRunnable
 }
 
@@ -143,6 +146,32 @@ func (s *s3store) Add(ctx context.Context, bs []blocks.Block) error {
 		zap.Int("kbytes", dataLen/1024),
 	)
 	return nil
+}
+
+func (s *s3store) Check(ctx context.Context, spaceId string, cids ...cid.Cid) (result []*fileproto.BlockAvailability, err error) {
+	for _, c := range cids {
+		_, headErr := s.client.HeadObject(&s3.HeadObjectInput{
+			Bucket: s.bucket,
+			Key:    aws.String(c.String()),
+		})
+		var status = fileproto.AvailabilityStatus_Exists
+		if headErr != nil {
+			if aerr, ok := headErr.(awserr.Error); ok {
+				if aerr.Code() == "NotFound" {
+					status = fileproto.AvailabilityStatus_NotExists
+				} else {
+					return nil, headErr
+				}
+			} else {
+				return nil, headErr
+			}
+		}
+		result = append(result, &fileproto.BlockAvailability{
+			Cid:    c.Bytes(),
+			Status: status,
+		})
+	}
+	return
 }
 
 func (s *s3store) Delete(ctx context.Context, c cid.Cid) error {

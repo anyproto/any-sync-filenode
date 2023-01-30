@@ -3,7 +3,7 @@ module github.com/anytypeio/any-sync-filenode
 go 1.19
 
 require (
-	github.com/anytypeio/any-sync v0.0.2
+	github.com/anytypeio/any-sync v0.0.6-0.20230130171952-22ee12e28cb4
 	github.com/aws/aws-sdk-go v1.44.178
 	github.com/ipfs/go-block-format v0.0.3
 	github.com/ipfs/go-cid v0.3.2

@@ -2,6 +2,8 @@ package fileserver
 
 import (
 	"context"
+	"fmt"
+	"github.com/anytypeio/any-sync-filenode/serverstore"
 	"github.com/anytypeio/any-sync/commonfile/fileblockstore"
 	"github.com/anytypeio/any-sync/commonfile/fileproto"
 	"github.com/anytypeio/any-sync/commonfile/fileproto/fileprotoerr"
@@ -11,16 +13,16 @@ import (
 )
 
 type rpcHandler struct {
-	store fileblockstore.BlockStore
+	store serverstore.ServerStore
 }
 
-func (r *rpcHandler) GetBlocks(stream fileproto.DRPCFile_GetBlocksStream) error {
+func (r *rpcHandler) BlocksGet(stream fileproto.DRPCFile_BlocksGetStream) error {
 	for {
 		req, err := stream.Recv()
 		if err != nil {
 			return err
 		}
-		resp := &fileproto.GetBlockResponse{
+		resp := &fileproto.BlockGetResponse{
 			Cid: req.Cid,
 		}
 		c, err := cid.Cast(req.Cid)
@@ -44,7 +46,7 @@ func (r *rpcHandler) GetBlocks(stream fileproto.DRPCFile_GetBlocksStream) error 
 	}
 }
 
-func (r *rpcHandler) PushBlock(ctx context.Context, req *fileproto.PushBlockRequest) (*fileproto.PushBlockResponse, error) {
+func (r *rpcHandler) BlockPush(ctx context.Context, req *fileproto.BlockPushRequest) (*fileproto.BlockPushResponse, error) {
 	c, err := cid.Cast(req.Cid)
 	if err != nil {
 		return nil, err
@@ -57,11 +59,11 @@ func (r *rpcHandler) PushBlock(ctx context.Context, req *fileproto.PushBlockRequ
 		log.Warn("can't add to store", zap.Error(err))
 		return nil, fileprotoerr.ErrUnexpected
 	}
-	return &fileproto.PushBlockResponse{}, nil
+	return &fileproto.BlockPushResponse{}, nil
 }
 
-func (r *rpcHandler) DeleteBlocks(ctx context.Context, req *fileproto.DeleteBlocksRequest) (*fileproto.DeleteBlocksResponse, error) {
-	for _, cd := range req.Cid {
+func (r *rpcHandler) BlocksDelete(ctx context.Context, req *fileproto.BlocksDeleteRequest) (*fileproto.BlocksDeleteResponse, error) {
+	for _, cd := range req.Cids {
 		c, err := cid.Cast(cd)
 		if err == nil {
 			if err = r.store.Delete(fileblockstore.CtxWithSpaceId(ctx, req.SpaceId), c); err != nil {
@@ -70,7 +72,29 @@ func (r *rpcHandler) DeleteBlocks(ctx context.Context, req *fileproto.DeleteBloc
 			}
 		}
 	}
-	return &fileproto.DeleteBlocksResponse{}, nil
+	return &fileproto.BlocksDeleteResponse{}, nil
+}
+
+func (r *rpcHandler) BlocksCheck(ctx context.Context, req *fileproto.BlocksCheckRequest) (*fileproto.BlocksCheckResponse, error) {
+	cids := make([]cid.Cid, 0, len(req.Cids))
+	for _, cd := range req.Cids {
+		c, err := cid.Cast(cd)
+		if err == nil {
+			cids = append(cids, c)
+		}
+	}
+	availability, err := r.store.Check(ctx, req.SpaceId, cids...)
+	if err != nil {
+		return nil, err
+	}
+	return &fileproto.BlocksCheckResponse{
+		BlocksAvailability: availability,
+	}, nil
+}
+
+func (r *rpcHandler) BlocksBind(ctx context.Context, req *fileproto.BlocksBindRequest) (*fileproto.BlocksBindResponse, error) {
+	// TODO:
+	return nil, fmt.Errorf("not implemented")
 }
 
 func (r *rpcHandler) Check(ctx context.Context, request *fileproto.CheckRequest) (*fileproto.CheckResponse, error) {
