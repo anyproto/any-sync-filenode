@@ -16,34 +16,21 @@ type rpcHandler struct {
 	store serverstore.ServerStore
 }
 
-func (r *rpcHandler) BlocksGet(stream fileproto.DRPCFile_BlocksGetStream) error {
-	for {
-		req, err := stream.Recv()
-		if err != nil {
-			return err
-		}
-		resp := &fileproto.BlockGetResponse{
-			Cid: req.Cid,
-		}
-		c, err := cid.Cast(req.Cid)
-		if err != nil {
-			resp.Code = fileproto.CIDError_CIDErrorUnexpected
-		} else {
-			b, err := r.store.Get(fileblockstore.CtxWithSpaceId(stream.Context(), req.SpaceId), c)
-			if err != nil {
-				if err == fileblockstore.ErrCIDNotFound {
-					resp.Code = fileproto.CIDError_CIDErrorNotFound
-				} else {
-					resp.Code = fileproto.CIDError_CIDErrorUnexpected
-				}
-			} else {
-				resp.Data = b.RawData()
-			}
-		}
-		if err = stream.Send(resp); err != nil {
-			return err
-		}
+func (r *rpcHandler) BlockGet(ctx context.Context, req *fileproto.BlockGetRequest) (resp *fileproto.BlockGetResponse, err error) {
+	resp = &fileproto.BlockGetResponse{
+		Cid: req.Cid,
 	}
+	c, err := cid.Cast(req.Cid)
+	if err != nil {
+		return nil, err
+	}
+	b, err := r.store.Get(fileblockstore.CtxWithSpaceId(ctx, req.SpaceId), c)
+	if err != nil {
+		return nil, err
+	} else {
+		resp.Data = b.RawData()
+	}
+	return
 }
 
 func (r *rpcHandler) BlockPush(ctx context.Context, req *fileproto.BlockPushRequest) (*fileproto.BlockPushResponse, error) {

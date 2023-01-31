@@ -19,6 +19,9 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	// import this to keep govvv in go.mod on mod tidy
+	_ "github.com/ahmetb/govvv/integration-test/app-different-package/mypkg"
 )
 
 var log = logger.NewNamed("main")
