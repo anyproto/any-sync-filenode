@@ -73,8 +73,10 @@ func (s *s3store) Run(ctx context.Context) (err error) {
 }
 
 func (s *s3store) Get(ctx context.Context, k cid.Cid) (blocks.Block, error) {
+	st := time.Now()
 	s.limiter <- struct{}{}
 	defer func() { <-s.limiter }()
+	wait := time.Since(st)
 	obj, err := s.client.GetObjectWithContext(ctx, &s3.GetObjectInput{
 		Bucket: s.bucket,
 		Key:    aws.String(k.String()),
@@ -87,6 +89,11 @@ func (s *s3store) Get(ctx context.Context, k cid.Cid) (blocks.Block, error) {
 	if err != nil {
 		return nil, err
 	}
+	log.Debug("s3 get",
+		zap.Duration("total", time.Since(st)),
+		zap.Duration("wait", wait),
+		zap.Int("kbytes", len(data)/1024),
+	)
 	return blocks.NewBlockWithCid(data, k)
 }
 
@@ -149,6 +156,10 @@ func (s *s3store) Add(ctx context.Context, bs []blocks.Block) error {
 }
 
 func (s *s3store) Check(ctx context.Context, spaceId string, cids ...cid.Cid) (result []*fileproto.BlockAvailability, err error) {
+	st := time.Now()
+	s.limiter <- struct{}{}
+	defer func() { <-s.limiter }()
+	wait := time.Since(st)
 	for _, c := range cids {
 		_, headErr := s.client.HeadObject(&s3.HeadObjectInput{
 			Bucket: s.bucket,
@@ -171,17 +182,29 @@ func (s *s3store) Check(ctx context.Context, spaceId string, cids ...cid.Cid) (r
 			Status: status,
 		})
 	}
+	log.Debug("s3 check availability",
+		zap.Duration("total", time.Since(st)),
+		zap.Duration("wait", wait),
+		zap.Int("blocks", len(cids)),
+	)
+
 	return
 }
 
 func (s *s3store) Delete(ctx context.Context, c cid.Cid) error {
 	// TODO: make batch delete
+	st := time.Now()
 	s.limiter <- struct{}{}
+	wait := time.Since(st)
 	defer func() { <-s.limiter }()
 	_, err := s.client.DeleteObject(&s3.DeleteObjectInput{
 		Bucket: s.bucket,
 		Key:    aws.String(c.String()),
 	})
+	log.Debug("s3 delete",
+		zap.Duration("total", time.Since(st)),
+		zap.Duration("wait", wait),
+	)
 	return err
 }
 
