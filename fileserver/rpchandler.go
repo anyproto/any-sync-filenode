@@ -7,8 +7,8 @@ import (
 	"github.com/anytypeio/any-sync/commonfile/fileblockstore"
 	"github.com/anytypeio/any-sync/commonfile/fileproto"
 	"github.com/anytypeio/any-sync/commonfile/fileproto/fileprotoerr"
-	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
+	"github.com/ipfs/go-libipfs/blocks"
 	"go.uber.org/zap"
 )
 

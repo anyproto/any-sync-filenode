@@ -9,8 +9,8 @@ import (
 	"github.com/anytypeio/any-sync/app/logger"
 	"github.com/anytypeio/any-sync/commonfile/fileblockstore"
 	"github.com/anytypeio/any-sync/commonfile/fileproto"
-	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
+	"github.com/ipfs/go-libipfs/blocks"
 	"os"
 	"path/filepath"
 )
