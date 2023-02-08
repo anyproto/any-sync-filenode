@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/anytypeio/any-sync-filenode/serverstore"
+	"github.com/anytypeio/any-sync-filenode/store"
 	"github.com/anytypeio/any-sync/app"
 	"github.com/anytypeio/any-sync/app/logger"
 	"github.com/anytypeio/any-sync/commonfile/fileblockstore"
@@ -28,7 +28,7 @@ func New() S3Store {
 }
 
 type S3Store interface {
-	serverstore.ServerStore
+	store.Store
 	app.ComponentRunnable
 }
 

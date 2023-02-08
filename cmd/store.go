@@ -3,7 +3,7 @@
 package main
 
 import (
-	"github.com/anytypeio/any-sync-filenode/s3store"
+	"github.com/anytypeio/any-sync-filenode/store/s3store"
 	"github.com/anytypeio/any-sync/app"
 )
 

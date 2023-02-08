@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"github.com/anytypeio/any-sync-filenode/config"
-	"github.com/anytypeio/any-sync-filenode/s3store"
+	"github.com/anytypeio/any-sync-filenode/store/s3store"
 	commonaccount "github.com/anytypeio/any-sync/accountservice"
 	"github.com/anytypeio/any-sync/app"
 	"github.com/anytypeio/any-sync/metric"

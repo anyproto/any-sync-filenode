@@ -1,4 +1,3 @@
-//go:generate mockgen -destination mock_serverstore/mock_serverstore.go github.com/anytypeio/any-sync-filenode/serverstore Service,ServerStore
 package serverstore
 
 import (
@@ -7,6 +6,7 @@ import (
 	"fmt"
 	"github.com/anytypeio/any-sync-filenode/index"
 	"github.com/anytypeio/any-sync-filenode/index/redisindex"
+	"github.com/anytypeio/any-sync-filenode/store"
 	"github.com/anytypeio/any-sync/app"
 	"github.com/anytypeio/any-sync/app/logger"
 	"github.com/anytypeio/any-sync/commonfile/fileblockstore"
@@ -35,11 +35,6 @@ func New() Service {
 	return new(serverStore)
 }
 
-type ServerStore interface {
-	fileblockstore.BlockStore
-	DeleteMany(ctx context.Context, toDelete []cid.Cid) error
-	app.Component
-}
 type Service interface {
 	fileblockstore.BlockStore
 	Check(ctx context.Context, spaceId string, cids ...cid.Cid) (result []*fileproto.BlockAvailability, err error)
@@ -49,11 +44,11 @@ type Service interface {
 
 type serverStore struct {
 	index index.Index
-	store ServerStore
+	store store.Store
 }
 
 func (s *serverStore) Init(a *app.App) (err error) {
-	s.store = a.MustComponent(fileblockstore.CName).(ServerStore)
+	s.store = a.MustComponent(fileblockstore.CName).(store.Store)
 	s.index = a.MustComponent(redisindex.CName).(index.Index)
 	return nil
 }

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/anytypeio/any-sync-filenode/config"
-	"github.com/anytypeio/any-sync-filenode/serverstore"
+	"github.com/anytypeio/any-sync-filenode/store"
 	"github.com/anytypeio/any-sync/app"
 	"github.com/anytypeio/any-sync/app/logger"
 	"github.com/anytypeio/any-sync/commonfile/fileblockstore"
@@ -18,40 +18,35 @@ const CName = fileblockstore.CName
 
 var log = logger.NewNamed(CName)
 
-func New() Store {
-	return &store{}
-}
-
-type Store interface {
-	app.ComponentRunnable
-	serverstore.ServerStore
+func New() store.Store {
+	return &fsstore{}
 }
 
 type configSource interface {
 	GetDevStore() config.FileDevStore
 }
 
-type store struct {
+type fsstore struct {
 	path string
 }
 
-func (s *store) Init(a *app.App) (err error) {
+func (s *fsstore) Init(a *app.App) (err error) {
 	s.path = a.MustComponent("config").(configSource).GetDevStore().Path
 	if s.path == "" {
-		return fmt.Errorf("you must specify path for local store")
+		return fmt.Errorf("you must specify path for local fsstore")
 	}
 	return
 }
 
-func (s *store) Name() (name string) {
+func (s *fsstore) Name() (name string) {
 	return CName
 }
 
-func (s *store) Run(ctx context.Context) (err error) {
+func (s *fsstore) Run(ctx context.Context) (err error) {
 	return
 }
 
-func (s *store) Get(ctx context.Context, k cid.Cid) (blocks.Block, error) {
+func (s *fsstore) Get(ctx context.Context, k cid.Cid) (blocks.Block, error) {
 	val, err := os.ReadFile(filepath.Join(s.path, k.String()))
 	if err != nil {
 		return nil, err
@@ -59,7 +54,7 @@ func (s *store) Get(ctx context.Context, k cid.Cid) (blocks.Block, error) {
 	return blocks.NewBlockWithCid(val, k)
 }
 
-func (s *store) GetMany(ctx context.Context, ks []cid.Cid) <-chan blocks.Block {
+func (s *fsstore) GetMany(ctx context.Context, ks []cid.Cid) <-chan blocks.Block {
 	var res = make(chan blocks.Block)
 	go func() {
 		defer close(res)
@@ -78,7 +73,7 @@ func (s *store) GetMany(ctx context.Context, ks []cid.Cid) <-chan blocks.Block {
 	return res
 }
 
-func (s *store) Add(ctx context.Context, bs []blocks.Block) error {
+func (s *fsstore) Add(ctx context.Context, bs []blocks.Block) error {
 	for _, b := range bs {
 		if err := os.WriteFile(filepath.Join(s.path, b.Cid().String()), b.RawData(), 0777); err != nil {
 			return err
@@ -87,15 +82,15 @@ func (s *store) Add(ctx context.Context, bs []blocks.Block) error {
 	return nil
 }
 
-func (s *store) Delete(ctx context.Context, c cid.Cid) error {
+func (s *fsstore) Delete(ctx context.Context, c cid.Cid) error {
 	return os.Remove(filepath.Join(s.path, c.String()))
 }
 
-func (s *store) Close(ctx context.Context) (err error) {
+func (s *fsstore) Close(ctx context.Context) (err error) {
 	return
 }
 
-func (s *store) DeleteMany(ctx context.Context, toDelete []cid.Cid) error {
+func (s *fsstore) DeleteMany(ctx context.Context, toDelete []cid.Cid) error {
 	for _, k := range toDelete {
 		_ = s.Delete(ctx, k)
 	}
