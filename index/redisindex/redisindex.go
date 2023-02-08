@@ -132,7 +132,7 @@ func (r *redisIndex) UnBind(ctx context.Context, spaceId string, ks []cid.Cid) (
 	for i, k := range cidKeys {
 		ck := cidKey(k)
 		var res int64
-		// remove space from cids
+		// decrement ref counter for cid
 		if res, err = r.cl.Decr(ctx, ck).Result(); err != nil {
 			return nil, err
 		}
