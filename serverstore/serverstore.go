@@ -162,33 +162,32 @@ func (s *serverStore) BlocksBind(ctx context.Context, spaceId string, cids ...ci
 		return nil
 	}
 
-	// check that we have all cids uploaded
-	existing, err := s.index.FilterExistingOnly(ctx, cids)
-	if err != nil {
-		return err
-	}
-	if len(existing) != len(cids) {
-		return ErrCidsNotExists
-	}
-
-	var cidsToBound []cid.Cid
+	var cidsToBind []cid.Cid
 	if len(existingInSpace) > 0 {
 		// if we have some cids bound, filter it
-		cidsToBound = make([]cid.Cid, 0, len(cids)-len(existingInSpace))
+		cidsToBind = make([]cid.Cid, 0, len(cids)-len(existingInSpace))
 		for _, c := range cids {
 			if !slices.Contains(existingInSpace, c) {
-				cidsToBound = append(cidsToBound, c)
+				cidsToBind = append(cidsToBind, c)
 			}
 		}
 	} else {
-		cidsToBound = cids
+		cidsToBind = cids
 	}
 
-	var bs = make([]blocks.Block, 0, len(cids))
-	for b := range s.store.GetMany(ctx, cids) {
-		bs = append(bs, b)
+	// check that we have all cids uploaded
+	exists, err := s.index.FilterExistingOnly(ctx, cidsToBind)
+	if err != nil {
+		return err
 	}
-	if len(bs) != len(cids) {
+	if len(exists) != len(cidsToBind) {
+		return ErrCidsNotExists
+	}
+
+	var bs = make([]blocks.Block, 0, len(cidsToBind))
+	bs, err = readAllBlocks(ctx, bs, s.store.GetMany(ctx, cidsToBind))
+
+	if len(bs) != len(cidsToBind) {
 		return ErrCidsNotExists
 	}
 	return s.index.Bind(ctx, spaceId, bs)
@@ -200,4 +199,20 @@ func (s *serverStore) validateSpaceId(ctx context.Context, spaceId string) (err 
 	}
 	// TODO: make validation checks here
 	return
+}
+
+func readAllBlocks(ctx context.Context, buf []blocks.Block, result <-chan blocks.Block) ([]blocks.Block, error) {
+	bs := buf
+	for {
+		select {
+		case b, ok := <-result:
+			if ok {
+				bs = append(bs, b)
+			} else {
+				return bs, nil
+			}
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+	}
 }

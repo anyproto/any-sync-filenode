@@ -8,6 +8,7 @@ import (
 	"github.com/anytypeio/any-sync-filenode/testutil"
 	"github.com/anytypeio/any-sync/app"
 	"github.com/anytypeio/any-sync/commonfile/fileblockstore"
+	"github.com/anytypeio/any-sync/commonfile/fileproto"
 	"github.com/golang/mock/gomock"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-libipfs/blocks"
@@ -120,6 +121,76 @@ func TestServerStore_Delete(t *testing.T) {
 		fx.index.EXPECT().UnBind(sCtx, spaceId, []cid.Cid{b.Cid()}).Return([]cid.Cid{b.Cid()}, nil)
 		fx.store.EXPECT().DeleteMany(sCtx, []cid.Cid{b.Cid()})
 		require.NoError(t, fx.Delete(sCtx, b.Cid()))
+	})
+}
+
+func TestServerStore_Check(t *testing.T) {
+	fx := newFixture(t)
+	defer fx.Finish(t)
+	var spaceId = "space1"
+	bs := make([]blocks.Block, 3)
+	for i := range bs {
+		bs[i] = testutil.NewRandBlock(10)
+	}
+	keys := testutil.BlocksToKeys(bs)
+
+	fx.index.EXPECT().ExistsInSpace(ctx, spaceId, keys).Return(keys[:1], nil)
+	fx.index.EXPECT().Exists(ctx, keys[1]).Return(true, nil)
+	fx.index.EXPECT().Exists(ctx, keys[2]).Return(false, nil)
+
+	result, err := fx.Check(ctx, spaceId, keys...)
+	require.NoError(t, err)
+	require.Len(t, result, len(bs))
+
+	assert.Equal(t, keys[0].Bytes(), result[0].Cid)
+	assert.Equal(t, fileproto.AvailabilityStatus_ExistsInSpace, result[0].Status)
+
+	assert.Equal(t, keys[1].Bytes(), result[1].Cid)
+	assert.Equal(t, fileproto.AvailabilityStatus_Exists, result[1].Status)
+
+	assert.Equal(t, keys[2].Bytes(), result[2].Cid)
+	assert.Equal(t, fileproto.AvailabilityStatus_NotExists, result[2].Status)
+}
+
+func TestServerStore_BlocksBind(t *testing.T) {
+	t.Run("cid not exists", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
+		var spaceId = "space1"
+		var k = testutil.NewRandBlock(1).Cid()
+		var ks = []cid.Cid{k}
+		fx.index.EXPECT().ExistsInSpace(ctx, spaceId, ks).Return(nil, nil)
+		fx.index.EXPECT().FilterExistingOnly(ctx, ks).Return(nil, nil)
+		require.EqualError(t, fx.BlocksBind(ctx, spaceId, k), ErrCidsNotExists.Error())
+	})
+	t.Run("already bound", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
+		var spaceId = "space1"
+		var k = testutil.NewRandBlock(1).Cid()
+		var ks = []cid.Cid{k}
+		fx.index.EXPECT().ExistsInSpace(ctx, spaceId, ks).Return(ks, nil)
+		require.NoError(t, fx.BlocksBind(ctx, spaceId, k))
+	})
+	t.Run("bind", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
+		var spaceId = "space1"
+		bs := make([]blocks.Block, 3)
+		for i := range bs {
+			bs[i] = testutil.NewRandBlock(10)
+		}
+		keys := testutil.BlocksToKeys(bs)
+		fx.index.EXPECT().ExistsInSpace(ctx, spaceId, keys).Return(keys[:1], nil)
+		fx.index.EXPECT().FilterExistingOnly(ctx, keys[1:]).Return(keys[1:], nil)
+		result := make(chan blocks.Block, 2)
+		for _, b := range bs[1:] {
+			result <- b
+		}
+		close(result)
+		fx.store.EXPECT().GetMany(ctx, keys[1:]).Return(result)
+		fx.index.EXPECT().Bind(ctx, spaceId, bs[1:])
+		assert.NoError(t, fx.BlocksBind(ctx, spaceId, keys...))
 	})
 }
 
