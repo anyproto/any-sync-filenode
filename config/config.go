@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/anytypeio/any-sync-filenode/redisprovider"
 	"github.com/anytypeio/any-sync-filenode/s3store"
 	commonaccount "github.com/anytypeio/any-sync/accountservice"
 	"github.com/anytypeio/any-sync/app"
@@ -30,6 +31,7 @@ type Config struct {
 	Metric       metric.Config        `yaml:"metric"`
 	S3Store      s3store.Config       `yaml:"s3Store"`
 	FileDevStore FileDevStore         `yaml:"fileDevStore"`
+	Redis        redisprovider.Config `yaml:"redis"`
 }
 
 func (c *Config) Init(a *app.App) (err error) {
@@ -58,4 +60,8 @@ func (c Config) GetNet() net.Config {
 
 func (c Config) GetMetric() metric.Config {
 	return c.Metric
+}
+
+func (c Config) GetRedis() redisprovider.Config {
+	return c.Redis
 }

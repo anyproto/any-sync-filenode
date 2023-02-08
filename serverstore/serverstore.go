@@ -80,6 +80,9 @@ func (s *serverStore) GetMany(ctx context.Context, ks []cid.Cid) <-chan blocks.B
 		log.Warn("filterNonExists error", zap.Error(err))
 		return closedResult
 	}
+	if len(ks) == 0 {
+		return closedResult
+	}
 	return s.store.GetMany(ctx, ks)
 }
 

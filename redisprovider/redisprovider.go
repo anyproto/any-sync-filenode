@@ -23,6 +23,10 @@ type redisProvider struct {
 
 func (r *redisProvider) Init(a *app.App) (err error) {
 	conf := a.MustComponent("config").(configSource).GetRedis()
+	if conf.Url == "" {
+		conf.IsCluster = false
+		conf.Url = "redis://127.0.0.1:6379/?dial_timeout=3&db=1&read_timeout=6s&max_retries=2"
+	}
 	if conf.IsCluster {
 		opts, e := redis.ParseClusterURL(conf.Url)
 		if e != nil {
