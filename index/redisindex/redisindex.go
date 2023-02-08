@@ -16,13 +16,8 @@ const CName = "filenode.redisindex"
 
 var log = logger.NewNamed(CName)
 
-func New() RedisIndex {
+func New() index.Index {
 	return new(redisIndex)
-}
-
-type RedisIndex interface {
-	index.Index
-	app.Component
 }
 
 type redisIndex struct {
@@ -98,8 +93,9 @@ func (r *redisIndex) Bind(ctx context.Context, spaceId string, bs []blocks.Block
 	// add needed cids to space
 	toBindKV := make([]interface{}, 0, len(toBind)*2)
 	for _, b := range toBind {
+		size := uint64(len(b.RawData()))
 		toBindKV = append(toBindKV, b.Cid().String(), Entry{
-			Size: uint64(len(b.RawData())),
+			Size: size,
 			Time: now,
 		}.Binary())
 	}
@@ -107,9 +103,9 @@ func (r *redisIndex) Bind(ctx context.Context, spaceId string, bs []blocks.Block
 		return err
 	}
 
-	// add space to cids
+	// increment ref counter for cids
 	for _, b := range toBind {
-		if err = r.cl.LPush(ctx, cidKey(b.Cid().String()), spaceId).Err(); err != nil {
+		if err = r.cl.Incr(ctx, cidKey(b.Cid().String())).Err(); err != nil {
 			return err
 		}
 	}
@@ -118,42 +114,36 @@ func (r *redisIndex) Bind(ctx context.Context, spaceId string, bs []blocks.Block
 
 func (r *redisIndex) UnBind(ctx context.Context, spaceId string, ks []cid.Cid) (toDelete []cid.Cid, err error) {
 	var sk = spaceKey(spaceId)
+	if ks, err = r.ExistsInSpace(ctx, spaceId, ks); err != nil {
+		return nil, err
+	}
+	if len(ks) == 0 {
+		return
+	}
 	cidKeys := make([]string, len(ks))
 	for i, k := range ks {
 		cidKeys[i] = k.String()
 	}
 	// delete cids from a space
-	deleted, err := r.cl.HDel(ctx, sk, cidKeys...).Result()
-	if err != nil {
+	if err = r.cl.HDel(ctx, sk, cidKeys...).Err(); err != nil {
 		return nil, err
 	}
-	if deleted == 0 {
-		// nothing to delete
-		return
-	}
-	var checkDeleteKeys = make([]string, 0, len(cidKeys))
-	for _, k := range cidKeys {
+
+	for i, k := range cidKeys {
 		ck := cidKey(k)
 		var res int64
 		// remove space from cids
-		if res, err = r.cl.LRem(ctx, ck, 0, spaceId).Result(); err != nil {
+		if res, err = r.cl.Decr(ctx, ck).Result(); err != nil {
 			return nil, err
 		}
-		if res > 0 {
-			// if we successfully removed space, mark key to check for empty
-			checkDeleteKeys = append(checkDeleteKeys, ck)
+		if res <= 0 {
+			if err = r.cl.Del(ctx, ck).Err(); err != nil {
+				return nil, err
+			}
+			toDelete = append(toDelete, ks[i])
 		}
 	}
 
-	for _, k := range checkDeleteKeys {
-		var l int64
-		if l, err = r.cl.LLen(ctx, k).Result(); err != nil {
-			return nil, err
-		}
-		if l == 0 {
-			toDelete = append(toDelete, cid.MustParse(k[2:]))
-		}
-	}
 	return
 }
 
@@ -165,13 +155,27 @@ func (r *redisIndex) ExistsInSpace(ctx context.Context, spaceId string, ks []cid
 	}
 	result, err := r.cl.HMGet(ctx, sk, cidKeys...).Result()
 	if err != nil {
-		return nil, err
+		return
 	}
 	exists = make([]cid.Cid, 0, len(ks))
 	for i, v := range result {
 		if v != nil {
 			exists = append(exists, ks[i])
 		}
+	}
+	return
+}
+
+func (r *redisIndex) SpaceSize(ctx context.Context, spaceId string) (size uint64, err error) {
+	result, err := r.cl.HVals(ctx, spaceKey(spaceId)).Result()
+	if err != nil {
+	}
+	for _, r := range result {
+		var e Entry
+		if e, err = NewEntry([]byte(r)); err != nil {
+			return
+		}
+		size += e.Size
 	}
 	return
 }

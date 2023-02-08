@@ -13,7 +13,7 @@ import (
 )
 
 type rpcHandler struct {
-	store serverstore.ServerStore
+	store serverstore.Service
 }
 
 func (r *rpcHandler) BlockGet(ctx context.Context, req *fileproto.BlockGetRequest) (resp *fileproto.BlockGetResponse, err error) {

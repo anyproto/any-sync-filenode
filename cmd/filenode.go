@@ -7,6 +7,9 @@ import (
 	"github.com/anytypeio/any-sync-filenode/account"
 	"github.com/anytypeio/any-sync-filenode/config"
 	"github.com/anytypeio/any-sync-filenode/fileserver"
+	"github.com/anytypeio/any-sync-filenode/index/redisindex"
+	"github.com/anytypeio/any-sync-filenode/redisprovider"
+	"github.com/anytypeio/any-sync-filenode/serverstore"
 	"github.com/anytypeio/any-sync/app"
 	"github.com/anytypeio/any-sync/app/logger"
 	"github.com/anytypeio/any-sync/metric"
@@ -91,6 +94,9 @@ func Bootstrap(a *app.App) {
 	a.Register(account.New()).
 		Register(secureservice.New()).
 		Register(store()).
+		Register(redisprovider.New()).
+		Register(redisindex.New()).
+		Register(serverstore.New()).
 		Register(server.New()).
 		Register(fileserver.New()).
 		Register(metric.New())

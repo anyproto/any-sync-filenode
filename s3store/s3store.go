@@ -8,9 +8,7 @@ import (
 	"github.com/anytypeio/any-sync/app"
 	"github.com/anytypeio/any-sync/app/logger"
 	"github.com/anytypeio/any-sync/commonfile/fileblockstore"
-	"github.com/anytypeio/any-sync/commonfile/fileproto"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/ipfs/go-cid"
@@ -102,16 +100,16 @@ func (s *s3store) GetMany(ctx context.Context, ks []cid.Cid) <-chan blocks.Block
 	go func() {
 		defer close(res)
 		var wg sync.WaitGroup
-		var limiter = make(chan struct{}, 4)
+		var getManyLimiter = make(chan struct{}, 4)
 		for _, k := range ks {
 			wg.Add(1)
 			select {
-			case limiter <- struct{}{}:
+			case getManyLimiter <- struct{}{}:
 			case <-ctx.Done():
 				return
 			}
 			go func(k cid.Cid) {
-				defer func() { <-limiter }()
+				defer func() { <-getManyLimiter }()
 				defer wg.Done()
 				b, e := s.Get(ctx, k)
 				if e == nil {
@@ -155,40 +153,13 @@ func (s *s3store) Add(ctx context.Context, bs []blocks.Block) error {
 	return nil
 }
 
-func (s *s3store) Check(ctx context.Context, spaceId string, cids ...cid.Cid) (result []*fileproto.BlockAvailability, err error) {
-	st := time.Now()
-	s.limiter <- struct{}{}
-	defer func() { <-s.limiter }()
-	wait := time.Since(st)
-	for _, c := range cids {
-		_, headErr := s.client.HeadObject(&s3.HeadObjectInput{
-			Bucket: s.bucket,
-			Key:    aws.String(c.String()),
-		})
-		var status = fileproto.AvailabilityStatus_Exists
-		if headErr != nil {
-			if aerr, ok := headErr.(awserr.Error); ok {
-				if aerr.Code() == "NotFound" {
-					status = fileproto.AvailabilityStatus_NotExists
-				} else {
-					return nil, headErr
-				}
-			} else {
-				return nil, headErr
-			}
+func (s *s3store) DeleteMany(ctx context.Context, ks []cid.Cid) error {
+	for _, k := range ks {
+		if e := s.Delete(ctx, k); e != nil {
+			log.Warn("can't delete cid", zap.Error(e))
 		}
-		result = append(result, &fileproto.BlockAvailability{
-			Cid:    c.Bytes(),
-			Status: status,
-		})
 	}
-	log.Debug("s3 check availability",
-		zap.Duration("total", time.Since(st)),
-		zap.Duration("wait", wait),
-		zap.Int("blocks", len(cids)),
-	)
-
-	return
+	return nil
 }
 
 func (s *s3store) Delete(ctx context.Context, c cid.Cid) error {

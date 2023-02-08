@@ -2,6 +2,7 @@ package redisindex
 
 import (
 	"context"
+	"github.com/anytypeio/any-sync-filenode/index"
 	"github.com/anytypeio/any-sync-filenode/redisprovider/testredisprovider"
 	"github.com/anytypeio/any-sync/app"
 	"github.com/anytypeio/any-sync/util/cidutil"
@@ -11,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"io"
 	"math/rand"
+	"strings"
 	"testing"
 	"time"
 )
@@ -124,22 +126,50 @@ func TestRedisIndex_GetNonExistentBlocks(t *testing.T) {
 	assert.Equal(t, bs[1:], nonExistent)
 }
 
-func newFixture(t *testing.T) (fx *fixture) {
-	fx = &fixture{
-		RedisIndex: New(),
-		a:          new(app.App),
+func Test100KCids(t *testing.T) {
+	t.Skip()
+	fx := newFixture(t)
+	defer fx.Finish(t)
+	for i := 0; i < 10; i++ {
+		st := time.Now()
+		var bs = make([]blocks.Block, 10000)
+		for n := range bs {
+			bs[n] = newRandBlock(rand.Intn(256))
+		}
+		spaceId := newRandSpaceId()
+		require.NoError(t, fx.Bind(ctx, spaceId, bs))
+		t.Logf("bound %d cid for a %v", len(bs), time.Since(st))
+		st = time.Now()
+		sz, err := fx.SpaceSize(ctx, spaceId)
+		require.NoError(t, err)
+		t.Logf("space size is %d, dur: %v", sz, time.Since(st))
 	}
-	fx.a.Register(testredisprovider.NewTestRedisProvider()).Register(fx.RedisIndex)
+	info, err := fx.Index.(*redisIndex).cl.Info(ctx, "memory").Result()
+	require.NoError(t, err)
+	infoS := strings.Split(info, "\n")
+	for _, i := range infoS {
+		if strings.HasPrefix(i, "used_memory_human") {
+			t.Log(i)
+		}
+	}
+}
+
+func newFixture(t require.TestingT) (fx *fixture) {
+	fx = &fixture{
+		Index: New(),
+		a:     new(app.App),
+	}
+	fx.a.Register(testredisprovider.NewTestRedisProvider()).Register(fx.Index)
 	require.NoError(t, fx.a.Start(ctx))
 	return
 }
 
 type fixture struct {
-	RedisIndex
+	index.Index
 	a *app.App
 }
 
-func (fx *fixture) Finish(t *testing.T) {
+func (fx *fixture) Finish(t require.TestingT) {
 	require.NoError(t, fx.a.Close(ctx))
 }
 

@@ -8,6 +8,10 @@ import (
 
 const CName = "filenode.redisprovider"
 
+func New() RedisProvider {
+	return new(redisProvider)
+}
+
 type RedisProvider interface {
 	Redis() redis.UniversalClient
 	app.ComponentRunnable
