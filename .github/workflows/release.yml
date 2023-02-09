@@ -9,6 +9,15 @@ jobs:
     runs-on: ubuntu-20.04
     env:
       GOPRIVATE: github.com/anytypeio
+    # redis for tests
+    services:
+      redis:
+        image: redis
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v3
