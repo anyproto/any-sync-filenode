@@ -59,8 +59,8 @@ func (s *service) Init(a *app.App) (err error) {
 		PeerKey:  decodedPeerKey,
 		SignKey:  decodedSigningKey,
 		EncKey:   decodedEncryptionKey,
+		PeerId:   acc.PeerId,
 	}
-
 	return nil
 }
 
