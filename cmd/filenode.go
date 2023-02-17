@@ -15,6 +15,7 @@ import (
 	"github.com/anytypeio/any-sync/metric"
 	"github.com/anytypeio/any-sync/net/rpc/server"
 	"github.com/anytypeio/any-sync/net/secureservice"
+	"github.com/anytypeio/any-sync/nodeconf"
 	"go.uber.org/zap"
 	"net/http"
 	_ "net/http/pprof"
@@ -92,6 +93,7 @@ func main() {
 
 func Bootstrap(a *app.App) {
 	a.Register(account.New()).
+		Register(nodeconf.New()).
 		Register(secureservice.New()).
 		Register(store()).
 		Register(redisprovider.New()).
