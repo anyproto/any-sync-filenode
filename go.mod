@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/ahmetb/govvv v0.3.0
-	github.com/anytypeio/any-sync v0.0.11
+	github.com/anytypeio/any-sync v0.0.12
 	github.com/aws/aws-sdk-go v1.44.178
 	github.com/ipfs/go-block-format v0.1.1
 	github.com/ipfs/go-cid v0.3.2
