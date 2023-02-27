@@ -125,6 +125,21 @@ func (mr *MockIndexMockRecorder) Init(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Init", reflect.TypeOf((*MockIndex)(nil).Init), arg0)
 }
 
+// Lock mocks base method.
+func (m *MockIndex) Lock(arg0 context.Context, arg1 []cid.Cid) (func(), error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Lock", arg0, arg1)
+	ret0, _ := ret[0].(func())
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Lock indicates an expected call of Lock.
+func (mr *MockIndexMockRecorder) Lock(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Lock", reflect.TypeOf((*MockIndex)(nil).Lock), arg0, arg1)
+}
+
 // Name mocks base method.
 func (m *MockIndex) Name() string {
 	m.ctrl.T.Helper()

@@ -6,6 +6,8 @@ import (
 	"github.com/anytypeio/any-sync-filenode/redisprovider"
 	"github.com/anytypeio/any-sync/app"
 	"github.com/anytypeio/any-sync/app/logger"
+	"github.com/go-redsync/redsync/v4"
+	"github.com/go-redsync/redsync/v4/redis/goredis/v9"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-libipfs/blocks"
 	"github.com/redis/go-redis/v9"
@@ -26,11 +28,13 @@ func New() index.Index {
 }
 
 type redisIndex struct {
-	cl redis.UniversalClient
+	cl      redis.UniversalClient
+	redsync *redsync.Redsync
 }
 
 func (r *redisIndex) Init(a *app.App) (err error) {
 	r.cl = a.MustComponent(redisprovider.CName).(redisprovider.RedisProvider).Redis()
+	r.redsync = redsync.New(goredis.NewPool(r.cl))
 	return nil
 }
 
@@ -116,6 +120,7 @@ func (r *redisIndex) Bind(ctx context.Context, spaceId string, bs []blocks.Block
 	if len(toBind) == 0 {
 		return nil
 	}
+
 	if err = r.cl.HIncrBy(ctx, sk, spaceSizeKey, int64(addedSize)).Err(); err != nil {
 		return err
 	}
@@ -180,9 +185,9 @@ func (r *redisIndex) UnBind(ctx context.Context, spaceId string, ks []cid.Cid) (
 			return nil, err
 		}
 		if res <= 0 {
-			//if err = r.cl.Del(ctx, ck).Err(); err != nil {
-			//	return nil, err
-			//}
+			if err = r.cl.Del(ctx, ck).Err(); err != nil {
+				return nil, err
+			}
 			toDelete = append(toDelete, cid.MustParse(k))
 		}
 	}
@@ -218,6 +223,25 @@ func (r *redisIndex) SpaceSize(ctx context.Context, spaceId string) (size uint64
 	}
 	return strconv.ParseUint(result, 10, 64)
 }
+
+func (r *redisIndex) Lock(ctx context.Context, ks []cid.Cid) (unlock func(), err error) {
+	var lockers = make([]*redsync.Mutex, 0, len(ks))
+	unlock = func() {
+		for _, l := range lockers {
+			_, _ = l.Unlock()
+		}
+	}
+	for _, k := range ks {
+		l := r.redsync.NewMutex("_lock:" + k.String())
+		if err = l.LockContext(ctx); err != nil {
+			unlock()
+			return nil, err
+		}
+		lockers = append(lockers, l)
+	}
+	return
+}
+
 func spaceKey(spaceId string) string {
 	return "s:" + spaceId
 }

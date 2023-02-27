@@ -22,4 +22,4 @@ test:
 
 deps:
 	go mod download
-	CGO_ENABLED=$(CGO_ENABLED) go build $(TAGS) -o deps github.com/ahmetb/govvv
+	go build -o deps github.com/ahmetb/govvv

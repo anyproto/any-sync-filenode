@@ -203,6 +203,24 @@ func TestRedisIndex_Fuzzy(t *testing.T) {
 	assert.Empty(t, size)
 }
 
+func TestRedisIndex_Lock(t *testing.T) {
+	fx := newFixture(t)
+	defer fx.Finish(t)
+
+	var bs = make([]blocks.Block, 3)
+	for i := range bs {
+		bs[i] = testutil.NewRandBlock(rand.Intn(1024))
+	}
+
+	unlock, err := fx.Lock(ctx, testutil.BlocksToKeys(bs[1:]))
+	require.NoError(t, err)
+	tCtx, cancel := context.WithTimeout(ctx, time.Second/2)
+	defer cancel()
+	_, err = fx.Lock(tCtx, testutil.BlocksToKeys(bs))
+	require.Error(t, err)
+	unlock()
+}
+
 func Test100KCids(t *testing.T) {
 	t.Skip()
 	fx := newFixture(t)

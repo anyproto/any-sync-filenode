@@ -8,6 +8,7 @@ import (
 	"github.com/anytypeio/any-sync-filenode/index/redisindex"
 	"github.com/anytypeio/any-sync-filenode/limit"
 	"github.com/anytypeio/any-sync-filenode/store"
+	"github.com/anytypeio/any-sync-filenode/testutil"
 	"github.com/anytypeio/any-sync/app"
 	"github.com/anytypeio/any-sync/app/logger"
 	"github.com/anytypeio/any-sync/commonfile/fileblockstore"
@@ -90,7 +91,11 @@ func (s *serverStore) Add(ctx context.Context, bs []blocks.Block) error {
 	if err := s.validateSpaceId(ctx, spaceId, true); err != nil {
 		return err
 	}
-
+	unlock, err := s.index.Lock(ctx, testutil.BlocksToKeys(bs))
+	if err != nil {
+		return err
+	}
+	defer unlock()
 	toUpload, err := s.index.GetNonExistentBlocks(ctx, bs)
 	if err != nil {
 		return err
@@ -112,6 +117,11 @@ func (s *serverStore) DeleteMany(ctx context.Context, ks []cid.Cid) error {
 	if err := s.validateSpaceId(ctx, spaceId, false); err != nil {
 		return err
 	}
+	unlock, err := s.index.Lock(ctx, ks)
+	if err != nil {
+		return err
+	}
+	defer unlock()
 	toDelete, err := s.index.UnBind(ctx, spaceId, ks)
 	if err != nil {
 		return err
@@ -157,6 +167,11 @@ func (s *serverStore) BlocksBind(ctx context.Context, spaceId string, cids ...ci
 	if err = s.validateSpaceId(ctx, spaceId, true); err != nil {
 		return err
 	}
+	unlock, err := s.index.Lock(ctx, cids)
+	if err != nil {
+		return err
+	}
+	defer unlock()
 	// check maybe it's already bound
 	existingInSpace, err := s.index.ExistsInSpace(ctx, spaceId, cids)
 	if err != nil {

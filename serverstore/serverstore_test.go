@@ -36,7 +36,7 @@ func TestServerStore_Add(t *testing.T) {
 		for i := range bs {
 			bs[i] = testutil.NewRandBlock(10)
 		}
-
+		fx.index.EXPECT().Lock(sCtx, testutil.BlocksToKeys(bs)).Return(func() {}, nil)
 		fx.index.EXPECT().GetNonExistentBlocks(sCtx, bs).Return(nil, nil)
 		fx.limit.EXPECT().Check(sCtx, spaceId).Return(uint64(10000), nil)
 		fx.index.EXPECT().SpaceSize(sCtx, spaceId).Return(uint64(1000), nil)
@@ -52,6 +52,7 @@ func TestServerStore_Add(t *testing.T) {
 		for i := range bs {
 			bs[i] = testutil.NewRandBlock(10)
 		}
+		fx.index.EXPECT().Lock(sCtx, testutil.BlocksToKeys(bs)).Return(func() {}, nil)
 		fx.index.EXPECT().GetNonExistentBlocks(sCtx, bs).Return(bs[:5], nil)
 		fx.store.EXPECT().Add(sCtx, bs[:5])
 		fx.limit.EXPECT().Check(sCtx, spaceId).Return(uint64(10000), nil)
@@ -129,6 +130,7 @@ func TestServerStore_Delete(t *testing.T) {
 		b := testutil.NewRandBlock(10)
 		var spaceId = "space1"
 		sCtx := fileblockstore.CtxWithSpaceId(ctx, spaceId)
+		fx.index.EXPECT().Lock(sCtx, []cid.Cid{b.Cid()}).Return(func() {}, nil)
 		fx.limit.EXPECT().Check(sCtx, spaceId).Return(uint64(123), nil)
 		fx.index.EXPECT().UnBind(sCtx, spaceId, []cid.Cid{b.Cid()}).Return(nil, nil)
 		require.NoError(t, fx.Delete(sCtx, b.Cid()))
@@ -139,6 +141,7 @@ func TestServerStore_Delete(t *testing.T) {
 		b := testutil.NewRandBlock(10)
 		var spaceId = "space1"
 		sCtx := fileblockstore.CtxWithSpaceId(ctx, spaceId)
+		fx.index.EXPECT().Lock(sCtx, []cid.Cid{b.Cid()}).Return(func() {}, nil)
 		fx.limit.EXPECT().Check(sCtx, spaceId).Return(uint64(123), nil)
 		fx.index.EXPECT().UnBind(sCtx, spaceId, []cid.Cid{b.Cid()}).Return([]cid.Cid{b.Cid()}, nil)
 		fx.store.EXPECT().DeleteMany(sCtx, []cid.Cid{b.Cid()})
@@ -181,6 +184,7 @@ func TestServerStore_BlocksBind(t *testing.T) {
 		var spaceId = "space1"
 		var k = testutil.NewRandBlock(1).Cid()
 		var ks = []cid.Cid{k}
+		fx.index.EXPECT().Lock(ctx, ks).Return(func() {}, nil)
 		fx.limit.EXPECT().Check(ctx, spaceId).Return(uint64(1234), nil)
 		fx.index.EXPECT().SpaceSize(ctx, spaceId).Return(uint64(123), nil)
 		fx.index.EXPECT().ExistsInSpace(ctx, spaceId, ks).Return(nil, nil)
@@ -193,6 +197,7 @@ func TestServerStore_BlocksBind(t *testing.T) {
 		var spaceId = "space1"
 		var k = testutil.NewRandBlock(1).Cid()
 		var ks = []cid.Cid{k}
+		fx.index.EXPECT().Lock(ctx, ks).Return(func() {}, nil)
 		fx.limit.EXPECT().Check(ctx, spaceId).Return(uint64(1234), nil)
 		fx.index.EXPECT().SpaceSize(ctx, spaceId).Return(uint64(123), nil)
 		fx.index.EXPECT().ExistsInSpace(ctx, spaceId, ks).Return(ks, nil)
@@ -207,6 +212,7 @@ func TestServerStore_BlocksBind(t *testing.T) {
 			bs[i] = testutil.NewRandBlock(10)
 		}
 		keys := testutil.BlocksToKeys(bs)
+		fx.index.EXPECT().Lock(ctx, keys).Return(func() {}, nil)
 		fx.limit.EXPECT().Check(ctx, spaceId).Return(uint64(1234), nil)
 		fx.index.EXPECT().SpaceSize(ctx, spaceId).Return(uint64(123), nil)
 		fx.index.EXPECT().ExistsInSpace(ctx, spaceId, keys).Return(keys[:1], nil)

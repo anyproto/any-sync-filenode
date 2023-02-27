@@ -16,5 +16,6 @@ type Index interface {
 	UnBind(ctx context.Context, spaceId string, ks []cid.Cid) (toDelete []cid.Cid, err error)
 	ExistsInSpace(ctx context.Context, spaceId string, ks []cid.Cid) (exists []cid.Cid, err error)
 	SpaceSize(ctx context.Context, spaceId string) (size uint64, err error)
+	Lock(ctx context.Context, ks []cid.Cid) (unlock func(), err error)
 	app.Component
 }
