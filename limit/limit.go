@@ -1,3 +1,4 @@
+//go:generate mockgen -destination mock_limit/mock_limit.go github.com/anytypeio/any-sync-filenode/limit Limit
 package limit
 
 import (

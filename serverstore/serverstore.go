@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/anytypeio/any-sync-filenode/index"
 	"github.com/anytypeio/any-sync-filenode/index/redisindex"
+	"github.com/anytypeio/any-sync-filenode/limit"
 	"github.com/anytypeio/any-sync-filenode/store"
 	"github.com/anytypeio/any-sync/app"
 	"github.com/anytypeio/any-sync/app/logger"
@@ -25,6 +26,7 @@ var closedResult = make(chan blocks.Block)
 
 var (
 	ErrCidsNotExists = errors.New("cids not exists")
+	ErrLimitExceed   = errors.New("space limit exceed")
 )
 
 func init() {
@@ -45,11 +47,13 @@ type Service interface {
 type serverStore struct {
 	index index.Index
 	store store.Store
+	limit limit.Limit
 }
 
 func (s *serverStore) Init(a *app.App) (err error) {
 	s.store = a.MustComponent(fileblockstore.CName).(store.Store)
 	s.index = a.MustComponent(redisindex.CName).(index.Index)
+	s.limit = a.MustComponent(limit.CName).(limit.Limit)
 	return nil
 }
 
@@ -83,9 +87,10 @@ func (s *serverStore) GetMany(ctx context.Context, ks []cid.Cid) <-chan blocks.B
 
 func (s *serverStore) Add(ctx context.Context, bs []blocks.Block) error {
 	spaceId := fileblockstore.CtxGetSpaceId(ctx)
-	if err := s.validateSpaceId(ctx, spaceId); err != nil {
+	if err := s.validateSpaceId(ctx, spaceId, true); err != nil {
 		return err
 	}
+
 	toUpload, err := s.index.GetNonExistentBlocks(ctx, bs)
 	if err != nil {
 		return err
@@ -104,7 +109,7 @@ func (s *serverStore) Delete(ctx context.Context, k cid.Cid) error {
 
 func (s *serverStore) DeleteMany(ctx context.Context, ks []cid.Cid) error {
 	spaceId := fileblockstore.CtxGetSpaceId(ctx)
-	if err := s.validateSpaceId(ctx, spaceId); err != nil {
+	if err := s.validateSpaceId(ctx, spaceId, false); err != nil {
 		return err
 	}
 	toDelete, err := s.index.UnBind(ctx, spaceId, ks)
@@ -149,7 +154,7 @@ func (s *serverStore) Check(ctx context.Context, spaceId string, cids ...cid.Cid
 }
 
 func (s *serverStore) BlocksBind(ctx context.Context, spaceId string, cids ...cid.Cid) (err error) {
-	if err = s.validateSpaceId(ctx, spaceId); err != nil {
+	if err = s.validateSpaceId(ctx, spaceId, true); err != nil {
 		return err
 	}
 	// check maybe it's already bound
@@ -193,11 +198,24 @@ func (s *serverStore) BlocksBind(ctx context.Context, spaceId string, cids ...ci
 	return s.index.Bind(ctx, spaceId, bs)
 }
 
-func (s *serverStore) validateSpaceId(ctx context.Context, spaceId string) (err error) {
+func (s *serverStore) validateSpaceId(ctx context.Context, spaceId string, checkLimit bool) (err error) {
 	if spaceId == "" {
 		return fmt.Errorf("empty space id")
 	}
-	// TODO: make validation checks here
+	// this call also confirms that space exists and valid
+	limitBytes, err := s.limit.Check(ctx, spaceId)
+	if err != nil {
+		return
+	}
+	if checkLimit {
+		currentSize, e := s.index.SpaceSize(ctx, spaceId)
+		if e != nil {
+			return e
+		}
+		if currentSize >= limitBytes {
+			return ErrLimitExceed
+		}
+	}
 	return
 }
 

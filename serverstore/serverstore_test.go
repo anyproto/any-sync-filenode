@@ -4,6 +4,8 @@ import (
 	"context"
 	"github.com/anytypeio/any-sync-filenode/index/mock_index"
 	"github.com/anytypeio/any-sync-filenode/index/redisindex"
+	"github.com/anytypeio/any-sync-filenode/limit"
+	"github.com/anytypeio/any-sync-filenode/limit/mock_limit"
 	"github.com/anytypeio/any-sync-filenode/store/mock_store"
 	"github.com/anytypeio/any-sync-filenode/testutil"
 	"github.com/anytypeio/any-sync/app"
@@ -34,7 +36,10 @@ func TestServerStore_Add(t *testing.T) {
 		for i := range bs {
 			bs[i] = testutil.NewRandBlock(10)
 		}
+
 		fx.index.EXPECT().GetNonExistentBlocks(sCtx, bs).Return(nil, nil)
+		fx.limit.EXPECT().Check(sCtx, spaceId).Return(uint64(10000), nil)
+		fx.index.EXPECT().SpaceSize(sCtx, spaceId).Return(uint64(1000), nil)
 		fx.index.EXPECT().Bind(sCtx, spaceId, bs)
 		require.NoError(t, fx.Add(sCtx, bs))
 	})
@@ -49,8 +54,23 @@ func TestServerStore_Add(t *testing.T) {
 		}
 		fx.index.EXPECT().GetNonExistentBlocks(sCtx, bs).Return(bs[:5], nil)
 		fx.store.EXPECT().Add(sCtx, bs[:5])
+		fx.limit.EXPECT().Check(sCtx, spaceId).Return(uint64(10000), nil)
+		fx.index.EXPECT().SpaceSize(sCtx, spaceId).Return(uint64(1000), nil)
 		fx.index.EXPECT().Bind(sCtx, spaceId, bs)
 		require.NoError(t, fx.Add(sCtx, bs))
+	})
+	t.Run("limit err", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
+		var spaceId = "space1"
+		sCtx := fileblockstore.CtxWithSpaceId(ctx, spaceId)
+		var bs = make([]blocks.Block, 10)
+		for i := range bs {
+			bs[i] = testutil.NewRandBlock(10)
+		}
+		fx.limit.EXPECT().Check(sCtx, spaceId).Return(uint64(1000), nil)
+		fx.index.EXPECT().SpaceSize(sCtx, spaceId).Return(uint64(10000), nil)
+		require.EqualError(t, fx.Add(sCtx, bs), ErrLimitExceed.Error())
 	})
 }
 
@@ -109,6 +129,7 @@ func TestServerStore_Delete(t *testing.T) {
 		b := testutil.NewRandBlock(10)
 		var spaceId = "space1"
 		sCtx := fileblockstore.CtxWithSpaceId(ctx, spaceId)
+		fx.limit.EXPECT().Check(sCtx, spaceId).Return(uint64(123), nil)
 		fx.index.EXPECT().UnBind(sCtx, spaceId, []cid.Cid{b.Cid()}).Return(nil, nil)
 		require.NoError(t, fx.Delete(sCtx, b.Cid()))
 	})
@@ -118,6 +139,7 @@ func TestServerStore_Delete(t *testing.T) {
 		b := testutil.NewRandBlock(10)
 		var spaceId = "space1"
 		sCtx := fileblockstore.CtxWithSpaceId(ctx, spaceId)
+		fx.limit.EXPECT().Check(sCtx, spaceId).Return(uint64(123), nil)
 		fx.index.EXPECT().UnBind(sCtx, spaceId, []cid.Cid{b.Cid()}).Return([]cid.Cid{b.Cid()}, nil)
 		fx.store.EXPECT().DeleteMany(sCtx, []cid.Cid{b.Cid()})
 		require.NoError(t, fx.Delete(sCtx, b.Cid()))
@@ -159,6 +181,8 @@ func TestServerStore_BlocksBind(t *testing.T) {
 		var spaceId = "space1"
 		var k = testutil.NewRandBlock(1).Cid()
 		var ks = []cid.Cid{k}
+		fx.limit.EXPECT().Check(ctx, spaceId).Return(uint64(1234), nil)
+		fx.index.EXPECT().SpaceSize(ctx, spaceId).Return(uint64(123), nil)
 		fx.index.EXPECT().ExistsInSpace(ctx, spaceId, ks).Return(nil, nil)
 		fx.index.EXPECT().FilterExistingOnly(ctx, ks).Return(nil, nil)
 		require.EqualError(t, fx.BlocksBind(ctx, spaceId, k), ErrCidsNotExists.Error())
@@ -169,6 +193,8 @@ func TestServerStore_BlocksBind(t *testing.T) {
 		var spaceId = "space1"
 		var k = testutil.NewRandBlock(1).Cid()
 		var ks = []cid.Cid{k}
+		fx.limit.EXPECT().Check(ctx, spaceId).Return(uint64(1234), nil)
+		fx.index.EXPECT().SpaceSize(ctx, spaceId).Return(uint64(123), nil)
 		fx.index.EXPECT().ExistsInSpace(ctx, spaceId, ks).Return(ks, nil)
 		require.NoError(t, fx.BlocksBind(ctx, spaceId, k))
 	})
@@ -181,6 +207,8 @@ func TestServerStore_BlocksBind(t *testing.T) {
 			bs[i] = testutil.NewRandBlock(10)
 		}
 		keys := testutil.BlocksToKeys(bs)
+		fx.limit.EXPECT().Check(ctx, spaceId).Return(uint64(1234), nil)
+		fx.index.EXPECT().SpaceSize(ctx, spaceId).Return(uint64(123), nil)
 		fx.index.EXPECT().ExistsInSpace(ctx, spaceId, keys).Return(keys[:1], nil)
 		fx.index.EXPECT().FilterExistingOnly(ctx, keys[1:]).Return(keys[1:], nil)
 		result := make(chan blocks.Block, 2)
@@ -200,6 +228,7 @@ func newFixture(t *testing.T) *fixture {
 		Service: New(),
 		index:   mock_index.NewMockIndex(ctrl),
 		store:   mock_store.NewMockStore(ctrl),
+		limit:   mock_limit.NewMockLimit(ctrl),
 		ctrl:    ctrl,
 		a:       new(app.App),
 	}
@@ -210,7 +239,12 @@ func newFixture(t *testing.T) *fixture {
 	fx.store.EXPECT().Name().Return(fileblockstore.CName).AnyTimes()
 	fx.store.EXPECT().Init(gomock.Any()).AnyTimes()
 
-	fx.a.Register(fx.index).Register(fx.store).Register(fx.Service)
+	fx.limit.EXPECT().Name().Return(limit.CName).AnyTimes()
+	fx.limit.EXPECT().Init(gomock.Any()).AnyTimes()
+	fx.limit.EXPECT().Run(gomock.Any()).AnyTimes()
+	fx.limit.EXPECT().Close(gomock.Any()).AnyTimes()
+
+	fx.a.Register(fx.index).Register(fx.store).Register(fx.limit).Register(fx.Service)
 	require.NoError(t, fx.a.Start(ctx))
 	return fx
 }
@@ -221,6 +255,7 @@ type fixture struct {
 	store *mock_store.MockStore
 	ctrl  *gomock.Controller
 	a     *app.App
+	limit *mock_limit.MockLimit
 }
 
 func (fx *fixture) Finish(t *testing.T) {
