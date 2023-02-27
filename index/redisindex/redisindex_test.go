@@ -133,6 +133,15 @@ func TestRedisIndex_GetNonExistentBlocks(t *testing.T) {
 	assert.Equal(t, bs[1:], nonExistent)
 }
 
+func TestRedisIndex_SpaceSize(t *testing.T) {
+	fx := newFixture(t)
+	defer fx.Finish(t)
+	spaceId1 := testutil.NewRandSpaceId()
+	size, err := fx.SpaceSize(ctx, spaceId1)
+	require.NoError(t, err)
+	assert.Empty(t, size)
+}
+
 func TestRedisIndex_Fuzzy(t *testing.T) {
 	fx := newFixture(t)
 	defer fx.Finish(t)
