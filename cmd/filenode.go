@@ -8,11 +8,15 @@ import (
 	"github.com/anytypeio/any-sync-filenode/config"
 	"github.com/anytypeio/any-sync-filenode/fileserver"
 	"github.com/anytypeio/any-sync-filenode/index/redisindex"
+	"github.com/anytypeio/any-sync-filenode/limit"
 	"github.com/anytypeio/any-sync-filenode/redisprovider"
 	"github.com/anytypeio/any-sync-filenode/serverstore"
 	"github.com/anytypeio/any-sync/app"
 	"github.com/anytypeio/any-sync/app/logger"
+	"github.com/anytypeio/any-sync/coordinator/coordinatorclient"
 	"github.com/anytypeio/any-sync/metric"
+	"github.com/anytypeio/any-sync/net/dialer"
+	"github.com/anytypeio/any-sync/net/pool"
 	"github.com/anytypeio/any-sync/net/rpc/server"
 	"github.com/anytypeio/any-sync/net/secureservice"
 	"github.com/anytypeio/any-sync/nodeconf"
@@ -94,7 +98,11 @@ func main() {
 func Bootstrap(a *app.App) {
 	a.Register(account.New()).
 		Register(nodeconf.New()).
+		Register(dialer.New()).
 		Register(secureservice.New()).
+		Register(pool.New()).
+		Register(coordinatorclient.New()).
+		Register(limit.New()).
 		Register(store()).
 		Register(redisprovider.New()).
 		Register(redisindex.New()).
