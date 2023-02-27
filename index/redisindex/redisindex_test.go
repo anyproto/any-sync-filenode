@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"math/rand"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -23,8 +24,10 @@ func TestRedisIndex_Bind(t *testing.T) {
 	spaceId1 := testutil.NewRandSpaceId()
 	spaceId2 := testutil.NewRandSpaceId()
 	var bs = make([]blocks.Block, 10)
+	var size int
 	for i := range bs {
 		bs[i] = testutil.NewRandBlock(rand.Intn(256 * 1024))
+		size += len(bs[i].RawData())
 	}
 
 	require.NoError(t, fx.Bind(ctx, spaceId1, bs))
@@ -43,6 +46,9 @@ func TestRedisIndex_Bind(t *testing.T) {
 	exKeys2, err = fx.ExistsInSpace(ctx, spaceId2, keys)
 	require.NoError(t, err)
 	assert.Equal(t, testutil.BlocksToKeys(bs[:5]), exKeys2)
+	ss, err := fx.SpaceSize(ctx, spaceId1)
+	require.NoError(t, err)
+	assert.Equal(t, uint64(size), ss)
 }
 
 func TestRedisIndex_UnBind(t *testing.T) {
@@ -76,6 +82,9 @@ func TestRedisIndex_UnBind(t *testing.T) {
 		require.NoError(t, e)
 		assert.False(t, ex)
 	}
+	ss, err := fx.SpaceSize(ctx, spaceId1)
+	require.NoError(t, err)
+	assert.Empty(t, ss)
 }
 
 func TestRedisIndex_Exists(t *testing.T) {
@@ -122,6 +131,67 @@ func TestRedisIndex_GetNonExistentBlocks(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, nonExistent, 1)
 	assert.Equal(t, bs[1:], nonExistent)
+}
+
+func TestRedisIndex_Fuzzy(t *testing.T) {
+	fx := newFixture(t)
+	defer fx.Finish(t)
+	spaceId1 := testutil.NewRandSpaceId()
+	var bs = make([]blocks.Block, 100)
+	for i := range bs {
+		bs[i] = testutil.NewRandBlock(rand.Intn(1024))
+	}
+
+	var stopCh = make(chan struct{})
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	// bind goroutine
+	go func() {
+		defer wg.Done()
+		for {
+			select {
+			case <-stopCh:
+				return
+			default:
+			}
+			var bs2 = make([]blocks.Block, len(bs))
+			copy(bs2, bs)
+			rand.Shuffle(len(bs2), func(i, j int) {
+				bs2[i], bs2[j] = bs2[j], bs2[i]
+			})
+			require.NoError(t, fx.Bind(ctx, spaceId1, bs2[:rand.Intn(20)+1]))
+		}
+	}()
+
+	// unbind goroutine
+	go func() {
+		defer wg.Done()
+		for {
+			select {
+			case <-stopCh:
+				return
+			default:
+			}
+			var bs2 = make([]blocks.Block, len(bs))
+			copy(bs2, bs)
+			rand.Shuffle(len(bs2), func(i, j int) {
+				bs2[i], bs2[j] = bs2[j], bs2[i]
+			})
+			_, err := fx.UnBind(ctx, spaceId1, testutil.BlocksToKeys(bs2[:rand.Intn(20)+1]))
+			require.NoError(t, err)
+		}
+	}()
+
+	time.Sleep(time.Second)
+	close(stopCh)
+	wg.Wait()
+	time.Sleep(time.Second / 100)
+	_, err := fx.UnBind(ctx, spaceId1, testutil.BlocksToKeys(bs))
+	require.NoError(t, err)
+	size, err := fx.SpaceSize(ctx, spaceId1)
+	require.NoError(t, err)
+	assert.Empty(t, size)
 }
 
 func Test100KCids(t *testing.T) {

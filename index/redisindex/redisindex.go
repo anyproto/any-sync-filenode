@@ -39,11 +39,14 @@ func (r *redisIndex) Name() (name string) {
 }
 
 func (r *redisIndex) Exists(ctx context.Context, k cid.Cid) (exists bool, err error) {
-	res, err := r.cl.Exists(ctx, cidKey(k.String())).Result()
+	res, err := r.cl.Get(ctx, cidKey(k.String())).Result()
 	if err != nil {
+		if err == redis.Nil {
+			err = nil
+		}
 		return
 	}
-	return res > 0, nil
+	return res != "0", nil
 }
 
 func (r *redisIndex) FilterExistingOnly(ctx context.Context, cids []cid.Cid) (exists []cid.Cid, err error) {
@@ -74,46 +77,52 @@ func (r *redisIndex) GetNonExistentBlocks(ctx context.Context, bs []blocks.Block
 func (r *redisIndex) Bind(ctx context.Context, spaceId string, bs []blocks.Block) error {
 	now := time.Now()
 	var sk = spaceKey(spaceId)
+	bs = uniqBlocks(bs)
 	cidKeys := make([]string, len(bs))
+	toBindKV := make([]interface{}, 0, len(bs)*2)
 	for i, b := range bs {
 		cidKeys[i] = b.Cid().String()
-	}
-
-	// add needed cids to space
-	toBindKV := make([]interface{}, 0, len(bs)*2)
-	for _, b := range bs {
 		size := uint64(len(b.RawData()))
-		toBindKV = append(toBindKV, b.Cid().String(), Entry{
+		toBindKV = append(toBindKV, cidKeys[i], Entry{
 			Size: size,
 			Time: now,
 		}.Binary())
 	}
-	pipe := r.cl.TxPipeline()
-	getRes := r.cl.HMGet(ctx, sk, cidKeys...)
-	setRes := r.cl.HMSet(ctx, sk, toBindKV...)
-	if _, err := pipe.Exec(ctx); err != nil {
+	var (
+		getRes *redis.SliceCmd
+		err    error
+	)
+
+	_, err = r.cl.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
+		getRes = pipe.HMGet(ctx, sk, cidKeys...)
+		if err = getRes.Err(); err != nil {
+			return err
+		}
+		return pipe.HMSet(ctx, sk, toBindKV...).Err()
+	})
+	if err != nil {
 		return err
 	}
-	if err := getRes.Err(); err != nil {
-		return err
-	}
-	if err := setRes.Err(); err != nil {
-		return err
-	}
-	getValues := getRes.Val()
+	var getVals = getRes.Val()
 	var addedSize uint64
 	var toBind = bs[:0]
 	for i, b := range bs {
-		if getValues[i] == nil {
+		if getVals[i] == nil { // nil means this cid didn't exist before we added it
 			addedSize += uint64(len(b.RawData()))
 			toBind = append(toBind, b)
 		}
 	}
-	r.cl.HIncrBy(ctx, sk, spaceSizeKey, int64(addedSize))
+
+	if len(toBind) == 0 {
+		return nil
+	}
+	if err = r.cl.HIncrBy(ctx, sk, spaceSizeKey, int64(addedSize)).Err(); err != nil {
+		return err
+	}
 
 	// increment ref counter for cids
 	for _, b := range toBind {
-		if err := r.cl.Incr(ctx, cidKey(b.Cid().String())).Err(); err != nil {
+		if err = r.cl.Incr(ctx, cidKey(b.Cid().String())).Err(); err != nil {
 			return err
 		}
 	}
@@ -121,42 +130,49 @@ func (r *redisIndex) Bind(ctx context.Context, spaceId string, bs []blocks.Block
 }
 
 func (r *redisIndex) UnBind(ctx context.Context, spaceId string, ks []cid.Cid) (toDelete []cid.Cid, err error) {
+	ks = uniqKeys(ks)
 	var sk = spaceKey(spaceId)
 	cidKeys := make([]string, len(ks))
 	for i, k := range ks {
 		cidKeys[i] = k.String()
 	}
 
-	pipe := r.cl.TxPipeline()
-	// get key
-	getRes := pipe.HMGet(ctx, sk, cidKeys...)
-	// delete cids from a space
-	delRes := pipe.HDel(ctx, sk, cidKeys...)
-	_, err = pipe.Exec(ctx)
+	var getRes *redis.SliceCmd
+
+	_, err = r.cl.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
+		getRes = pipe.HMGet(ctx, sk, cidKeys...)
+		if err = getRes.Err(); err != nil {
+			return err
+		}
+		return pipe.HDel(ctx, sk, cidKeys...).Err()
+	})
 	if err != nil {
 		return nil, err
 	}
-	if err = getRes.Err(); err != nil {
-		return nil, err
-	}
-	if err = delRes.Err(); err != nil {
-		return nil, err
-	}
-	getVals := getRes.Val()
+
 	var deletedSize uint64
 	var existingKeys = cidKeys[:0]
+	var getVals = getRes.Val()
 	for i, k := range cidKeys {
 		if v := getVals[i]; v != nil {
 			if b, ok := v.(string); ok {
 				if en, e := NewEntry([]byte(b)); e == nil {
 					deletedSize += en.Size
+				} else {
+					panic(1)
 				}
 			}
 			existingKeys = append(existingKeys, k)
 		}
 	}
+	if len(existingKeys) == 0 {
+		return
+	}
+	if err = r.cl.HIncrBy(ctx, sk, spaceSizeKey, -int64(deletedSize)).Err(); err != nil {
+		return nil, err
+	}
 
-	for i, k := range existingKeys {
+	for _, k := range existingKeys {
 		ck := cidKey(k)
 		var res int64
 		// decrement ref counter for cid
@@ -164,13 +180,12 @@ func (r *redisIndex) UnBind(ctx context.Context, spaceId string, ks []cid.Cid) (
 			return nil, err
 		}
 		if res <= 0 {
-			if err = r.cl.Del(ctx, ck).Err(); err != nil {
-				return nil, err
-			}
-			toDelete = append(toDelete, ks[i])
+			//if err = r.cl.Del(ctx, ck).Err(); err != nil {
+			//	return nil, err
+			//}
+			toDelete = append(toDelete, cid.MustParse(k))
 		}
 	}
-
 	return
 }
 
@@ -196,15 +211,49 @@ func (r *redisIndex) ExistsInSpace(ctx context.Context, spaceId string, ks []cid
 func (r *redisIndex) SpaceSize(ctx context.Context, spaceId string) (size uint64, err error) {
 	result, err := r.cl.HGet(ctx, spaceKey(spaceId), spaceSizeKey).Result()
 	if err != nil {
+		if err == redis.Nil {
+			err = nil
+		}
 		return
 	}
 	return strconv.ParseUint(result, 10, 64)
 }
-
 func spaceKey(spaceId string) string {
 	return "s:" + spaceId
 }
 
 func cidKey(k string) string {
 	return "c:" + k
+}
+
+func uniqBlocks(bs []blocks.Block) []blocks.Block {
+	if len(bs) <= 1 {
+		return bs
+	}
+	var uniqMap = make(map[string]struct{})
+	var res = make([]blocks.Block, 0, len(bs))
+	for _, b := range bs {
+		if _, ok := uniqMap[b.Cid().KeyString()]; ok {
+			continue
+		}
+		res = append(res, b)
+		uniqMap[b.Cid().KeyString()] = struct{}{}
+	}
+	return res
+}
+
+func uniqKeys(ks []cid.Cid) []cid.Cid {
+	if len(ks) <= 1 {
+		return ks
+	}
+	var uniqMap = make(map[string]struct{})
+	var res = make([]cid.Cid, 0, len(ks))
+	for _, k := range ks {
+		if _, ok := uniqMap[k.KeyString()]; ok {
+			continue
+		}
+		res = append(res, k)
+		uniqMap[k.KeyString()] = struct{}{}
+	}
+	return res
 }
