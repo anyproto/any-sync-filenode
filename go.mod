@@ -4,11 +4,12 @@ go 1.19
 
 require (
 	github.com/ahmetb/govvv v0.3.0
-	github.com/anytypeio/any-sync v0.0.16-0.20230227141923-cd5a4abc874d
+	github.com/anytypeio/any-sync v0.0.16
 	github.com/aws/aws-sdk-go v1.44.178
 	github.com/ipfs/go-block-format v0.1.1
 	github.com/ipfs/go-cid v0.3.2
 	github.com/stretchr/testify v1.8.1
+	go.uber.org/atomic v1.10.0
 	go.uber.org/zap v1.24.0
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -55,7 +56,6 @@ require (
 	github.com/spacemonkeygo/spacelog v0.0.0-20180420211403-2296661a0572 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/zeebo/errs v1.3.0 // indirect
-	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
 	golang.org/x/crypto v0.4.0 // indirect
 	golang.org/x/exp v0.0.0-20230105202349-8879d0199aa3 // indirect
