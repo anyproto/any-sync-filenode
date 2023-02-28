@@ -2,7 +2,6 @@ package fileserver
 
 import (
 	"context"
-	"fmt"
 	"github.com/anytypeio/any-sync-filenode/serverstore"
 	"github.com/anytypeio/any-sync/commonfile/fileblockstore"
 	"github.com/anytypeio/any-sync/commonfile/fileproto"
@@ -80,8 +79,37 @@ func (r *rpcHandler) BlocksCheck(ctx context.Context, req *fileproto.BlocksCheck
 }
 
 func (r *rpcHandler) BlocksBind(ctx context.Context, req *fileproto.BlocksBindRequest) (*fileproto.BlocksBindResponse, error) {
-	// TODO:
-	return nil, fmt.Errorf("not implemented")
+	cids := make([]cid.Cid, 0, len(req.Cids))
+	for _, cd := range req.Cids {
+		c, err := cid.Cast(cd)
+		if err == nil {
+			cids = append(cids, c)
+		}
+	}
+	if err := r.store.BlocksBind(ctx, req.SpaceId, cids...); err != nil {
+		return nil, err
+	}
+	return &fileproto.BlocksBindResponse{}, nil
+}
+
+func (r *rpcHandler) FilesBind(ctx context.Context, req *fileproto.FilesBindRequest) (*fileproto.FilesBindResponse, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *rpcHandler) FilesDelete(ctx context.Context, req *fileproto.FilesDeleteRequest) (*fileproto.FilesDeleteResponse, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *rpcHandler) FilesCheck(ctx context.Context, req *fileproto.FilesCheckRequest) (*fileproto.FilesCheckResponse, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *rpcHandler) CheckUsage(ctx context.Context, req *fileproto.CheckUsageRequest) (*fileproto.CheckUsageResponse, error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 func (r *rpcHandler) Check(ctx context.Context, request *fileproto.CheckRequest) (*fileproto.CheckResponse, error) {
