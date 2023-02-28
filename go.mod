@@ -6,6 +6,7 @@ require (
 	github.com/ahmetb/govvv v0.3.0
 	github.com/anytypeio/any-sync v0.0.17-0.20230228090405-cd8dd7a86909
 	github.com/aws/aws-sdk-go v1.44.178
+	github.com/go-redsync/redsync/v4 v4.8.1
 	github.com/golang/mock v1.6.0
 	github.com/ipfs/go-cid v0.3.2
 	github.com/ipfs/go-libipfs v0.3.0
@@ -26,7 +27,6 @@ require (
 	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
-	github.com/go-redsync/redsync/v4 v4.8.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
