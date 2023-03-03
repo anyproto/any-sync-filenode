@@ -2,7 +2,6 @@ package filenode
 
 import (
 	"context"
-	"github.com/anytypeio/any-sync/commonfile/fileblockstore"
 	"github.com/anytypeio/any-sync/commonfile/fileproto"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-libipfs/blocks"
@@ -25,7 +24,7 @@ func (r rpcHandler) BlockGet(ctx context.Context, req *fileproto.BlockGetRequest
 	if err != nil {
 		return nil, err
 	}
-	b, err := r.f.Get(fileblockstore.CtxWithSpaceId(ctx, req.SpaceId), c)
+	b, err := r.f.Get(ctx, c)
 	if err != nil {
 		return nil, err
 	} else {

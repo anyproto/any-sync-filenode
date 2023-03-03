@@ -23,8 +23,7 @@ const CName = "filenode.filenode"
 var log = logger.NewNamed(CName)
 
 var (
-	ErrCidsNotExists = errors.New("cids not exists")
-	ErrLimitExceed   = errors.New("space limit exceed")
+	ErrLimitExceed = errors.New("space limit exceed")
 
 	ErrCidDataTooBig = errors.New("cid data too big")
 	ErrWrongHash     = errors.New("wrong hash")

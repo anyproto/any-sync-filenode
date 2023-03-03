@@ -7,7 +7,6 @@ import (
 	"github.com/anytypeio/any-sync-filenode/account"
 	"github.com/anytypeio/any-sync-filenode/config"
 	"github.com/anytypeio/any-sync-filenode/filenode"
-	"github.com/anytypeio/any-sync-filenode/fileserver"
 	"github.com/anytypeio/any-sync-filenode/index/redisindex"
 	"github.com/anytypeio/any-sync-filenode/limit"
 	"github.com/anytypeio/any-sync-filenode/redisprovider"
@@ -108,6 +107,5 @@ func Bootstrap(a *app.App) {
 		Register(redisindex.New()).
 		Register(filenode.New()).
 		Register(server.New()).
-		Register(fileserver.New()).
 		Register(metric.New())
 }

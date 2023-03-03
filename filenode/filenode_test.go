@@ -2,6 +2,7 @@ package filenode
 
 import (
 	"context"
+	"github.com/anytypeio/any-sync-filenode/index"
 	"github.com/anytypeio/any-sync-filenode/index/mock_index"
 	"github.com/anytypeio/any-sync-filenode/index/redisindex"
 	"github.com/anytypeio/any-sync-filenode/limit"
@@ -106,6 +107,112 @@ func TestFileNode_Add(t *testing.T) {
 		require.EqualError(t, err, ErrCidDataTooBig.Error())
 		assert.Nil(t, resp)
 	})
+}
+
+func TestFileNode_Get(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
+		spaceId := testutil.NewRandSpaceId()
+		b := testutil.NewRandBlock(10)
+		fx.index.EXPECT().Exists(gomock.Any(), b.Cid()).Return(true, nil)
+		fx.store.EXPECT().Get(ctx, b.Cid()).Return(b, nil)
+		resp, err := fx.handler.BlockGet(ctx, &fileproto.BlockGetRequest{
+			SpaceId: spaceId,
+			Cid:     b.Cid().Bytes(),
+		})
+		require.NoError(t, err)
+		assert.Equal(t, b.RawData(), resp.Data)
+	})
+	t.Run("not found", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
+		spaceId := testutil.NewRandSpaceId()
+		b := testutil.NewRandBlock(10)
+		fx.index.EXPECT().Exists(gomock.Any(), b.Cid()).Return(false, nil)
+		resp, err := fx.handler.BlockGet(ctx, &fileproto.BlockGetRequest{
+			SpaceId: spaceId,
+			Cid:     b.Cid().Bytes(),
+		})
+		require.EqualError(t, err, fileblockstore.ErrCIDNotFound.Error())
+		assert.Nil(t, resp)
+	})
+}
+
+func TestFileNode_Check(t *testing.T) {
+	fx := newFixture(t)
+	defer fx.Finish(t)
+	var spaceId = testutil.NewRandSpaceId()
+	var bs = testutil.NewRandBlocks(3)
+	cids := make([][]byte, len(bs))
+	for _, b := range bs {
+		cids = append(cids, b.Cid().Bytes())
+	}
+	fx.limit.EXPECT().Check(ctx, spaceId)
+	fx.index.EXPECT().ExistsInSpace(ctx, spaceId, testutil.BlocksToKeys(bs)).Return(testutil.BlocksToKeys(bs[:1]), nil)
+	fx.index.EXPECT().Exists(ctx, bs[1].Cid()).Return(true, nil)
+	fx.index.EXPECT().Exists(ctx, bs[2].Cid()).Return(false, nil)
+	resp, err := fx.handler.BlocksCheck(ctx, &fileproto.BlocksCheckRequest{
+		SpaceId: spaceId,
+		Cids:    cids,
+	})
+	require.NoError(t, err)
+	require.Len(t, resp.BlocksAvailability, len(bs))
+	assert.Equal(t, fileproto.AvailabilityStatus_ExistsInSpace, resp.BlocksAvailability[0].Status)
+	assert.Equal(t, fileproto.AvailabilityStatus_Exists, resp.BlocksAvailability[1].Status)
+	assert.Equal(t, fileproto.AvailabilityStatus_NotExists, resp.BlocksAvailability[2].Status)
+}
+
+func TestFileNode_BlocksBind(t *testing.T) {
+	fx := newFixture(t)
+	defer fx.Finish(t)
+	var (
+		spaceId = testutil.NewRandSpaceId()
+		fileId  = testutil.NewRandCid().String()
+		bs      = testutil.NewRandBlocks(3)
+		cidsB   = make([][]byte, len(bs))
+		cids    = make([]cid.Cid, len(bs))
+	)
+	for i, b := range bs {
+		cids[i] = b.Cid()
+		cidsB[i] = b.Cid().Bytes()
+	}
+
+	fx.limit.EXPECT().Check(ctx, spaceId).Return(uint64(123), nil)
+	fx.index.EXPECT().SpaceSize(ctx, spaceId).Return(uint64(12), nil)
+	fx.index.EXPECT().Lock(ctx, cids).Return(func() {}, nil)
+	fx.index.EXPECT().BindCids(ctx, spaceId, fileId, cids)
+
+	resp, err := fx.handler.BlocksBind(ctx, &fileproto.BlocksBindRequest{
+		SpaceId: spaceId,
+		FileId:  fileId,
+		Cids:    cidsB,
+	})
+	require.NotNil(t, resp)
+	require.NoError(t, err)
+}
+
+func TestFileNode_FileInfo(t *testing.T) {
+	fx := newFixture(t)
+	defer fx.Finish(t)
+
+	var (
+		spaceId = testutil.NewRandSpaceId()
+		fileId1 = testutil.NewRandCid().String()
+		fileId2 = testutil.NewRandCid().String()
+	)
+	fx.limit.EXPECT().Check(ctx, spaceId).AnyTimes()
+	fx.index.EXPECT().FileInfo(ctx, spaceId, fileId1).Return(index.FileInfo{1, 1}, nil)
+	fx.index.EXPECT().FileInfo(ctx, spaceId, fileId2).Return(index.FileInfo{2, 2}, nil)
+
+	resp, err := fx.handler.FilesInfo(ctx, &fileproto.FilesInfoRequest{
+		SpaceId: spaceId,
+		FileIds: []string{fileId1, fileId2},
+	})
+	require.NoError(t, err)
+	require.Len(t, resp.FilesInfo, 2)
+	assert.Equal(t, uint64(1), resp.FilesInfo[0].UsageBytes)
+	assert.Equal(t, uint64(2), resp.FilesInfo[1].UsageBytes)
 }
 
 func newFixture(t *testing.T) *fixture {
