@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"github.com/anytypeio/any-sync-filenode/account"
 	"github.com/anytypeio/any-sync-filenode/config"
+	"github.com/anytypeio/any-sync-filenode/filenode"
 	"github.com/anytypeio/any-sync-filenode/fileserver"
 	"github.com/anytypeio/any-sync-filenode/index/redisindex"
 	"github.com/anytypeio/any-sync-filenode/limit"
 	"github.com/anytypeio/any-sync-filenode/redisprovider"
-	"github.com/anytypeio/any-sync-filenode/serverstore"
 	"github.com/anytypeio/any-sync/app"
 	"github.com/anytypeio/any-sync/app/logger"
 	"github.com/anytypeio/any-sync/coordinator/coordinatorclient"
@@ -106,7 +106,7 @@ func Bootstrap(a *app.App) {
 		Register(store()).
 		Register(redisprovider.New()).
 		Register(redisindex.New()).
-		Register(serverstore.New()).
+		Register(filenode.New()).
 		Register(server.New()).
 		Register(fileserver.New()).
 		Register(metric.New())

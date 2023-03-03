@@ -8,6 +8,7 @@ import (
 	context "context"
 	reflect "reflect"
 
+	index "github.com/anytypeio/any-sync-filenode/index"
 	app "github.com/anytypeio/any-sync/app"
 	gomock "github.com/golang/mock/gomock"
 	cid "github.com/ipfs/go-cid"
@@ -38,17 +39,31 @@ func (m *MockIndex) EXPECT() *MockIndexMockRecorder {
 }
 
 // Bind mocks base method.
-func (m *MockIndex) Bind(arg0 context.Context, arg1 string, arg2 []blocks.Block) error {
+func (m *MockIndex) Bind(arg0 context.Context, arg1, arg2 string, arg3 []blocks.Block) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Bind", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "Bind", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Bind indicates an expected call of Bind.
-func (mr *MockIndexMockRecorder) Bind(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockIndexMockRecorder) Bind(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Bind", reflect.TypeOf((*MockIndex)(nil).Bind), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Bind", reflect.TypeOf((*MockIndex)(nil).Bind), arg0, arg1, arg2, arg3)
+}
+
+// BindCids mocks base method.
+func (m *MockIndex) BindCids(arg0 context.Context, arg1, arg2 string, arg3 []cid.Cid) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BindCids", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// BindCids indicates an expected call of BindCids.
+func (mr *MockIndexMockRecorder) BindCids(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BindCids", reflect.TypeOf((*MockIndex)(nil).BindCids), arg0, arg1, arg2, arg3)
 }
 
 // Exists mocks base method.
@@ -81,19 +96,19 @@ func (mr *MockIndexMockRecorder) ExistsInSpace(arg0, arg1, arg2 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExistsInSpace", reflect.TypeOf((*MockIndex)(nil).ExistsInSpace), arg0, arg1, arg2)
 }
 
-// FilterExistingOnly mocks base method.
-func (m *MockIndex) FilterExistingOnly(arg0 context.Context, arg1 []cid.Cid) ([]cid.Cid, error) {
+// FileInfo mocks base method.
+func (m *MockIndex) FileInfo(arg0 context.Context, arg1, arg2 string) (index.FileInfo, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FilterExistingOnly", arg0, arg1)
-	ret0, _ := ret[0].([]cid.Cid)
+	ret := m.ctrl.Call(m, "FileInfo", arg0, arg1, arg2)
+	ret0, _ := ret[0].(index.FileInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// FilterExistingOnly indicates an expected call of FilterExistingOnly.
-func (mr *MockIndexMockRecorder) FilterExistingOnly(arg0, arg1 interface{}) *gomock.Call {
+// FileInfo indicates an expected call of FileInfo.
+func (mr *MockIndexMockRecorder) FileInfo(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FilterExistingOnly", reflect.TypeOf((*MockIndex)(nil).FilterExistingOnly), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FileInfo", reflect.TypeOf((*MockIndex)(nil).FileInfo), arg0, arg1, arg2)
 }
 
 // GetNonExistentBlocks mocks base method.
@@ -125,6 +140,21 @@ func (mr *MockIndexMockRecorder) Init(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Init", reflect.TypeOf((*MockIndex)(nil).Init), arg0)
 }
 
+// IsAllExists mocks base method.
+func (m *MockIndex) IsAllExists(arg0 context.Context, arg1 []cid.Cid) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsAllExists", arg0, arg1)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// IsAllExists indicates an expected call of IsAllExists.
+func (mr *MockIndexMockRecorder) IsAllExists(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsAllExists", reflect.TypeOf((*MockIndex)(nil).IsAllExists), arg0, arg1)
+}
+
 // Lock mocks base method.
 func (m *MockIndex) Lock(arg0 context.Context, arg1 []cid.Cid) (func(), error) {
 	m.ctrl.T.Helper()
@@ -154,6 +184,21 @@ func (mr *MockIndexMockRecorder) Name() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockIndex)(nil).Name))
 }
 
+// SpaceInfo mocks base method.
+func (m *MockIndex) SpaceInfo(arg0 context.Context, arg1 string) (index.SpaceInfo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SpaceInfo", arg0, arg1)
+	ret0, _ := ret[0].(index.SpaceInfo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SpaceInfo indicates an expected call of SpaceInfo.
+func (mr *MockIndexMockRecorder) SpaceInfo(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SpaceInfo", reflect.TypeOf((*MockIndex)(nil).SpaceInfo), arg0, arg1)
+}
+
 // SpaceSize mocks base method.
 func (m *MockIndex) SpaceSize(arg0 context.Context, arg1 string) (uint64, error) {
 	m.ctrl.T.Helper()
@@ -170,12 +215,11 @@ func (mr *MockIndexMockRecorder) SpaceSize(arg0, arg1 interface{}) *gomock.Call 
 }
 
 // UnBind mocks base method.
-func (m *MockIndex) UnBind(arg0 context.Context, arg1 string, arg2 []cid.Cid) ([]cid.Cid, error) {
+func (m *MockIndex) UnBind(arg0 context.Context, arg1, arg2 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UnBind", arg0, arg1, arg2)
-	ret0, _ := ret[0].([]cid.Cid)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // UnBind indicates an expected call of UnBind.

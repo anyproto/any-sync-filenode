@@ -1,0 +1,15 @@
+syntax = "proto3";
+package fileIndexProto;
+
+option go_package = "index/redisindex/indexproto";
+
+message CidEntry {
+    uint64 size = 1;
+    int64 createTime = 2;
+    int64 updateTime = 3;
+    int32 refs = 4;
+}
+
+message CidList {
+    repeated bytes cids = 1;
+}

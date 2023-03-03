@@ -32,3 +32,15 @@ func BlocksToKeys(bs []blocks.Block) (cids []cid.Cid) {
 	}
 	return
 }
+
+func NewRandBlocks(l int) []blocks.Block {
+	var bs = make([]blocks.Block, l)
+	for i := range bs {
+		bs[i] = NewRandBlock(10 * l)
+	}
+	return bs
+}
+
+func NewRandCid() cid.Cid {
+	return NewRandBlock(1024).Cid()
+}

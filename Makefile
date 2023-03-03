@@ -23,3 +23,7 @@ test:
 deps:
 	go mod download
 	go build -o deps github.com/ahmetb/govvv
+
+proto:
+	protoc --gogofaster_out=:. index/redisindex/indexproto/protos/*.proto
+
