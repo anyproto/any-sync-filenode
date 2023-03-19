@@ -3,9 +3,15 @@ on:
     branches:
       - main
 
+name: coverage
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version:
+          - 1.19.5
     env:
       GOPRIVATE: github.com/anytypeio
     # redis for tests
@@ -21,9 +27,9 @@ jobs:
           - 6379:6379
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
-          go-version: '^1.19.5'
+          go-version: '${{ matrix.go-version }}'
 
       - name: git config
         run: git config --global url.https://${{ secrets.ANYTYPE_PAT }}@github.com/.insteadOf https://github.com/
