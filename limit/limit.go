@@ -103,8 +103,11 @@ type entry struct {
 	limit     uint64
 }
 
-func (e *entry) LastUsage() time.Time {
-	return e.lastUsage.Load()
+func (e *entry) TryClose(objectTTL time.Duration) (res bool, err error) {
+	if time.Now().Sub(e.lastUsage.Load()) < objectTTL {
+		return false, nil
+	}
+	return true, e.Close()
 }
 
 func (e *entry) GetLimit() uint64 {
