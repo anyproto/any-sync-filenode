@@ -3,12 +3,13 @@ package filenode
 import (
 	"context"
 	"github.com/anytypeio/any-sync/commonfile/fileproto"
+	"github.com/anytypeio/any-sync/commonfile/fileproto/fileprotoerr"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-libipfs/blocks"
 )
 
 const (
-	cidSizeLimit     = 1 << 20 // 1 Mb
+	cidSizeLimit     = 2 << 20 // 2 Mb
 	fileInfoReqLimit = 100
 )
 
@@ -44,7 +45,7 @@ func (r rpcHandler) BlockPush(ctx context.Context, req *fileproto.BlockPushReque
 		return nil, err
 	}
 	if len(req.Data) > cidSizeLimit {
-		return nil, ErrCidDataTooBig
+		return nil, fileprotoerr.ErrBlockSizeExceeded
 	}
 	chkc, err := c.Prefix().Sum(req.Data)
 	if err != nil {
@@ -86,7 +87,7 @@ func (r rpcHandler) FilesDelete(ctx context.Context, req *fileproto.FilesDeleteR
 
 func (r rpcHandler) FilesInfo(ctx context.Context, req *fileproto.FilesInfoRequest) (*fileproto.FilesInfoResponse, error) {
 	if len(req.FileIds) > fileInfoReqLimit {
-		return nil, ErrLimitExceed
+		return nil, Err
 	}
 	resp := &fileproto.FilesInfoResponse{
 		FilesInfo: make([]*fileproto.FileInfo, len(req.FileIds)),

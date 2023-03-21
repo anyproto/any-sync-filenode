@@ -44,6 +44,10 @@ github.com/alecthomas/units v0.0.0-20190717042225-c3de453c63f4/go.mod h1:ybxpYRF
 github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d/go.mod h1:rBZYJk541a8SKzHPHnH3zbiI+7dagKZ0cgpgrD7Fyho=
 github.com/anytypeio/any-sync v0.0.25 h1:rcDXJ99qEgRMR4a1tuk2G7whN+fixoFrH/Nmx7WCJoc=
 github.com/anytypeio/any-sync v0.0.25/go.mod h1:a34AUcUteo1Vc3InnM1TPXvakBWeb5HsHxFvHYqUmPc=
+github.com/anytypeio/any-sync v0.0.26-0.20230321101050-2f2100645722 h1:tsatNufi0uSU7G2yj4E9xxeD3oy4ilS7qlOZt/2i+AQ=
+github.com/anytypeio/any-sync v0.0.26-0.20230321101050-2f2100645722/go.mod h1:a34AUcUteo1Vc3InnM1TPXvakBWeb5HsHxFvHYqUmPc=
+github.com/anytypeio/any-sync v0.0.26-0.20230321102016-af2026fac884 h1:z9r0ii3fzYsqa8ukRBJmToT1w10xf4lIpte4NaeAMJ4=
+github.com/anytypeio/any-sync v0.0.26-0.20230321102016-af2026fac884/go.mod h1:a34AUcUteo1Vc3InnM1TPXvakBWeb5HsHxFvHYqUmPc=
 github.com/anytypeio/go-chash v0.0.2 h1:BSpyMC3HXNkf2eosQrHM4svov0DrvxL9tb4gnHbdmbA=
 github.com/anytypeio/go-chash v0.0.2/go.mod h1:G+R6q7jYgNa52NqcRhnNm28pogfWW+cuHtgBktrc2QA=
 github.com/aws/aws-sdk-go v1.44.178 h1:4igreoWPEA7xVLnOeSXLhDXTsTSPKQONZcQ3llWAJw0=

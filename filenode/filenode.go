@@ -13,6 +13,7 @@ import (
 	"github.com/anytypeio/any-sync/app/logger"
 	"github.com/anytypeio/any-sync/commonfile/fileblockstore"
 	"github.com/anytypeio/any-sync/commonfile/fileproto"
+	"github.com/anytypeio/any-sync/commonfile/fileproto/fileprotoerr"
 	"github.com/anytypeio/any-sync/net/rpc/server"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-libipfs/blocks"
@@ -23,10 +24,7 @@ const CName = "filenode.filenode"
 var log = logger.NewNamed(CName)
 
 var (
-	ErrLimitExceed = errors.New("space limit exceed")
-
-	ErrCidDataTooBig = errors.New("cid data too big")
-	ErrWrongHash     = errors.New("wrong hash")
+	ErrWrongHash = errors.New("wrong hash")
 )
 
 func New() Service {
@@ -149,7 +147,7 @@ func (fn *fileNode) ValidateSpaceId(ctx context.Context, spaceId string, checkLi
 			return e
 		}
 		if currentSize >= limitBytes {
-			return ErrLimitExceed
+			return fileprotoerr.ErrSpaceLimitExceeded
 		}
 	}
 	return
