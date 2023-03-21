@@ -18,6 +18,10 @@ s3Store:
     bucket: anytype-test
     maxThreads: 16
 
+redis:
+    isCluster: false
+    url: "redis://127.0.0.1:6379/?dial_timeout=3&db=1&read_timeout=6s&max_retries=2"
+
 fileDevStore:
     path: db
 
