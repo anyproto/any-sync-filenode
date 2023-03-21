@@ -3,7 +3,6 @@ package filenode
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/anytypeio/any-sync-filenode/index"
 	"github.com/anytypeio/any-sync-filenode/index/redisindex"
 	"github.com/anytypeio/any-sync-filenode/limit"
@@ -60,7 +59,7 @@ func (fn *fileNode) Get(ctx context.Context, k cid.Cid) (blocks.Block, error) {
 		return nil, err
 	}
 	if !exists {
-		return nil, fileblockstore.ErrCIDNotFound
+		return nil, fileprotoerr.ErrCIDNotFound
 	}
 	return fn.store.Get(ctx, k)
 }
@@ -134,7 +133,7 @@ func (fn *fileNode) BlocksBind(ctx context.Context, spaceId, fileId string, cids
 
 func (fn *fileNode) ValidateSpaceId(ctx context.Context, spaceId string, checkLimit bool) (err error) {
 	if spaceId == "" {
-		return fmt.Errorf("empty space id")
+		return fileprotoerr.ErrForbidden
 	}
 	// this call also confirms that space exists and valid
 	limitBytes, err := fn.limit.Check(ctx, spaceId)

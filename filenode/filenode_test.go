@@ -12,6 +12,7 @@ import (
 	"github.com/anytypeio/any-sync/app"
 	"github.com/anytypeio/any-sync/commonfile/fileblockstore"
 	"github.com/anytypeio/any-sync/commonfile/fileproto"
+	"github.com/anytypeio/any-sync/commonfile/fileproto/fileprotoerr"
 	"github.com/anytypeio/any-sync/net/rpc/rpctest"
 	"github.com/golang/mock/gomock"
 	"github.com/ipfs/go-cid"
@@ -67,7 +68,7 @@ func TestFileNode_Add(t *testing.T) {
 			Cid:     b.Cid().Bytes(),
 			Data:    b.RawData(),
 		})
-		require.EqualError(t, err, ErrLimitExceed.Error())
+		require.EqualError(t, err, fileprotoerr.ErrSpaceLimitExceeded.Error())
 		require.Nil(t, resp)
 	})
 	t.Run("invalid cid", func(t *testing.T) {
@@ -104,7 +105,7 @@ func TestFileNode_Add(t *testing.T) {
 			Cid:     b.Cid().Bytes(),
 			Data:    b.RawData(),
 		})
-		require.EqualError(t, err, ErrCidDataTooBig.Error())
+		require.EqualError(t, err, fileprotoerr.ErrQuerySizeExceeded.Error())
 		assert.Nil(t, resp)
 	})
 }

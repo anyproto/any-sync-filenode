@@ -45,7 +45,7 @@ func (r rpcHandler) BlockPush(ctx context.Context, req *fileproto.BlockPushReque
 		return nil, err
 	}
 	if len(req.Data) > cidSizeLimit {
-		return nil, fileprotoerr.ErrBlockSizeExceeded
+		return nil, fileprotoerr.ErrQuerySizeExceeded
 	}
 	chkc, err := c.Prefix().Sum(req.Data)
 	if err != nil {
@@ -87,7 +87,7 @@ func (r rpcHandler) FilesDelete(ctx context.Context, req *fileproto.FilesDeleteR
 
 func (r rpcHandler) FilesInfo(ctx context.Context, req *fileproto.FilesInfoRequest) (*fileproto.FilesInfoResponse, error) {
 	if len(req.FileIds) > fileInfoReqLimit {
-		return nil, Err
+		return nil, fileprotoerr.ErrQuerySizeExceeded
 	}
 	resp := &fileproto.FilesInfoResponse{
 		FilesInfo: make([]*fileproto.FileInfo, len(req.FileIds)),
