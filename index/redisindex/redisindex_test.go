@@ -136,6 +136,24 @@ func Test100KCids(t *testing.T) {
 	}
 }
 
+func TestRedisIndex_AddBlocks(t *testing.T) {
+	fx := newFixture(t)
+	defer fx.Finish(t)
+
+	var bs = make([]blocks.Block, 3)
+	for i := range bs {
+		bs[i] = testutil.NewRandBlock(rand.Intn(1024))
+	}
+
+	require.NoError(t, fx.AddBlocks(ctx, bs))
+
+	for _, b := range bs {
+		ex, err := fx.Exists(ctx, b.Cid())
+		require.NoError(t, err)
+		assert.True(t, ex)
+	}
+}
+
 func newFixture(t require.TestingT) (fx *fixture) {
 	fx = &fixture{
 		redisIndex: New().(*redisIndex),

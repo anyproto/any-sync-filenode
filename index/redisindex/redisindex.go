@@ -283,6 +283,14 @@ func (r *redisIndex) Lock(ctx context.Context, ks []cid.Cid) (unlock func(), err
 	return
 }
 
+func (r *redisIndex) AddBlocks(ctx context.Context, bs []blocks.Block) error {
+	cids := r.cidInfoByBlocks(bs)
+	if err := r.cidsAddRef(ctx, cids); err != nil {
+		return err
+	}
+	return r.cidsRemoveRef(ctx, cids)
+}
+
 func (r *redisIndex) cidInfoByBlocks(bs []blocks.Block) (info []CidInfo) {
 	info = make([]CidInfo, len(bs))
 	for i := range bs {

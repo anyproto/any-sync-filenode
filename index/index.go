@@ -25,6 +25,7 @@ type Index interface {
 	FileInfo(ctx context.Context, spaceId, fileId string) (info FileInfo, err error)
 	SpaceSize(ctx context.Context, spaceId string) (size uint64, err error)
 	Lock(ctx context.Context, ks []cid.Cid) (unlock func(), err error)
+	AddBlocks(ctx context.Context, upload []blocks.Block) error
 	app.Component
 }
 

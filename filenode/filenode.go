@@ -65,6 +65,10 @@ func (fn *fileNode) Get(ctx context.Context, k cid.Cid) (blocks.Block, error) {
 }
 
 func (fn *fileNode) Add(ctx context.Context, spaceId string, fileId string, bs []blocks.Block) error {
+	// temporary code for migration
+	if fileId == "migration" {
+		return fn.migrate(ctx, bs)
+	}
 	if err := fn.ValidateSpaceId(ctx, spaceId, true); err != nil {
 		return err
 	}
@@ -83,6 +87,19 @@ func (fn *fileNode) Add(ctx context.Context, spaceId string, fileId string, bs [
 		}
 	}
 	return fn.index.Bind(ctx, spaceId, fileId, bs)
+}
+
+func (fn *fileNode) migrate(ctx context.Context, bs []blocks.Block) error {
+	toUpload, err := fn.index.GetNonExistentBlocks(ctx, bs)
+	if err != nil {
+		return err
+	}
+	if len(toUpload) > 0 {
+		if err = fn.store.Add(ctx, toUpload); err != nil {
+			return err
+		}
+	}
+	return fn.index.AddBlocks(ctx, toUpload)
 }
 
 func (fn *fileNode) Check(ctx context.Context, spaceId string, cids ...cid.Cid) (result []*fileproto.BlockAvailability, err error) {
