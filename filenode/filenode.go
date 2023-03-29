@@ -90,6 +90,11 @@ func (fn *fileNode) Add(ctx context.Context, spaceId string, fileId string, bs [
 }
 
 func (fn *fileNode) migrate(ctx context.Context, bs []blocks.Block) error {
+	unlock, err := fn.index.Lock(ctx, testutil.BlocksToKeys(bs))
+	if err != nil {
+		return err
+	}
+	defer unlock()
 	toUpload, err := fn.index.GetNonExistentBlocks(ctx, bs)
 	if err != nil {
 		return err
@@ -103,19 +108,22 @@ func (fn *fileNode) migrate(ctx context.Context, bs []blocks.Block) error {
 }
 
 func (fn *fileNode) Check(ctx context.Context, spaceId string, cids ...cid.Cid) (result []*fileproto.BlockAvailability, err error) {
-	if err = fn.ValidateSpaceId(ctx, spaceId, false); err != nil {
-		return
+	if spaceId != "" {
+		if err = fn.ValidateSpaceId(ctx, spaceId, false); err != nil {
+			return
+		}
 	}
 	result = make([]*fileproto.BlockAvailability, 0, len(cids))
-	inSpace, err := fn.index.ExistsInSpace(ctx, spaceId, cids)
-	if err != nil {
-		return nil, err
-	}
 	var inSpaceM = make(map[string]struct{})
-	for _, inSp := range inSpace {
-		inSpaceM[inSp.KeyString()] = struct{}{}
+	if spaceId != "" {
+		inSpace, err := fn.index.ExistsInSpace(ctx, spaceId, cids)
+		if err != nil {
+			return nil, err
+		}
+		for _, inSp := range inSpace {
+			inSpaceM[inSp.KeyString()] = struct{}{}
+		}
 	}
-
 	for _, k := range cids {
 		var res = &fileproto.BlockAvailability{
 			Cid:    k.Bytes(),
