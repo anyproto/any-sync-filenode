@@ -5,8 +5,8 @@ import (
 	"context"
 	"errors"
 	"github.com/anytypeio/any-sync/app"
+	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
-	"github.com/ipfs/go-libipfs/blocks"
 )
 
 var (

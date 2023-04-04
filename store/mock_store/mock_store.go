@@ -10,8 +10,8 @@ import (
 
 	app "github.com/anytypeio/any-sync/app"
 	gomock "github.com/golang/mock/gomock"
+	blocks "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
-	blocks "github.com/ipfs/go-libipfs/blocks"
 )
 
 // MockStore is a mock of Store interface.

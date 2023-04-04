@@ -5,7 +5,7 @@ import (
 	"github.com/anytypeio/any-sync-filenode/redisprovider/testredisprovider"
 	"github.com/anytypeio/any-sync-filenode/testutil"
 	"github.com/anytypeio/any-sync/app"
-	"github.com/ipfs/go-libipfs/blocks"
+	blocks "github.com/ipfs/go-block-format"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"math/rand"
