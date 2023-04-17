@@ -9,12 +9,15 @@ import (
 	"github.com/anytypeio/any-sync/metric"
 	"github.com/anytypeio/any-sync/net"
 	"github.com/stretchr/testify/require"
+	"os"
 	"testing"
 )
 
 var ctx = context.Background()
 
 func TestBootstrap(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "")
+	require.NoError(t, err)
 	c := &config.Config{
 		Account: commonaccount.Config{
 			PeerId:     "12D3KooWQxiZ5a7vcy4DTJa8Gy1eVUmwb5ojN4SrJC9Rjxzigw6C",
@@ -26,11 +29,13 @@ func TestBootstrap(t *testing.T) {
 		S3Store: s3store.Config{
 			Bucket: "test",
 		},
-		FileDevStore: config.FileDevStore{},
+		FileDevStore:     config.FileDevStore{},
+		NetworkStorePath: tmpDir,
 	}
 	a := new(app.App)
 	a.Register(c)
 	Bootstrap(a)
 	require.NoError(t, a.Start(ctx))
 	require.NoError(t, a.Close(ctx))
+	_ = os.RemoveAll(tmpDir)
 }
