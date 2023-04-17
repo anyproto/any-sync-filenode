@@ -1,7 +1,8 @@
 package config
 
 import (
-	"github.com/anytypeio/any-sync-filenode/s3store"
+	"github.com/anytypeio/any-sync-filenode/redisprovider"
+	"github.com/anytypeio/any-sync-filenode/store/s3store"
 	commonaccount "github.com/anytypeio/any-sync/accountservice"
 	"github.com/anytypeio/any-sync/app"
 	"github.com/anytypeio/any-sync/metric"
@@ -26,12 +27,14 @@ func NewFromFile(path string) (c *Config, err error) {
 }
 
 type Config struct {
-	Account      commonaccount.Config  `yaml:"account"`
-	GrpcServer   net.Config            `yaml:"grpcServer"`
-	Metric       metric.Config         `yaml:"metric"`
-	S3Store      s3store.Config        `yaml:"s3Store"`
-	FileDevStore FileDevStore          `yaml:"fileDevStore"`
-	Nodes        []nodeconf.NodeConfig `yaml:"nodes"`
+	Account          commonaccount.Config   `yaml:"account"`
+	GrpcServer       net.Config             `yaml:"grpcServer"`
+	Metric           metric.Config          `yaml:"metric"`
+	S3Store          s3store.Config         `yaml:"s3Store"`
+	FileDevStore     FileDevStore           `yaml:"fileDevStore"`
+	Redis            redisprovider.Config   `yaml:"redis"`
+	Network          nodeconf.Configuration `yaml:"network"`
+	NetworkStorePath string                 `yaml:"networkStorePath"`
 }
 
 func (c *Config) Init(a *app.App) (err error) {
@@ -62,6 +65,14 @@ func (c Config) GetMetric() metric.Config {
 	return c.Metric
 }
 
-func (c Config) GetNodes() []nodeconf.NodeConfig {
-	return c.Nodes
+func (c Config) GetRedis() redisprovider.Config {
+	return c.Redis
+}
+
+func (c Config) GetNodeConf() nodeconf.Configuration {
+	return c.Network
+}
+
+func (c Config) GetNodeConfStorePath() string {
+	return c.NetworkStorePath
 }

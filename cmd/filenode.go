@@ -13,12 +13,14 @@ import (
 	"github.com/anytypeio/any-sync/app"
 	"github.com/anytypeio/any-sync/app/logger"
 	"github.com/anytypeio/any-sync/coordinator/coordinatorclient"
+	"github.com/anytypeio/any-sync/coordinator/nodeconfsource"
 	"github.com/anytypeio/any-sync/metric"
 	"github.com/anytypeio/any-sync/net/dialer"
 	"github.com/anytypeio/any-sync/net/pool"
 	"github.com/anytypeio/any-sync/net/rpc/server"
 	"github.com/anytypeio/any-sync/net/secureservice"
 	"github.com/anytypeio/any-sync/nodeconf"
+	"github.com/anytypeio/any-sync/nodeconf/nodeconfstore"
 	"go.uber.org/zap"
 	"net/http"
 	_ "net/http/pprof"
@@ -96,6 +98,8 @@ func main() {
 
 func Bootstrap(a *app.App) {
 	a.Register(account.New()).
+		Register(nodeconfsource.New()).
+		Register(nodeconfstore.New()).
 		Register(nodeconf.New()).
 		Register(dialer.New()).
 		Register(secureservice.New()).
