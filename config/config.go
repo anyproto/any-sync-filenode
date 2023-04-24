@@ -27,14 +27,15 @@ func NewFromFile(path string) (c *Config, err error) {
 }
 
 type Config struct {
-	Account          commonaccount.Config   `yaml:"account"`
-	GrpcServer       net.Config             `yaml:"grpcServer"`
-	Metric           metric.Config          `yaml:"metric"`
-	S3Store          s3store.Config         `yaml:"s3Store"`
-	FileDevStore     FileDevStore           `yaml:"fileDevStore"`
-	Redis            redisprovider.Config   `yaml:"redis"`
-	Network          nodeconf.Configuration `yaml:"network"`
-	NetworkStorePath string                 `yaml:"networkStorePath"`
+	Account                  commonaccount.Config   `yaml:"account"`
+	GrpcServer               net.Config             `yaml:"grpcServer"`
+	Metric                   metric.Config          `yaml:"metric"`
+	S3Store                  s3store.Config         `yaml:"s3Store"`
+	FileDevStore             FileDevStore           `yaml:"fileDevStore"`
+	Redis                    redisprovider.Config   `yaml:"redis"`
+	Network                  nodeconf.Configuration `yaml:"network"`
+	NetworkStorePath         string                 `yaml:"networkStorePath"`
+	NetworkUpdateIntervalSec int                    `yaml:"networkUpdateIntervalSec"`
 }
 
 func (c *Config) Init(a *app.App) (err error) {
@@ -75,4 +76,8 @@ func (c Config) GetNodeConf() nodeconf.Configuration {
 
 func (c Config) GetNodeConfStorePath() string {
 	return c.NetworkStorePath
+}
+
+func (c Config) GetNodeConfUpdateInterval() int {
+	return c.NetworkUpdateIntervalSec
 }
