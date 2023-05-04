@@ -13,6 +13,7 @@ import (
 	"github.com/anytypeio/any-sync/commonfile/fileblockstore"
 	"github.com/anytypeio/any-sync/commonfile/fileproto"
 	"github.com/anytypeio/any-sync/commonfile/fileproto/fileprotoerr"
+	"github.com/anytypeio/any-sync/metric"
 	"github.com/anytypeio/any-sync/net/rpc/server"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
@@ -38,6 +39,7 @@ type fileNode struct {
 	index   index.Index
 	store   store.Store
 	limit   limit.Limit
+	metric  metric.Metric
 	handler *rpcHandler
 }
 
@@ -46,6 +48,7 @@ func (fn *fileNode) Init(a *app.App) (err error) {
 	fn.index = a.MustComponent(redisindex.CName).(index.Index)
 	fn.limit = a.MustComponent(limit.CName).(limit.Limit)
 	fn.handler = &rpcHandler{f: fn}
+	fn.metric = a.MustComponent(metric.CName).(metric.Metric)
 	return fileproto.DRPCRegisterFile(a.MustComponent(server.CName).(server.DRPCServer), fn.handler)
 }
 

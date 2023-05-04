@@ -2,6 +2,7 @@ package filenode
 
 import (
 	"context"
+	"github.com/anytypeio/any-sync-filenode/config"
 	"github.com/anytypeio/any-sync-filenode/index"
 	"github.com/anytypeio/any-sync-filenode/index/mock_index"
 	"github.com/anytypeio/any-sync-filenode/index/redisindex"
@@ -13,6 +14,7 @@ import (
 	"github.com/anytypeio/any-sync/commonfile/fileblockstore"
 	"github.com/anytypeio/any-sync/commonfile/fileproto"
 	"github.com/anytypeio/any-sync/commonfile/fileproto/fileprotoerr"
+	"github.com/anytypeio/any-sync/metric"
 	"github.com/anytypeio/any-sync/net/rpc/rpctest"
 	"github.com/golang/mock/gomock"
 	blocks "github.com/ipfs/go-block-format"
@@ -239,7 +241,7 @@ func newFixture(t *testing.T) *fixture {
 	fx.limit.EXPECT().Run(gomock.Any()).AnyTimes()
 	fx.limit.EXPECT().Close(gomock.Any()).AnyTimes()
 
-	fx.a.Register(fx.serv).Register(fx.index).Register(fx.store).Register(fx.limit).Register(fx.fileNode)
+	fx.a.Register(fx.serv).Register(fx.index).Register(fx.store).Register(fx.limit).Register(fx.fileNode).Register(metric.New()).Register(&config.Config{})
 	require.NoError(t, fx.a.Start(ctx))
 	return fx
 }
