@@ -50,10 +50,15 @@ func (s *s3store) Init(a *app.App) (err error) {
 	if conf.MaxThreads <= 0 {
 		conf.MaxThreads = 16
 	}
+	var endpoint *string
+	if conf.Endpoint != "" {
+		endpoint = aws.String(conf.Endpoint)
+	}
 	s.sess, err = session.NewSessionWithOptions(session.Options{
 		Profile: conf.Profile,
 		Config: aws.Config{
-			Region: aws.String(conf.Region),
+			Region:   aws.String(conf.Region),
+			Endpoint: endpoint,
 		},
 	})
 	s.bucket = aws.String(conf.Bucket)
