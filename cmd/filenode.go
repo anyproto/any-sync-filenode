@@ -45,6 +45,8 @@ func main() {
 	flag.Parse()
 
 	if *flagVersion {
+		fmt.Println(app.AppName)
+		fmt.Println(app.Version())
 		fmt.Println(app.VersionDescription())
 		return
 	}
