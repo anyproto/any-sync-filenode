@@ -1,10 +1,10 @@
-//go:generate mockgen -destination mock_store/mock_store.go github.com/anytypeio/any-sync-filenode/store Store
+//go:generate mockgen -destination mock_store/mock_store.go github.com/anyproto/any-sync-filenode/store Store
 package store
 
 import (
 	"context"
-	"github.com/anytypeio/any-sync/app"
-	"github.com/anytypeio/any-sync/commonfile/fileblockstore"
+	"github.com/anyproto/any-sync/app"
+	"github.com/anyproto/any-sync/commonfile/fileblockstore"
 	"github.com/ipfs/go-cid"
 )
 

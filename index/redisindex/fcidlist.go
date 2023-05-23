@@ -3,7 +3,7 @@ package redisindex
 import (
 	"bytes"
 	"context"
-	"github.com/anytypeio/any-sync-filenode/index/redisindex/indexproto"
+	"github.com/anyproto/any-sync-filenode/index/redisindex/indexproto"
 	"github.com/go-redsync/redsync/v4"
 	"github.com/golang/snappy"
 	"github.com/ipfs/go-cid"

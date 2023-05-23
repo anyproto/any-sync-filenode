@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
-	"github.com/anytypeio/any-sync-filenode/config"
-	"github.com/anytypeio/any-sync-filenode/store/s3store"
-	commonaccount "github.com/anytypeio/any-sync/accountservice"
-	"github.com/anytypeio/any-sync/app"
-	"github.com/anytypeio/any-sync/metric"
-	"github.com/anytypeio/any-sync/net"
+	"github.com/anyproto/any-sync-filenode/config"
+	"github.com/anyproto/any-sync-filenode/store/s3store"
+	commonaccount "github.com/anyproto/any-sync/accountservice"
+	"github.com/anyproto/any-sync/app"
+	"github.com/anyproto/any-sync/metric"
+	"github.com/anyproto/any-sync/net"
 	"github.com/stretchr/testify/require"
 	"os"
 	"testing"

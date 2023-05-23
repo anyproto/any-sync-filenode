@@ -2,9 +2,9 @@ package filenode
 
 import (
 	"context"
-	"github.com/anytypeio/any-sync/commonfile/fileproto"
-	"github.com/anytypeio/any-sync/commonfile/fileproto/fileprotoerr"
-	"github.com/anytypeio/any-sync/metric"
+	"github.com/anyproto/any-sync/commonfile/fileproto"
+	"github.com/anyproto/any-sync/commonfile/fileproto/fileprotoerr"
+	"github.com/anyproto/any-sync/metric"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	"go.uber.org/zap"

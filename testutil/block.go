@@ -1,7 +1,7 @@
 package testutil
 
 import (
-	"github.com/anytypeio/any-sync/util/cidutil"
+	"github.com/anyproto/any-sync/util/cidutil"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	"io"

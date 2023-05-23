@@ -13,7 +13,7 @@ jobs:
         go-version:
           - 1.19.5
     env:
-      GOPRIVATE: github.com/anytypeio
+      GOPRIVATE: github.com/anyproto
     # redis for tests
     services:
       redis:

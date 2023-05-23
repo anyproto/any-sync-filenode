@@ -1,13 +1,13 @@
 package config
 
 import (
-	"github.com/anytypeio/any-sync-filenode/redisprovider"
-	"github.com/anytypeio/any-sync-filenode/store/s3store"
-	commonaccount "github.com/anytypeio/any-sync/accountservice"
-	"github.com/anytypeio/any-sync/app"
-	"github.com/anytypeio/any-sync/metric"
-	"github.com/anytypeio/any-sync/net"
-	"github.com/anytypeio/any-sync/nodeconf"
+	"github.com/anyproto/any-sync-filenode/redisprovider"
+	"github.com/anyproto/any-sync-filenode/store/s3store"
+	commonaccount "github.com/anyproto/any-sync/accountservice"
+	"github.com/anyproto/any-sync/app"
+	"github.com/anyproto/any-sync/metric"
+	"github.com/anyproto/any-sync/net"
+	"github.com/anyproto/any-sync/nodeconf"
 	"gopkg.in/yaml.v3"
 	"os"
 )

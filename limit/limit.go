@@ -1,14 +1,14 @@
-//go:generate mockgen -destination mock_limit/mock_limit.go github.com/anytypeio/any-sync-filenode/limit Limit
+//go:generate mockgen -destination mock_limit/mock_limit.go github.com/anyproto/any-sync-filenode/limit Limit
 package limit
 
 import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/anytypeio/any-sync/app"
-	"github.com/anytypeio/any-sync/app/ocache"
-	"github.com/anytypeio/any-sync/coordinator/coordinatorclient"
-	"github.com/anytypeio/any-sync/net/peer"
+	"github.com/anyproto/any-sync/app"
+	"github.com/anyproto/any-sync/app/ocache"
+	"github.com/anyproto/any-sync/coordinator/coordinatorclient"
+	"github.com/anyproto/any-sync/net/peer"
 	"go.uber.org/atomic"
 	"strings"
 	"time"

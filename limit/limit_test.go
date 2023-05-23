@@ -2,10 +2,10 @@ package limit
 
 import (
 	"context"
-	"github.com/anytypeio/any-sync/app"
-	"github.com/anytypeio/any-sync/coordinator/coordinatorclient"
-	"github.com/anytypeio/any-sync/coordinator/coordinatorclient/mock_coordinatorclient"
-	"github.com/anytypeio/any-sync/net/peer"
+	"github.com/anyproto/any-sync/app"
+	"github.com/anyproto/any-sync/coordinator/coordinatorclient"
+	"github.com/anyproto/any-sync/coordinator/coordinatorclient/mock_coordinatorclient"
+	"github.com/anyproto/any-sync/net/peer"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

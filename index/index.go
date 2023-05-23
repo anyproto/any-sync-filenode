@@ -1,10 +1,10 @@
-//go:generate mockgen -destination mock_index/mock_index.go github.com/anytypeio/any-sync-filenode/index Index
+//go:generate mockgen -destination mock_index/mock_index.go github.com/anyproto/any-sync-filenode/index Index
 package index
 
 import (
 	"context"
 	"errors"
-	"github.com/anytypeio/any-sync/app"
+	"github.com/anyproto/any-sync/app"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 )

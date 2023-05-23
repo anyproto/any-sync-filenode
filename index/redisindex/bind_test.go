@@ -1,7 +1,7 @@
 package redisindex
 
 import (
-	"github.com/anytypeio/any-sync-filenode/testutil"
+	"github.com/anyproto/any-sync-filenode/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"

@@ -3,8 +3,8 @@
 package main
 
 import (
-	"github.com/anytypeio/any-sync-filenode/store/filedevstore"
-	"github.com/anytypeio/any-sync/app"
+	"github.com/anyproto/any-sync-filenode/store/filedevstore"
+	"github.com/anyproto/any-sync/app"
 )
 
 func store() app.Component {

@@ -3,8 +3,8 @@ package testredisprovider
 import (
 	"context"
 	"fmt"
-	"github.com/anytypeio/any-sync-filenode/redisprovider"
-	"github.com/anytypeio/any-sync/app"
+	"github.com/anyproto/any-sync-filenode/redisprovider"
+	"github.com/anyproto/any-sync/app"
 	"github.com/redis/go-redis/v9"
 )
 

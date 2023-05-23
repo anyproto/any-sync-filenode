@@ -3,7 +3,7 @@ package s3store
 import (
 	"context"
 	"fmt"
-	"github.com/anytypeio/any-sync/app"
+	"github.com/anyproto/any-sync/app"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	"github.com/stretchr/testify/assert"

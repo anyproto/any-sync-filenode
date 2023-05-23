@@ -2,11 +2,11 @@ package redisindex
 
 import (
 	"context"
-	"github.com/anytypeio/any-sync-filenode/index"
-	"github.com/anytypeio/any-sync-filenode/index/redisindex/indexproto"
-	"github.com/anytypeio/any-sync-filenode/redisprovider"
-	"github.com/anytypeio/any-sync/app"
-	"github.com/anytypeio/any-sync/app/logger"
+	"github.com/anyproto/any-sync-filenode/index"
+	"github.com/anyproto/any-sync-filenode/index/redisindex/indexproto"
+	"github.com/anyproto/any-sync-filenode/redisprovider"
+	"github.com/anyproto/any-sync/app"
+	"github.com/anyproto/any-sync/app/logger"
 	"github.com/go-redsync/redsync/v4"
 	"github.com/go-redsync/redsync/v4/redis/goredis/v9"
 	blocks "github.com/ipfs/go-block-format"
