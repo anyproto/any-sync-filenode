@@ -12,7 +12,7 @@ require (
 	github.com/golang/snappy v0.0.4
 	github.com/ipfs/go-block-format v0.1.2
 	github.com/ipfs/go-cid v0.4.1
-	github.com/redis/go-redis/v9 v9.0.4
+	github.com/redis/go-redis/v9 v9.0.5
 	github.com/stretchr/testify v1.8.3
 	go.uber.org/atomic v1.11.0
 	go.uber.org/zap v1.24.0
