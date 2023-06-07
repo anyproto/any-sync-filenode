@@ -4,11 +4,15 @@ account:
     signingKey: X7YT92hRIQf42tNiIlOS01p1uJiPSqcdkE6LViS8PxnhAv/28YzTctqPjm11AC63Dq7ybmwPQiBu1pwa3AxHzQ==
 grpcServer:
     server:
-        listenAddrs:
-            - 127.0.0.1:4730
+
     stream:
         timeoutMilliseconds: 1000
         maxMsgSizeMb: 256
+yamux:
+    listenAddrs:
+      - 127.0.0.1:4730
+    writeTimeoutSec: 10
+    dialTimeout: 10
 metric:
     addr: ":7010"
 s3Store:

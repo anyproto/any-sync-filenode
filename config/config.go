@@ -7,6 +7,7 @@ import (
 	"github.com/anyproto/any-sync/app"
 	"github.com/anyproto/any-sync/metric"
 	"github.com/anyproto/any-sync/net"
+	"github.com/anyproto/any-sync/net/transport/yamux"
 	"github.com/anyproto/any-sync/nodeconf"
 	"gopkg.in/yaml.v3"
 	"os"
@@ -29,6 +30,7 @@ func NewFromFile(path string) (c *Config, err error) {
 type Config struct {
 	Account                  commonaccount.Config   `yaml:"account"`
 	GrpcServer               net.Config             `yaml:"grpcServer"`
+	Yamux                    yamux.Config           `yaml:"yamux"`
 	Metric                   metric.Config          `yaml:"metric"`
 	S3Store                  s3store.Config         `yaml:"s3Store"`
 	FileDevStore             FileDevStore           `yaml:"fileDevStore"`
@@ -80,4 +82,8 @@ func (c Config) GetNodeConfStorePath() string {
 
 func (c Config) GetNodeConfUpdateInterval() int {
 	return c.NetworkUpdateIntervalSec
+}
+
+func (c Config) GetYamux() yamux.Config {
+	return c.Yamux
 }
