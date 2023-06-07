@@ -15,7 +15,7 @@ import (
 	"github.com/anyproto/any-sync/commonfile/fileproto"
 	"github.com/anyproto/any-sync/commonfile/fileproto/fileprotoerr"
 	"github.com/anyproto/any-sync/metric"
-	"github.com/anyproto/any-sync/net/rpc/rpctest"
+	"github.com/anyproto/any-sync/net/rpc/server"
 	"github.com/golang/mock/gomock"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
@@ -225,7 +225,7 @@ func newFixture(t *testing.T) *fixture {
 		index:    mock_index.NewMockIndex(ctrl),
 		store:    mock_store.NewMockStore(ctrl),
 		limit:    mock_limit.NewMockLimit(ctrl),
-		serv:     rpctest.NewTestServer(),
+		serv:     server.New(),
 		ctrl:     ctrl,
 		a:        new(app.App),
 	}
@@ -241,7 +241,7 @@ func newFixture(t *testing.T) *fixture {
 	fx.limit.EXPECT().Run(gomock.Any()).AnyTimes()
 	fx.limit.EXPECT().Close(gomock.Any()).AnyTimes()
 
-	fx.a.Register(fx.serv).Register(fx.index).Register(fx.store).Register(fx.limit).Register(fx.fileNode).Register(metric.New()).Register(&config.Config{})
+	fx.a.Register(metric.New()).Register(fx.serv).Register(fx.index).Register(fx.store).Register(fx.limit).Register(fx.fileNode).Register(&config.Config{})
 	require.NoError(t, fx.a.Start(ctx))
 	return fx
 }
@@ -253,7 +253,7 @@ type fixture struct {
 	ctrl  *gomock.Controller
 	a     *app.App
 	limit *mock_limit.MockLimit
-	serv  *rpctest.TesServer
+	serv  server.DRPCServer
 }
 
 func (fx *fixture) Finish(t *testing.T) {
