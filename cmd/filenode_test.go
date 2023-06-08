@@ -7,7 +7,7 @@ import (
 	commonaccount "github.com/anyproto/any-sync/accountservice"
 	"github.com/anyproto/any-sync/app"
 	"github.com/anyproto/any-sync/metric"
-	"github.com/anyproto/any-sync/net"
+	"github.com/anyproto/any-sync/net/rpc"
 	"github.com/stretchr/testify/require"
 	"os"
 	"testing"
@@ -24,8 +24,8 @@ func TestBootstrap(t *testing.T) {
 			PeerKey:    "X7YT92hRIQf42tNiIlOS01p1uJiPSqcdkE6LViS8PxnhAv/28YzTctqPjm11AC63Dq7ybmwPQiBu1pwa3AxHzQ==",
 			SigningKey: "X7YT92hRIQf42tNiIlOS01p1uJiPSqcdkE6LViS8PxnhAv/28YzTctqPjm11AC63Dq7ybmwPQiBu1pwa3AxHzQ==",
 		},
-		GrpcServer: net.Config{},
-		Metric:     metric.Config{},
+		Drpc:   rpc.Config{},
+		Metric: metric.Config{},
 		S3Store: s3store.Config{
 			Bucket: "test",
 		},
