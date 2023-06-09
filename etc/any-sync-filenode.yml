@@ -1,28 +1,29 @@
 account:
-    peerId: 12D3KooWQxiZ5a7vcy4DTJa8Gy1eVUmwb5ojN4SrJC9Rjxzigw6C
-    peerKey: X7YT92hRIQf42tNiIlOS01p1uJiPSqcdkE6LViS8PxnhAv/28YzTctqPjm11AC63Dq7ybmwPQiBu1pwa3AxHzQ==
-    signingKey: X7YT92hRIQf42tNiIlOS01p1uJiPSqcdkE6LViS8PxnhAv/28YzTctqPjm11AC63Dq7ybmwPQiBu1pwa3AxHzQ==
-grpcServer:
-    server:
-        listenAddrs:
-            - 127.0.0.1:4730
-    stream:
-        timeoutMilliseconds: 1000
-        maxMsgSizeMb: 256
+  peerId: 12D3KooWQxiZ5a7vcy4DTJa8Gy1eVUmwb5ojN4SrJC9Rjxzigw6C
+  peerKey: X7YT92hRIQf42tNiIlOS01p1uJiPSqcdkE6LViS8PxnhAv/28YzTctqPjm11AC63Dq7ybmwPQiBu1pwa3AxHzQ==
+  signingKey: X7YT92hRIQf42tNiIlOS01p1uJiPSqcdkE6LViS8PxnhAv/28YzTctqPjm11AC63Dq7ybmwPQiBu1pwa3AxHzQ==
+drpc:
+  stream:
+    maxMsgSizeMb: 256
+yamux:
+  listenAddrs:
+    - 127.0.0.1:4730
+  writeTimeoutSec: 10
+  dialTimeoutSec: 10
 metric:
-    addr: ":7010"
+  addr: ":7010"
 s3Store:
-    region: eu-central-1
-    profile: default
-    bucket: anytype-test
-    maxThreads: 16
+  region: eu-central-1
+  profile: default
+  bucket: anytype-test
+  maxThreads: 16
 
 redis:
-    isCluster: false
-    url: "redis://127.0.0.1:6379/?dial_timeout=3&db=1&read_timeout=6s&max_retries=2"
+  isCluster: false
+  url: "redis://127.0.0.1:6379/?dial_timeout=3&db=1&read_timeout=6s&max_retries=2"
 
 fileDevStore:
-    path: db
+  path: db
 
 network:
   id: 64384a038e697b7fce2f447e
