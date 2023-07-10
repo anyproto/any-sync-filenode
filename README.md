@@ -16,7 +16,7 @@ To build and run the Any-Sync File Node on your own server, follow these technic
 When running the Any-Sync File Node, you can use the following options:
 
  - `-c` Every node should be run with the configuration file option. By
-   default, the option flag is set to `etc/any-sync-node.yml.` You can
+   default, the option flag is set to `etc/any-sync-filenode.yml.` You can
    always generate a new configuration using the appropriate command **???**
  - `-v` This option shows the current version of the Any-Sync Node and then exits.
  - `-h` This option shows the help message and then exits.
