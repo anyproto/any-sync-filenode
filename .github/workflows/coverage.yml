@@ -7,7 +7,7 @@ name: coverage
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         go-version:
@@ -30,10 +30,8 @@ jobs:
       - uses: actions/setup-go@v4
         with:
           go-version: '${{ matrix.go-version }}'
-
       - name: git config
         run: git config --global url.https://${{ secrets.ANYTYPE_PAT }}@github.com/.insteadOf https://github.com/
-
       # cache {{
       - id: go-cache-paths
         run: |
