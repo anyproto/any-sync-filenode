@@ -16,7 +16,7 @@ To build and run the Any-Sync File Node on your own server, follow these technic
 4.  If there are no errors, the Any-Sync File Node will be built and can be found in the `/bin` directory.
 
 ## Running
-You will need an S3 bucket and Redis to run Any-Sync File Node.
+You will need an S3 bucket and Redis to run Any-Sync File Node. Note that credentials are necessary to make requests to S3. For more information, refer to the [`aws-sdk-go` documentation](https://pkg.go.dev/github.com/aws/aws-sdk-go#readme-configuring-credentials).
 
 Any-Sync File Node requires a configuration. You can generate configuration files for your nodes with [`any-sync-network`](https://github.com/anyproto/any-sync-tools) tool.
 
