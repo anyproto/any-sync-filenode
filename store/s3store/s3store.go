@@ -4,19 +4,21 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"sync"
+	"time"
+
 	"github.com/anyproto/any-sync-filenode/store"
 	"github.com/anyproto/any-sync/app"
 	"github.com/anyproto/any-sync/app/logger"
 	"github.com/anyproto/any-sync/commonfile/fileblockstore"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	"go.uber.org/zap"
-	"io"
-	"sync"
-	"time"
 )
 
 const CName = fileblockstore.CName
@@ -54,13 +56,30 @@ func (s *s3store) Init(a *app.App) (err error) {
 	if conf.Endpoint != "" {
 		endpoint = aws.String(conf.Endpoint)
 	}
+
+	var creds *credentials.Credentials = nil
+	// If creds are provided in the configuration, they are directly forwarded to the client as static credentials.
+	// This is mainly used for self-hosted scenarii where users store the data in a S3-compatible object store. In that
+	// case it does not really make sense to create an AWS configuration since there is no related AWS account.
+	// If credentials are not provided in the config however, the AWS credentials are determined by the SDK.
+	if conf.Credentials.AccessKey != "" && conf.Credentials.SecretKey != "" {
+		creds = credentials.NewStaticCredentials(conf.Credentials.AccessKey, conf.Credentials.SecretKey, "")
+	}
+
 	s.sess, err = session.NewSessionWithOptions(session.Options{
 		Profile: conf.Profile,
 		Config: aws.Config{
-			Region:   aws.String(conf.Region),
-			Endpoint: endpoint,
+			Region:      aws.String(conf.Region),
+			Endpoint:    endpoint,
+			Credentials: creds,
+			// By default S3 client uses virtual hosted bucket addressing when possible but this cannot work
+			// for self-hosted. We can switch to path style instead with a configuration flag.
+			S3ForcePathStyle: aws.Bool(conf.ForcePathStyle),
 		},
 	})
+	if err != nil {
+		return fmt.Errorf("failed to create session to s3: %v", err)
+	}
 	s.bucket = aws.String(conf.Bucket)
 	s.client = s3.New(s.sess)
 	s.limiter = make(chan struct{}, conf.MaxThreads)
