@@ -57,7 +57,7 @@ func (s *s3store) Init(a *app.App) (err error) {
 		endpoint = aws.String(conf.Endpoint)
 	}
 
-	var creds *credentials.Credentials = nil
+	var creds *credentials.Credentials
 	// If creds are provided in the configuration, they are directly forwarded to the client as static credentials.
 	// This is mainly used for self-hosted scenarii where users store the data in a S3-compatible object store. In that
 	// case it does not really make sense to create an AWS configuration since there is no related AWS account.
