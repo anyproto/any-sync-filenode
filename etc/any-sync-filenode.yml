@@ -10,6 +10,11 @@ yamux:
     - 127.0.0.1:4730
   writeTimeoutSec: 10
   dialTimeoutSec: 10
+quic:
+  listenAddrs:
+    - 127.0.0.1:4730
+  writeTimeoutSec: 10
+  dialTimeoutSec: 10
 metric:
   addr: ":7010"
 s3Store:
