@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/ahmetb/govvv v0.3.0
-	github.com/anyproto/any-sync v0.2.18-0.20230811143014-a31f05a20133
+	github.com/anyproto/any-sync v0.2.18-0.20230811150316-a7368f08addd
 	github.com/aws/aws-sdk-go v1.44.317
 	github.com/go-redsync/redsync/v4 v4.8.1
 	github.com/gogo/protobuf v1.3.2

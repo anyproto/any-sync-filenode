@@ -4,8 +4,8 @@ github.com/OneOfOne/xxhash v1.2.2 h1:KMrpdQIwFcEqXDklaen+P1axHaj9BSKzvpUUfnHldSE
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/ahmetb/govvv v0.3.0 h1:YGLGwEyiUwHFy5eh/RUhdupbuaCGBYn5T5GWXp+WJB0=
 github.com/ahmetb/govvv v0.3.0/go.mod h1:4WRFpdWtc/YtKgPFwa1dr5+9hiRY5uKAL08bOlxOR6s=
-github.com/anyproto/any-sync v0.2.18-0.20230811143014-a31f05a20133 h1:HILzOs2pdNt6E7NEy5gC0J48WYu7JjzLCZEC5WjB2YA=
-github.com/anyproto/any-sync v0.2.18-0.20230811143014-a31f05a20133/go.mod h1:SxT4/WTOK3PeJUruh1wX9DWGwsPrSzQqE0Cgys7HkJ0=
+github.com/anyproto/any-sync v0.2.18-0.20230811150316-a7368f08addd h1:BJ6WoSANZDJKwk2yg60VjTFHKi9EOATe1hxI84dabzk=
+github.com/anyproto/any-sync v0.2.18-0.20230811150316-a7368f08addd/go.mod h1:SxT4/WTOK3PeJUruh1wX9DWGwsPrSzQqE0Cgys7HkJ0=
 github.com/anyproto/go-chash v0.1.0 h1:I9meTPjXFRfXZHRJzjOHC/XF7Q5vzysKkiT/grsogXY=
 github.com/anyproto/go-chash v0.1.0/go.mod h1:0UjNQi3PDazP0fINpFYu6VKhuna+W/V+1vpXHAfNgLY=
 github.com/anyproto/go-slip10 v1.0.0 h1:uAEtSuudR3jJBOfkOXf3bErxVoxbuKwdoJN55M1i6IA=
