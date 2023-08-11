@@ -12,7 +12,7 @@ yamux:
   dialTimeoutSec: 10
 quic:
   listenAddrs:
-    - 127.0.0.1:4730
+    - 127.0.0.1:5730
   writeTimeoutSec: 10
   dialTimeoutSec: 10
 metric:
