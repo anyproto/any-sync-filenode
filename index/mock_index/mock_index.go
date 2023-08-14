@@ -10,9 +10,9 @@ import (
 
 	index "github.com/anyproto/any-sync-filenode/index"
 	app "github.com/anyproto/any-sync/app"
-	gomock "github.com/golang/mock/gomock"
 	blocks "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockIndex is a mock of Index interface.

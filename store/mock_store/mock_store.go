@@ -9,9 +9,9 @@ import (
 	reflect "reflect"
 
 	app "github.com/anyproto/any-sync/app"
-	gomock "github.com/golang/mock/gomock"
 	blocks "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockStore is a mock of Store interface.

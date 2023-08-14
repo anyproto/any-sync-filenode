@@ -9,7 +9,7 @@ import (
 	reflect "reflect"
 
 	app "github.com/anyproto/any-sync/app"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockLimit is a mock of Limit interface.
