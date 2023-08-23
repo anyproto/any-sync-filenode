@@ -5,16 +5,16 @@ go 1.19
 require (
 	github.com/ahmetb/govvv v0.3.0
 	github.com/anyproto/any-sync v0.2.21
-	github.com/aws/aws-sdk-go v1.44.322
+	github.com/aws/aws-sdk-go v1.44.327
 	github.com/go-redsync/redsync/v4 v4.8.1
 	github.com/gogo/protobuf v1.3.2
-	github.com/golang/mock v1.6.0
 	github.com/golang/snappy v0.0.4
 	github.com/ipfs/go-block-format v0.1.2
 	github.com/ipfs/go-cid v0.4.1
 	github.com/redis/go-redis/v9 v9.0.5
 	github.com/stretchr/testify v1.8.4
 	go.uber.org/atomic v1.11.0
+	go.uber.org/mock v0.2.0
 	go.uber.org/zap v1.25.0
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -63,7 +63,6 @@ require (
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/tyler-smith/go-bip39 v1.1.0 // indirect
 	github.com/zeebo/errs v1.3.0 // indirect
-	go.uber.org/mock v0.2.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.12.0 // indirect
 	golang.org/x/exp v0.0.0-20230811145659-89c5cff77bcb // indirect
