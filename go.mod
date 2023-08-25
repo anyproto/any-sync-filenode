@@ -1,6 +1,6 @@
 module github.com/anyproto/any-sync-filenode
 
-go 1.19
+go 1.21
 
 require (
 	github.com/ahmetb/govvv v0.3.0
