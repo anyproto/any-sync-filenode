@@ -21,7 +21,7 @@ func New() Limit {
 }
 
 type Limit interface {
-	Check(ctx context.Context, spaceId string) (limit uint64, err error)
+	Check(ctx context.Context, spaceId string) (limit uint64, storageKey string, err error)
 	app.ComponentRunnable
 }
 
@@ -47,7 +47,7 @@ func (l *limit) Run(ctx context.Context) (err error) {
 	return
 }
 
-func (l *limit) Check(ctx context.Context, spaceId string) (limit uint64, err error) {
+func (l *limit) Check(ctx context.Context, spaceId string) (limit uint64, storageKey string, err error) {
 	identity, err := peer.CtxIdentity(ctx)
 	if err != nil {
 		return
@@ -56,7 +56,8 @@ func (l *limit) Check(ctx context.Context, spaceId string) (limit uint64, err er
 	if err != nil {
 		return
 	}
-	return obj.(*entry).GetLimit(), nil
+	e := obj.(*entry)
+	return e.GetLimit(), e.storageKey, nil
 }
 
 func (l *limit) fetchLimit(ctx context.Context, id string) (value ocache.Object, err error) {
@@ -64,15 +65,17 @@ func (l *limit) fetchLimit(ctx context.Context, id string) (value ocache.Object,
 	if err != nil {
 		return
 	}
-	limitBytes, err := l.cl.FileLimitCheck(ctx, spaceId, identity)
+	result, err := l.cl.FileLimitCheck(ctx, spaceId, identity)
 	if err != nil {
 		return nil, err
 	}
+
 	return &entry{
-		spaceId:   spaceId,
-		identity:  identity,
-		lastUsage: atomic.NewTime(time.Now()),
-		limit:     limitBytes,
+		spaceId:    spaceId,
+		identity:   identity,
+		lastUsage:  atomic.NewTime(time.Now()),
+		limit:      result.Limit,
+		storageKey: result.StorageKey,
 	}, nil
 }
 
@@ -97,10 +100,11 @@ func decodeId(id string) (spaceId string, identity []byte, err error) {
 }
 
 type entry struct {
-	spaceId   string
-	identity  []byte
-	lastUsage *atomic.Time
-	limit     uint64
+	spaceId    string
+	identity   []byte
+	lastUsage  *atomic.Time
+	limit      uint64
+	storageKey string
 }
 
 func (e *entry) TryClose(objectTTL time.Duration) (res bool, err error) {

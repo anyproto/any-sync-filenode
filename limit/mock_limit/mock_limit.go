@@ -36,12 +36,13 @@ func (m *MockLimit) EXPECT() *MockLimitMockRecorder {
 }
 
 // Check mocks base method.
-func (m *MockLimit) Check(arg0 context.Context, arg1 string) (uint64, error) {
+func (m *MockLimit) Check(arg0 context.Context, arg1 string) (uint64, string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Check", arg0, arg1)
 	ret0, _ := ret[0].(uint64)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret1, _ := ret[1].(string)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
 }
 
 // Check indicates an expected call of Check.

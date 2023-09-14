@@ -95,19 +95,19 @@ func (mr *MockIndexMockRecorder) Exists(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exists", reflect.TypeOf((*MockIndex)(nil).Exists), arg0, arg1)
 }
 
-// ExistsInSpace mocks base method.
-func (m *MockIndex) ExistsInSpace(arg0 context.Context, arg1 string, arg2 []cid.Cid) ([]cid.Cid, error) {
+// ExistsInStorage mocks base method.
+func (m *MockIndex) ExistsInStorage(arg0 context.Context, arg1 string, arg2 []cid.Cid) ([]cid.Cid, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ExistsInSpace", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "ExistsInStorage", arg0, arg1, arg2)
 	ret0, _ := ret[0].([]cid.Cid)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ExistsInSpace indicates an expected call of ExistsInSpace.
-func (mr *MockIndexMockRecorder) ExistsInSpace(arg0, arg1, arg2 interface{}) *gomock.Call {
+// ExistsInStorage indicates an expected call of ExistsInStorage.
+func (mr *MockIndexMockRecorder) ExistsInStorage(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExistsInSpace", reflect.TypeOf((*MockIndex)(nil).ExistsInSpace), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExistsInStorage", reflect.TypeOf((*MockIndex)(nil).ExistsInStorage), arg0, arg1, arg2)
 }
 
 // FileInfo mocks base method.
@@ -198,34 +198,34 @@ func (mr *MockIndexMockRecorder) Name() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockIndex)(nil).Name))
 }
 
-// SpaceInfo mocks base method.
-func (m *MockIndex) SpaceInfo(arg0 context.Context, arg1 string) (index.SpaceInfo, error) {
+// StorageInfo mocks base method.
+func (m *MockIndex) StorageInfo(arg0 context.Context, arg1 string) (index.StorageInfo, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SpaceInfo", arg0, arg1)
-	ret0, _ := ret[0].(index.SpaceInfo)
+	ret := m.ctrl.Call(m, "StorageInfo", arg0, arg1)
+	ret0, _ := ret[0].(index.StorageInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// SpaceInfo indicates an expected call of SpaceInfo.
-func (mr *MockIndexMockRecorder) SpaceInfo(arg0, arg1 interface{}) *gomock.Call {
+// StorageInfo indicates an expected call of StorageInfo.
+func (mr *MockIndexMockRecorder) StorageInfo(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SpaceInfo", reflect.TypeOf((*MockIndex)(nil).SpaceInfo), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StorageInfo", reflect.TypeOf((*MockIndex)(nil).StorageInfo), arg0, arg1)
 }
 
-// SpaceSize mocks base method.
-func (m *MockIndex) SpaceSize(arg0 context.Context, arg1 string) (uint64, error) {
+// StorageSize mocks base method.
+func (m *MockIndex) StorageSize(arg0 context.Context, arg1 string) (uint64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SpaceSize", arg0, arg1)
+	ret := m.ctrl.Call(m, "StorageSize", arg0, arg1)
 	ret0, _ := ret[0].(uint64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// SpaceSize indicates an expected call of SpaceSize.
-func (mr *MockIndexMockRecorder) SpaceSize(arg0, arg1 interface{}) *gomock.Call {
+// StorageSize indicates an expected call of StorageSize.
+func (mr *MockIndexMockRecorder) StorageSize(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SpaceSize", reflect.TypeOf((*MockIndex)(nil).SpaceSize), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StorageSize", reflect.TypeOf((*MockIndex)(nil).StorageSize), arg0, arg1)
 }
 
 // UnBind mocks base method.

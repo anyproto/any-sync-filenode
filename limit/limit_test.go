@@ -5,6 +5,7 @@ import (
 	"github.com/anyproto/any-sync/app"
 	"github.com/anyproto/any-sync/coordinator/coordinatorclient"
 	"github.com/anyproto/any-sync/coordinator/coordinatorclient/mock_coordinatorclient"
+	"github.com/anyproto/any-sync/coordinator/coordinatorproto"
 	"github.com/anyproto/any-sync/net/peer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -17,21 +18,26 @@ var ctx = context.Background()
 func TestLimit_Check(t *testing.T) {
 	var spaceId = "122345.123"
 	var identity = []byte("identity")
-	t.Run("succes", func(t *testing.T) {
+	t.Run("success space", func(t *testing.T) {
 		fx := newFixture(t)
 		defer fx.Finish(t)
-		fx.client.EXPECT().FileLimitCheck(gomock.Any(), spaceId, identity).Return(uint64(123), nil)
-		res, err := fx.Check(peer.CtxWithIdentity(ctx, identity), spaceId)
+		fx.client.EXPECT().FileLimitCheck(gomock.Any(), spaceId, identity).Return(&coordinatorproto.FileLimitCheckResponse{
+			Limit:      123,
+			StorageKey: "sk",
+		}, nil)
+		res, storageKey, err := fx.Check(peer.CtxWithIdentity(ctx, identity), spaceId)
 		require.NoError(t, err)
 		assert.Equal(t, uint64(123), res)
-		res, err = fx.Check(peer.CtxWithIdentity(ctx, identity), spaceId)
+		assert.Equal(t, "sk", storageKey)
+		res, storageKey, err = fx.Check(peer.CtxWithIdentity(ctx, identity), spaceId)
 		require.NoError(t, err)
 		assert.Equal(t, uint64(123), res)
+		assert.Equal(t, "sk", storageKey)
 	})
 	t.Run("no identity", func(t *testing.T) {
 		fx := newFixture(t)
 		defer fx.Finish(t)
-		_, err := fx.Check(ctx, spaceId)
+		_, _, err := fx.Check(ctx, spaceId)
 		require.Error(t, err)
 	})
 

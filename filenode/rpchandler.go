@@ -166,7 +166,8 @@ func (r rpcHandler) FilesInfo(ctx context.Context, req *fileproto.FilesInfoReque
 	resp = &fileproto.FilesInfoResponse{
 		FilesInfo: make([]*fileproto.FileInfo, len(req.FileIds)),
 	}
-	if err = r.f.ValidateSpaceId(ctx, req.SpaceId, false); err != nil {
+	_, err = r.f.ValidateSpaceId(ctx, req.SpaceId, false)
+	if err != nil {
 		return nil, err
 	}
 	var info *fileproto.FileInfo
