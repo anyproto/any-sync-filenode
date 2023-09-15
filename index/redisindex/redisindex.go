@@ -22,8 +22,8 @@ import (
 		CIDS:
 			c:{cid}: proto(Entry)
 
-		SPACES:
-			s:{spaceId}: map
+		STORES:
+			s:{storeKey}: map
 				f:{fileId} -> snappy(proto(CidList))
 				{cid} -> int(refCount)
 				size -> int(summarySize)

@@ -68,7 +68,7 @@ func (fn *fileNode) Get(ctx context.Context, k cid.Cid) (blocks.Block, error) {
 }
 
 func (fn *fileNode) Add(ctx context.Context, spaceId string, fileId string, bs []blocks.Block) error {
-	storeKey, err := fn.ValidateSpaceId(ctx, spaceId, true)
+	storeKey, err := fn.StoreKey(ctx, spaceId, true)
 	if err != nil {
 		return err
 	}
@@ -92,7 +92,7 @@ func (fn *fileNode) Add(ctx context.Context, spaceId string, fileId string, bs [
 func (fn *fileNode) Check(ctx context.Context, spaceId string, cids ...cid.Cid) (result []*fileproto.BlockAvailability, err error) {
 	var storeKey string
 	if spaceId != "" {
-		if storeKey, err = fn.ValidateSpaceId(ctx, spaceId, false); err != nil {
+		if storeKey, err = fn.StoreKey(ctx, spaceId, false); err != nil {
 			return
 		}
 	}
@@ -128,7 +128,7 @@ func (fn *fileNode) Check(ctx context.Context, spaceId string, cids ...cid.Cid) 
 }
 
 func (fn *fileNode) BlocksBind(ctx context.Context, spaceId, fileId string, cids ...cid.Cid) (err error) {
-	storeKey, err := fn.ValidateSpaceId(ctx, spaceId, true)
+	storeKey, err := fn.StoreKey(ctx, spaceId, true)
 	if err != nil {
 		return err
 	}
@@ -140,7 +140,7 @@ func (fn *fileNode) BlocksBind(ctx context.Context, spaceId, fileId string, cids
 	return fn.index.BindCids(ctx, storeKey, fileId, cids)
 }
 
-func (fn *fileNode) ValidateSpaceId(ctx context.Context, spaceId string, checkLimit bool) (storageKey string, err error) {
+func (fn *fileNode) StoreKey(ctx context.Context, spaceId string, checkLimit bool) (storageKey string, err error) {
 	if spaceId == "" {
 		return "", fileprotoerr.ErrForbidden
 	}
@@ -182,7 +182,7 @@ func (fn *fileNode) SpaceInfo(ctx context.Context, spaceId string) (info *filepr
 }
 
 func (fn *fileNode) FilesDelete(ctx context.Context, spaceId string, fileIds []string) (err error) {
-	storeKey, err := fn.ValidateSpaceId(ctx, spaceId, false)
+	storeKey, err := fn.StoreKey(ctx, spaceId, false)
 	if err != nil {
 		return
 	}
@@ -195,7 +195,7 @@ func (fn *fileNode) FilesDelete(ctx context.Context, spaceId string, fileIds []s
 }
 
 func (fn *fileNode) FileInfo(ctx context.Context, spaceId, fileId string) (info *fileproto.FileInfo, err error) {
-	storeKey, err := fn.ValidateSpaceId(ctx, spaceId, false)
+	storeKey, err := fn.StoreKey(ctx, spaceId, false)
 	if err != nil {
 		return
 	}
