@@ -5,10 +5,6 @@ on:
 
 name: coverage
 
-permissions:
-  contents: write
-  pull-requests: write
-
 jobs:
   test:
     runs-on: ubuntu-latest
