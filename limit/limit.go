@@ -57,7 +57,7 @@ func (l *limit) Check(ctx context.Context, spaceId string) (limit uint64, storag
 		return
 	}
 	e := obj.(*entry)
-	return e.GetLimit(), e.storageKey, nil
+	return e.limit, e.storageKey, nil
 }
 
 func (l *limit) fetchLimit(ctx context.Context, id string) (value ocache.Object, err error) {
@@ -70,6 +70,9 @@ func (l *limit) fetchLimit(ctx context.Context, id string) (value ocache.Object,
 		return nil, err
 	}
 
+	if result.StorageKey == "" {
+		result.StorageKey = spaceId
+	}
 	return &entry{
 		spaceId:    spaceId,
 		identity:   identity,
@@ -112,11 +115,6 @@ func (e *entry) TryClose(objectTTL time.Duration) (res bool, err error) {
 		return false, nil
 	}
 	return true, e.Close()
-}
-
-func (e *entry) GetLimit() uint64 {
-	e.lastUsage.Store(time.Now())
-	return e.limit
 }
 
 func (e *entry) Close() error {
