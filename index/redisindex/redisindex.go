@@ -205,6 +205,26 @@ func (r *redisIndex) FileInfo(ctx context.Context, key, fileId string) (info ind
 	return
 }
 
+func (r *redisIndex) MoveStorage(ctx context.Context, fromKey, toKey string) (err error) {
+	ok, err := r.cl.RenameNX(ctx, storageKey(fromKey), storageKey(toKey)).Result()
+	if err != nil {
+		if err.Error() == "ERR no such key" {
+			return index.ErrStorageNotFound
+		}
+		return err
+	}
+	if !ok {
+		ex, err := r.cl.Exists(ctx, storageKey(toKey)).Result()
+		if err != nil {
+			return err
+		}
+		if ex > 0 {
+			return index.ErrTargetStorageExists
+		}
+	}
+	return
+}
+
 func (r *redisIndex) cidsAddRef(ctx context.Context, cids []CidInfo) error {
 	now := time.Now()
 	for _, c := range cids {
@@ -339,8 +359,8 @@ func (r *redisIndex) cidInfoByByteKeys(ctx context.Context, ks [][]byte) (info [
 	return r.cidInfoByKeys(ctx, cids)
 }
 
-func storageKey(spaceId string) string {
-	return "s:" + spaceId
+func storageKey(storeKey string) string {
+	return "s:" + storeKey
 }
 
 func fileIdKey(fileId string) string {

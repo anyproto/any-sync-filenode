@@ -184,6 +184,20 @@ func (mr *MockIndexMockRecorder) Lock(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Lock", reflect.TypeOf((*MockIndex)(nil).Lock), arg0, arg1)
 }
 
+// MoveStorage mocks base method.
+func (m *MockIndex) MoveStorage(arg0 context.Context, arg1, arg2 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MoveStorage", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// MoveStorage indicates an expected call of MoveStorage.
+func (mr *MockIndexMockRecorder) MoveStorage(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MoveStorage", reflect.TypeOf((*MockIndex)(nil).MoveStorage), arg0, arg1, arg2)
+}
+
 // Name mocks base method.
 func (m *MockIndex) Name() string {
 	m.ctrl.T.Helper()

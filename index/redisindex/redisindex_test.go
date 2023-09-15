@@ -2,6 +2,7 @@ package redisindex
 
 import (
 	"context"
+	"github.com/anyproto/any-sync-filenode/index"
 	"github.com/anyproto/any-sync-filenode/redisprovider/testredisprovider"
 	"github.com/anyproto/any-sync-filenode/testutil"
 	"github.com/anyproto/any-sync/app"
@@ -125,6 +126,31 @@ func TestRedisIndex_Lock(t *testing.T) {
 	_, err = fx.Lock(tCtx, testutil.BlocksToKeys(bs))
 	require.Error(t, err)
 	unlock()
+}
+
+func TestRedisIndex_MoveStorage(t *testing.T) {
+	const (
+		oldKey = "oldKey"
+		newKey = "newKey"
+	)
+	t.Run("success", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
+		require.NoError(t, fx.Bind(ctx, oldKey, "fid", testutil.NewRandBlocks(1)))
+		require.NoError(t, fx.MoveStorage(ctx, oldKey, newKey))
+	})
+	t.Run("err storage not found", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
+		assert.EqualError(t, fx.MoveStorage(ctx, oldKey, newKey), index.ErrStorageNotFound.Error())
+	})
+	t.Run("err taget exists", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
+		require.NoError(t, fx.Bind(ctx, oldKey, "fid", testutil.NewRandBlocks(1)))
+		require.NoError(t, fx.Bind(ctx, newKey, "fid", testutil.NewRandBlocks(1)))
+		assert.EqualError(t, fx.MoveStorage(ctx, oldKey, newKey), index.ErrTargetStorageExists.Error())
+	})
 }
 
 func Test100KCids(t *testing.T) {

@@ -38,6 +38,7 @@ func TestFileNode_Add(t *testing.T) {
 		)
 
 		fx.limit.EXPECT().Check(ctx, spaceId).Return(uint64(123), storeKey, nil)
+		fx.index.EXPECT().MoveStorage(ctx, spaceId, storeKey).AnyTimes()
 		fx.index.EXPECT().StorageSize(ctx, storeKey).Return(uint64(120), nil)
 		fx.index.EXPECT().Lock(ctx, []cid.Cid{b.Cid()}).Return(func() {}, nil)
 		fx.index.EXPECT().GetNonExistentBlocks(ctx, []blocks.Block{b}).Return([]blocks.Block{b}, nil)
@@ -64,6 +65,7 @@ func TestFileNode_Add(t *testing.T) {
 		)
 
 		fx.limit.EXPECT().Check(ctx, spaceId).Return(uint64(123), storeKey, nil)
+		fx.index.EXPECT().MoveStorage(ctx, spaceId, storeKey).AnyTimes()
 		fx.index.EXPECT().StorageSize(ctx, storeKey).Return(uint64(124), nil)
 
 		resp, err := fx.handler.BlockPush(ctx, &fileproto.BlockPushRequest{
@@ -155,6 +157,7 @@ func TestFileNode_Check(t *testing.T) {
 		cids = append(cids, b.Cid().Bytes())
 	}
 	fx.limit.EXPECT().Check(ctx, spaceId).Return(uint64(100000), storeKey, nil)
+	fx.index.EXPECT().MoveStorage(ctx, spaceId, storeKey).AnyTimes()
 	fx.index.EXPECT().ExistsInStorage(ctx, storeKey, testutil.BlocksToKeys(bs)).Return(testutil.BlocksToKeys(bs[:1]), nil)
 	fx.index.EXPECT().Exists(ctx, bs[1].Cid()).Return(true, nil)
 	fx.index.EXPECT().Exists(ctx, bs[2].Cid()).Return(false, nil)
@@ -186,6 +189,7 @@ func TestFileNode_BlocksBind(t *testing.T) {
 	}
 
 	fx.limit.EXPECT().Check(ctx, spaceId).Return(uint64(123), storeKey, nil)
+	fx.index.EXPECT().MoveStorage(ctx, spaceId, storeKey).AnyTimes()
 	fx.index.EXPECT().StorageSize(ctx, storeKey).Return(uint64(12), nil)
 	fx.index.EXPECT().Lock(ctx, cids).Return(func() {}, nil)
 	fx.index.EXPECT().BindCids(ctx, storeKey, fileId, cids)
@@ -210,6 +214,7 @@ func TestFileNode_FileInfo(t *testing.T) {
 		fileId2  = testutil.NewRandCid().String()
 	)
 	fx.limit.EXPECT().Check(ctx, spaceId).AnyTimes().Return(uint64(100000), storeKey, nil)
+	fx.index.EXPECT().MoveStorage(ctx, spaceId, storeKey).AnyTimes()
 	fx.index.EXPECT().FileInfo(ctx, storeKey, fileId1).Return(index.FileInfo{1, 1}, nil)
 	fx.index.EXPECT().FileInfo(ctx, storeKey, fileId2).Return(index.FileInfo{2, 2}, nil)
 

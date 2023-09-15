@@ -10,7 +10,9 @@ import (
 )
 
 var (
-	ErrCidsNotExist = errors.New("cids not exist")
+	ErrCidsNotExist        = errors.New("cids not exist")
+	ErrTargetStorageExists = errors.New("target storage exists")
+	ErrStorageNotFound     = errors.New("storage not found")
 )
 
 type Index interface {
@@ -26,6 +28,7 @@ type Index interface {
 	StorageSize(ctx context.Context, key string) (size uint64, err error)
 	Lock(ctx context.Context, ks []cid.Cid) (unlock func(), err error)
 	AddBlocks(ctx context.Context, upload []blocks.Block) error
+	MoveStorage(ctx context.Context, fromKey, toKey string) error
 	app.Component
 }
 

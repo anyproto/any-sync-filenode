@@ -150,6 +150,14 @@ func (fn *fileNode) StoreKey(ctx context.Context, spaceId string, checkLimit boo
 		return
 	}
 
+	if storageKey != spaceId {
+		// try to move store to the new key
+		mErr := fn.index.MoveStorage(ctx, spaceId, storageKey)
+		if mErr != nil && mErr != index.ErrStorageNotFound && mErr != index.ErrTargetStorageExists {
+			return "", mErr
+		}
+	}
+
 	if checkLimit {
 		currentSize, e := fn.index.StorageSize(ctx, storageKey)
 		if e != nil {
