@@ -20,7 +20,7 @@ func TestRedisIndex_Bind(t *testing.T) {
 		fileId := testutil.NewRandCid().String()
 
 		require.NoError(t, fx.Bind(ctx, spaceId, fileId, bs))
-		size, err := fx.SpaceSize(ctx, spaceId)
+		size, err := fx.StorageSize(ctx, spaceId)
 		require.NoError(t, err)
 		assert.Equal(t, sumSize, size)
 	})
@@ -38,7 +38,7 @@ func TestRedisIndex_Bind(t *testing.T) {
 
 		require.NoError(t, fx.Bind(ctx, spaceId, fileId1, bs[:2]))
 		require.NoError(t, fx.Bind(ctx, spaceId, fileId2, bs))
-		size, err := fx.SpaceSize(ctx, spaceId)
+		size, err := fx.StorageSize(ctx, spaceId)
 		require.NoError(t, err)
 		assert.Equal(t, sumSize, size)
 	})
@@ -55,7 +55,7 @@ func TestRedisIndex_Bind(t *testing.T) {
 
 		require.NoError(t, fx.Bind(ctx, spaceId, fileId, bs))
 		require.NoError(t, fx.Bind(ctx, spaceId, fileId, bs))
-		size, err := fx.SpaceSize(ctx, spaceId)
+		size, err := fx.StorageSize(ctx, spaceId)
 		require.NoError(t, err)
 		assert.Equal(t, sumSize, size)
 	})
@@ -76,7 +76,7 @@ func TestRedisIndex_BindCids(t *testing.T) {
 
 		require.NoError(t, fx.Bind(ctx, spaceId, fileId1, bs))
 		require.NoError(t, fx.BindCids(ctx, spaceId, fileId2, testutil.BlocksToKeys(bs)))
-		size, err := fx.SpaceSize(ctx, spaceId)
+		size, err := fx.StorageSize(ctx, spaceId)
 		require.NoError(t, err)
 		assert.Equal(t, sumSize, size)
 

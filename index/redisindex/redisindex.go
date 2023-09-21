@@ -22,8 +22,8 @@ import (
 		CIDS:
 			c:{cid}: proto(Entry)
 
-		SPACES:
-			s:{spaceId}: map
+		STORES:
+			s:{storeKey}: map
 				f:{fileId} -> snappy(proto(CidList))
 				{cid} -> int(refCount)
 				size -> int(summarySize)
@@ -35,7 +35,7 @@ const CName = "filenode.redisindex"
 var log = logger.NewNamed(CName)
 
 const (
-	spaceSizeKey = "size"
+	storeSizeKey = "size"
 )
 
 func New() index.Index {
@@ -93,9 +93,9 @@ func (r *redisIndex) GetNonExistentBlocks(ctx context.Context, bs []blocks.Block
 	return
 }
 
-func (r *redisIndex) Bind(ctx context.Context, spaceId, fileId string, bs []blocks.Block) error {
+func (r *redisIndex) Bind(ctx context.Context, key, fileId string, bs []blocks.Block) error {
 	bop := bindOp{
-		sk: spaceKey(spaceId),
+		sk: storageKey(key),
 		fk: fileIdKey(fileId),
 		ri: r,
 	}
@@ -106,7 +106,7 @@ func (r *redisIndex) Bind(ctx context.Context, spaceId, fileId string, bs []bloc
 	return r.cidsAddRef(ctx, newCids)
 }
 
-func (r *redisIndex) BindCids(ctx context.Context, spaceId, fileId string, ks []cid.Cid) error {
+func (r *redisIndex) BindCids(ctx context.Context, key, fileId string, ks []cid.Cid) error {
 	cids, err := r.cidInfoByKeys(ctx, ks)
 	if err != nil {
 		return err
@@ -115,7 +115,7 @@ func (r *redisIndex) BindCids(ctx context.Context, spaceId, fileId string, ks []
 		return index.ErrCidsNotExist
 	}
 	bop := bindOp{
-		sk: spaceKey(spaceId),
+		sk: storageKey(key),
 		fk: fileIdKey(fileId),
 		ri: r,
 	}
@@ -128,7 +128,7 @@ func (r *redisIndex) BindCids(ctx context.Context, spaceId, fileId string, ks []
 
 func (r *redisIndex) UnBind(ctx context.Context, spaceId, fileId string) (err error) {
 	uop := unbindOp{
-		sk: spaceKey(spaceId),
+		sk: storageKey(spaceId),
 		fk: fileIdKey(fileId),
 		ri: r,
 	}
@@ -139,8 +139,8 @@ func (r *redisIndex) UnBind(ctx context.Context, spaceId, fileId string) (err er
 	return r.cidsRemoveRef(ctx, removedCids)
 }
 
-func (r *redisIndex) ExistsInSpace(ctx context.Context, spaceId string, ks []cid.Cid) (exists []cid.Cid, err error) {
-	var sk = spaceKey(spaceId)
+func (r *redisIndex) ExistsInStorage(ctx context.Context, spaceId string, ks []cid.Cid) (exists []cid.Cid, err error) {
+	var sk = storageKey(spaceId)
 	cidKeys := make([]string, len(ks))
 	for i, k := range ks {
 		cidKeys[i] = k.String()
@@ -158,8 +158,8 @@ func (r *redisIndex) ExistsInSpace(ctx context.Context, spaceId string, ks []cid
 	return
 }
 
-func (r *redisIndex) SpaceSize(ctx context.Context, spaceId string) (size uint64, err error) {
-	result, err := r.cl.HGet(ctx, spaceKey(spaceId), spaceSizeKey).Result()
+func (r *redisIndex) StorageSize(ctx context.Context, key string) (size uint64, err error) {
+	result, err := r.cl.HGet(ctx, storageKey(key), storeSizeKey).Result()
 	if err != nil {
 		if err == redis.Nil {
 			err = nil
@@ -169,8 +169,8 @@ func (r *redisIndex) SpaceSize(ctx context.Context, spaceId string) (size uint64
 	return strconv.ParseUint(result, 10, 64)
 }
 
-func (r *redisIndex) SpaceInfo(ctx context.Context, spaceId string) (info index.SpaceInfo, err error) {
-	res, err := r.cl.HKeys(ctx, spaceKey(spaceId)).Result()
+func (r *redisIndex) StorageInfo(ctx context.Context, key string) (info index.StorageInfo, err error) {
+	res, err := r.cl.HKeys(ctx, storageKey(key)).Result()
 	if err != nil {
 		if err == redis.Nil {
 			err = nil
@@ -180,15 +180,16 @@ func (r *redisIndex) SpaceInfo(ctx context.Context, spaceId string) (info index.
 	for _, r := range res {
 		if strings.HasPrefix(r, "f:") {
 			info.FileCount++
-		} else if r != spaceSizeKey {
+		} else if r != storeSizeKey {
 			info.CidCount++
 		}
 	}
+	info.Key = key
 	return
 }
 
-func (r *redisIndex) FileInfo(ctx context.Context, spaceId, fileId string) (info index.FileInfo, err error) {
-	fcl, err := r.newFileCidList(ctx, spaceKey(spaceId), fileIdKey(fileId))
+func (r *redisIndex) FileInfo(ctx context.Context, key, fileId string) (info index.FileInfo, err error) {
+	fcl, err := r.newFileCidList(ctx, storageKey(key), fileIdKey(fileId))
 	if err != nil {
 		return
 	}
@@ -200,6 +201,26 @@ func (r *redisIndex) FileInfo(ctx context.Context, spaceId, fileId string) (info
 	for _, c := range cids {
 		info.CidCount++
 		info.BytesUsage += c.Size_
+	}
+	return
+}
+
+func (r *redisIndex) MoveStorage(ctx context.Context, fromKey, toKey string) (err error) {
+	ok, err := r.cl.RenameNX(ctx, storageKey(fromKey), storageKey(toKey)).Result()
+	if err != nil {
+		if err.Error() == "ERR no such key" {
+			return index.ErrStorageNotFound
+		}
+		return err
+	}
+	if !ok {
+		ex, err := r.cl.Exists(ctx, storageKey(toKey)).Result()
+		if err != nil {
+			return err
+		}
+		if ex > 0 {
+			return index.ErrTargetStorageExists
+		}
 	}
 	return
 }
@@ -257,6 +278,7 @@ func (r *redisIndex) cidsRemoveRef(ctx context.Context, cids []CidInfo) error {
 		entry.UpdateTime = now.Unix()
 		entry.Refs--
 
+		// TODO: syncpool
 		data, _ := entry.Marshal()
 		if err = r.cl.Set(ctx, ck, data, 0).Err(); err != nil {
 			return err
@@ -337,8 +359,8 @@ func (r *redisIndex) cidInfoByByteKeys(ctx context.Context, ks [][]byte) (info [
 	return r.cidInfoByKeys(ctx, cids)
 }
 
-func spaceKey(spaceId string) string {
-	return "s:" + spaceId
+func storageKey(storeKey string) string {
+	return "s:" + storeKey
 }
 
 func fileIdKey(fileId string) string {

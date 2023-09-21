@@ -10,26 +10,30 @@ import (
 )
 
 var (
-	ErrCidsNotExist = errors.New("cids not exist")
+	ErrCidsNotExist        = errors.New("cids not exist")
+	ErrTargetStorageExists = errors.New("target storage exists")
+	ErrStorageNotFound     = errors.New("storage not found")
 )
 
 type Index interface {
 	Exists(ctx context.Context, k cid.Cid) (exists bool, err error)
 	IsAllExists(ctx context.Context, cids []cid.Cid) (exists bool, err error)
-	SpaceInfo(ctx context.Context, spaceId string) (info SpaceInfo, err error)
+	StorageInfo(ctx context.Context, key string) (info StorageInfo, err error)
 	GetNonExistentBlocks(ctx context.Context, bs []blocks.Block) (nonExists []blocks.Block, err error)
-	Bind(ctx context.Context, spaceId, fileId string, bs []blocks.Block) error
-	BindCids(ctx context.Context, spaceId string, fileId string, cids []cid.Cid) error
-	UnBind(ctx context.Context, spaceId, fileId string) (err error)
-	ExistsInSpace(ctx context.Context, spaceId string, ks []cid.Cid) (exists []cid.Cid, err error)
-	FileInfo(ctx context.Context, spaceId, fileId string) (info FileInfo, err error)
-	SpaceSize(ctx context.Context, spaceId string) (size uint64, err error)
+	Bind(ctx context.Context, key, fileId string, bs []blocks.Block) error
+	BindCids(ctx context.Context, key string, fileId string, cids []cid.Cid) error
+	UnBind(ctx context.Context, key, fileId string) (err error)
+	ExistsInStorage(ctx context.Context, key string, ks []cid.Cid) (exists []cid.Cid, err error)
+	FileInfo(ctx context.Context, key, fileId string) (info FileInfo, err error)
+	StorageSize(ctx context.Context, key string) (size uint64, err error)
 	Lock(ctx context.Context, ks []cid.Cid) (unlock func(), err error)
 	AddBlocks(ctx context.Context, upload []blocks.Block) error
+	MoveStorage(ctx context.Context, fromKey, toKey string) error
 	app.Component
 }
 
-type SpaceInfo struct {
+type StorageInfo struct {
+	Key       string
 	FileCount int
 	CidCount  int
 }

@@ -64,7 +64,7 @@ func (op *bindOp) Bind(ctx context.Context, cids []CidInfo) (newCids []CidInfo, 
 
 	// increment space size
 	if spaceIncreaseSize > 0 {
-		if err = op.ri.cl.HIncrBy(ctx, op.sk, spaceSizeKey, int64(spaceIncreaseSize)).Err(); err != nil {
+		if err = op.ri.cl.HIncrBy(ctx, op.sk, storeSizeKey, int64(spaceIncreaseSize)).Err(); err != nil {
 			return nil, err
 		}
 	}

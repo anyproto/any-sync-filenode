@@ -23,7 +23,7 @@ func TestRedisIndex_UnBind(t *testing.T) {
 		require.NoError(t, fx.Bind(ctx, spaceId, fileId, bs))
 
 		require.NoError(t, fx.UnBind(ctx, spaceId, fileId))
-		size, err := fx.SpaceSize(ctx, spaceId)
+		size, err := fx.StorageSize(ctx, spaceId)
 		require.NoError(t, err)
 		assert.Empty(t, size)
 
@@ -48,13 +48,13 @@ func TestRedisIndex_UnBind(t *testing.T) {
 		require.NoError(t, fx.Bind(ctx, spaceId, fileId1, bs))
 		require.NoError(t, fx.Bind(ctx, spaceId, fileId2, bs[:3]))
 
-		si, err := fx.SpaceInfo(ctx, spaceId)
+		si, err := fx.StorageInfo(ctx, spaceId)
 		require.NoError(t, err)
 		assert.Equal(t, 2, si.FileCount)
 		assert.Equal(t, len(bs), si.CidCount)
 
 		require.NoError(t, fx.UnBind(ctx, spaceId, fileId1))
-		si, err = fx.SpaceInfo(ctx, spaceId)
+		si, err = fx.StorageInfo(ctx, spaceId)
 		require.NoError(t, err)
 		assert.Equal(t, 1, si.FileCount)
 		assert.Equal(t, 3, si.CidCount)

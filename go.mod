@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/ahmetb/govvv v0.3.0
-	github.com/anyproto/any-sync v0.3.0
+	github.com/anyproto/any-sync v0.3.1
 	github.com/aws/aws-sdk-go v1.44.327
 	github.com/go-redsync/redsync/v4 v4.8.1
 	github.com/gogo/protobuf v1.3.2
@@ -14,8 +14,8 @@ require (
 	github.com/redis/go-redis/v9 v9.1.0
 	github.com/stretchr/testify v1.8.4
 	go.uber.org/atomic v1.11.0
-	go.uber.org/mock v0.2.0
-	go.uber.org/zap v1.25.0
+	go.uber.org/mock v0.3.0
+	go.uber.org/zap v1.26.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 

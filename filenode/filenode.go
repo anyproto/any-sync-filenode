@@ -68,11 +68,8 @@ func (fn *fileNode) Get(ctx context.Context, k cid.Cid) (blocks.Block, error) {
 }
 
 func (fn *fileNode) Add(ctx context.Context, spaceId string, fileId string, bs []blocks.Block) error {
-	// temporary code for migration
-	if fileId == "migration" {
-		return fn.migrate(ctx, bs)
-	}
-	if err := fn.ValidateSpaceId(ctx, spaceId, true); err != nil {
+	storeKey, err := fn.StoreKey(ctx, spaceId, true)
+	if err != nil {
 		return err
 	}
 	unlock, err := fn.index.Lock(ctx, testutil.BlocksToKeys(bs))
@@ -89,37 +86,20 @@ func (fn *fileNode) Add(ctx context.Context, spaceId string, fileId string, bs [
 			return err
 		}
 	}
-	return fn.index.Bind(ctx, spaceId, fileId, bs)
-}
-
-func (fn *fileNode) migrate(ctx context.Context, bs []blocks.Block) error {
-	unlock, err := fn.index.Lock(ctx, testutil.BlocksToKeys(bs))
-	if err != nil {
-		return err
-	}
-	defer unlock()
-	toUpload, err := fn.index.GetNonExistentBlocks(ctx, bs)
-	if err != nil {
-		return err
-	}
-	if len(toUpload) > 0 {
-		if err = fn.store.Add(ctx, toUpload); err != nil {
-			return err
-		}
-	}
-	return fn.index.AddBlocks(ctx, toUpload)
+	return fn.index.Bind(ctx, storeKey, fileId, bs)
 }
 
 func (fn *fileNode) Check(ctx context.Context, spaceId string, cids ...cid.Cid) (result []*fileproto.BlockAvailability, err error) {
+	var storeKey string
 	if spaceId != "" {
-		if err = fn.ValidateSpaceId(ctx, spaceId, false); err != nil {
+		if storeKey, err = fn.StoreKey(ctx, spaceId, false); err != nil {
 			return
 		}
 	}
 	result = make([]*fileproto.BlockAvailability, 0, len(cids))
 	var inSpaceM = make(map[string]struct{})
 	if spaceId != "" {
-		inSpace, err := fn.index.ExistsInSpace(ctx, spaceId, cids)
+		inSpace, err := fn.index.ExistsInStorage(ctx, storeKey, cids)
 		if err != nil {
 			return nil, err
 		}
@@ -148,7 +128,8 @@ func (fn *fileNode) Check(ctx context.Context, spaceId string, cids ...cid.Cid) 
 }
 
 func (fn *fileNode) BlocksBind(ctx context.Context, spaceId, fileId string, cids ...cid.Cid) (err error) {
-	if err = fn.ValidateSpaceId(ctx, spaceId, true); err != nil {
+	storeKey, err := fn.StoreKey(ctx, spaceId, true)
+	if err != nil {
 		return err
 	}
 	unlock, err := fn.index.Lock(ctx, cids)
@@ -156,25 +137,34 @@ func (fn *fileNode) BlocksBind(ctx context.Context, spaceId, fileId string, cids
 		return err
 	}
 	defer unlock()
-	return fn.index.BindCids(ctx, spaceId, fileId, cids)
+	return fn.index.BindCids(ctx, storeKey, fileId, cids)
 }
 
-func (fn *fileNode) ValidateSpaceId(ctx context.Context, spaceId string, checkLimit bool) (err error) {
+func (fn *fileNode) StoreKey(ctx context.Context, spaceId string, checkLimit bool) (storageKey string, err error) {
 	if spaceId == "" {
-		return fileprotoerr.ErrForbidden
+		return "", fileprotoerr.ErrForbidden
 	}
 	// this call also confirms that space exists and valid
-	limitBytes, err := fn.limit.Check(ctx, spaceId)
+	limitBytes, storageKey, err := fn.limit.Check(ctx, spaceId)
 	if err != nil {
 		return
 	}
+
+	if storageKey != spaceId {
+		// try to move store to the new key
+		mErr := fn.index.MoveStorage(ctx, spaceId, storageKey)
+		if mErr != nil && mErr != index.ErrStorageNotFound && mErr != index.ErrTargetStorageExists {
+			return "", mErr
+		}
+	}
+
 	if checkLimit {
-		currentSize, e := fn.index.SpaceSize(ctx, spaceId)
+		currentSize, e := fn.index.StorageSize(ctx, storageKey)
 		if e != nil {
-			return e
+			return "", e
 		}
 		if currentSize >= limitBytes {
-			return fileprotoerr.ErrSpaceLimitExceeded
+			return "", fileprotoerr.ErrSpaceLimitExceeded
 		}
 	}
 	return
@@ -183,13 +173,14 @@ func (fn *fileNode) ValidateSpaceId(ctx context.Context, spaceId string, checkLi
 func (fn *fileNode) SpaceInfo(ctx context.Context, spaceId string) (info *fileproto.SpaceInfoResponse, err error) {
 	info = &fileproto.SpaceInfoResponse{}
 	// we have space/identity validation in limit.Check
-	if info.LimitBytes, err = fn.limit.Check(ctx, spaceId); err != nil {
+	var storageKey string
+	if info.LimitBytes, storageKey, err = fn.limit.Check(ctx, spaceId); err != nil {
 		return nil, err
 	}
-	if info.UsageBytes, err = fn.index.SpaceSize(ctx, spaceId); err != nil {
+	if info.UsageBytes, err = fn.index.StorageSize(ctx, storageKey); err != nil {
 		return nil, err
 	}
-	si, err := fn.index.SpaceInfo(ctx, spaceId)
+	si, err := fn.index.StorageInfo(ctx, storageKey)
 	if err != nil {
 		return nil, err
 	}
@@ -199,11 +190,12 @@ func (fn *fileNode) SpaceInfo(ctx context.Context, spaceId string) (info *filepr
 }
 
 func (fn *fileNode) FilesDelete(ctx context.Context, spaceId string, fileIds []string) (err error) {
-	if err = fn.ValidateSpaceId(ctx, spaceId, false); err != nil {
+	storeKey, err := fn.StoreKey(ctx, spaceId, false)
+	if err != nil {
 		return
 	}
 	for _, fileId := range fileIds {
-		if err = fn.index.UnBind(ctx, spaceId, fileId); err != nil {
+		if err = fn.index.UnBind(ctx, storeKey, fileId); err != nil {
 			return
 		}
 	}
@@ -211,10 +203,11 @@ func (fn *fileNode) FilesDelete(ctx context.Context, spaceId string, fileIds []s
 }
 
 func (fn *fileNode) FileInfo(ctx context.Context, spaceId, fileId string) (info *fileproto.FileInfo, err error) {
-	if err = fn.ValidateSpaceId(ctx, spaceId, false); err != nil {
+	storeKey, err := fn.StoreKey(ctx, spaceId, false)
+	if err != nil {
 		return
 	}
-	fi, err := fn.index.FileInfo(ctx, spaceId, fileId)
+	fi, err := fn.index.FileInfo(ctx, storeKey, fileId)
 	if err != nil {
 		return nil, err
 	}

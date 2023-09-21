@@ -78,7 +78,7 @@ func (op *unbindOp) Unbind(ctx context.Context) (removedCids []CidInfo, err erro
 
 	// increment space size
 	if spaceDecreaseSize > 0 {
-		if err = op.ri.cl.HIncrBy(ctx, op.sk, spaceSizeKey, -int64(spaceDecreaseSize)).Err(); err != nil {
+		if err = op.ri.cl.HIncrBy(ctx, op.sk, storeSizeKey, -int64(spaceDecreaseSize)).Err(); err != nil {
 			return nil, err
 		}
 	}
