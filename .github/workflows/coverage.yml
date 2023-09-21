@@ -3,9 +3,7 @@ on:
     branches:
       - main
 
-permissions:
-  contents: write
-  pull-requests: write
+name: coverage
 
 jobs:
   test:
@@ -16,6 +14,17 @@ jobs:
           - '1.21'
     env:
       GOPRIVATE: github.com/anyproto
+    # redis for tests
+    services:
+      redis:
+        image: redis
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v4
@@ -26,6 +35,7 @@ jobs:
       - name: git config
         run: git config --global url.https://${{ secrets.ANYTYPE_PAT }}@github.com/.insteadOf https://github.com/
 
+      # check license {{
       - name: Setup license repository
         uses: actions/checkout@master
         with:
@@ -40,12 +50,13 @@ jobs:
           sudo gem install license_finder
           license_finder inherited_decisions add open/decisions.yml
           license_finder --enabled-package-managers gomodules
+      # }}
 
       - name: deps
-        run: make deps
+        run: make deps CGO_ENABLED=0
 
       - name: unit tests
-        run: make test
+        run: make test CGO_ENABLED=0
 
       - name: Quality Gate - Test coverage shall be above threshold
         env:
