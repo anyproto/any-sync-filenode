@@ -1,0 +1,41 @@
+syntax = "proto3";
+package fileIndexProto;
+
+option go_package = "index/indexproto";
+
+message CidEntry {
+    uint64 size = 1;
+    int64 createTime = 2;
+    int64 updateTime = 3;
+    int32 refs = 4;
+    repeated string groupIds = 5;
+    uint32 version = 6;
+}
+
+message CidList {
+    repeated bytes cids = 1;
+}
+
+message GroupEntry {
+    string groupId = 1;
+    int64 createTime = 2;
+    int64 updateTime = 3;
+    uint64 size = 4;
+    uint32 cidCount = 5;
+}
+
+message SpaceEntry {
+    string groupId = 1;
+    int64 createTime = 2;
+    int64 updateTime = 3;
+    uint64 size = 4;
+    uint32 fileCount = 5;
+    uint32 cidCount = 6;
+}
+
+message FileEntry {
+    repeated string cids = 1;
+    uint64 size = 2;
+    int64 createTime = 3;
+    int64 updateTime = 4;
+}

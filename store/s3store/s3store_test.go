@@ -3,13 +3,14 @@ package s3store
 import (
 	"context"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/anyproto/any-sync/app"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
-	"time"
 )
 
 var ctx = context.Background()
@@ -57,8 +58,9 @@ func (c config) Name() string          { return "config" }
 
 func (c config) GetS3Store() Config {
 	return Config{
-		Region:     "eu-central-1",
-		Bucket:     "anytype-test",
-		MaxThreads: 4,
+		Region:      "eu-central-1",
+		Bucket:      "anytype-test",
+		IndexBucket: "anytype-test",
+		MaxThreads:  4,
 	}
 }

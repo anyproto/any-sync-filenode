@@ -4,12 +4,13 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/anyproto/any-sync-filenode/account"
-	"github.com/anyproto/any-sync-filenode/config"
-	"github.com/anyproto/any-sync-filenode/filenode"
-	"github.com/anyproto/any-sync-filenode/index/redisindex"
-	"github.com/anyproto/any-sync-filenode/limit"
-	"github.com/anyproto/any-sync-filenode/redisprovider"
+	"net/http"
+	_ "net/http/pprof"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"github.com/anyproto/any-sync/app"
 	"github.com/anyproto/any-sync/app/logger"
 	"github.com/anyproto/any-sync/coordinator/coordinatorclient"
@@ -24,12 +25,13 @@ import (
 	"github.com/anyproto/any-sync/nodeconf"
 	"github.com/anyproto/any-sync/nodeconf/nodeconfstore"
 	"go.uber.org/zap"
-	"net/http"
-	_ "net/http/pprof"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
+
+	"github.com/anyproto/any-sync-filenode/account"
+	"github.com/anyproto/any-sync-filenode/config"
+	"github.com/anyproto/any-sync-filenode/filenode"
+	"github.com/anyproto/any-sync-filenode/index"
+	"github.com/anyproto/any-sync-filenode/limit"
+	"github.com/anyproto/any-sync-filenode/redisprovider"
 
 	// import this to keep govvv in go.mod on mod tidy
 	_ "github.com/ahmetb/govvv/integration-test/app-different-package/mypkg"
@@ -114,7 +116,7 @@ func Bootstrap(a *app.App) {
 		Register(limit.New()).
 		Register(store()).
 		Register(redisprovider.New()).
-		Register(redisindex.New()).
+		Register(index.New()).
 		Register(metric.New()).
 		Register(server.New()).
 		Register(filenode.New())

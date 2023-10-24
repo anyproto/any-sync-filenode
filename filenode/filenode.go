@@ -3,11 +3,7 @@ package filenode
 import (
 	"context"
 	"errors"
-	"github.com/anyproto/any-sync-filenode/index"
-	"github.com/anyproto/any-sync-filenode/index/redisindex"
-	"github.com/anyproto/any-sync-filenode/limit"
-	"github.com/anyproto/any-sync-filenode/store"
-	"github.com/anyproto/any-sync-filenode/testutil"
+
 	"github.com/anyproto/any-sync/app"
 	"github.com/anyproto/any-sync/app/logger"
 	"github.com/anyproto/any-sync/commonfile/fileblockstore"
@@ -17,6 +13,10 @@ import (
 	"github.com/anyproto/any-sync/net/rpc/server"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
+
+	"github.com/anyproto/any-sync-filenode/index"
+	"github.com/anyproto/any-sync-filenode/limit"
+	"github.com/anyproto/any-sync-filenode/store"
 )
 
 const CName = "filenode.filenode"
@@ -45,7 +45,7 @@ type fileNode struct {
 
 func (fn *fileNode) Init(a *app.App) (err error) {
 	fn.store = a.MustComponent(fileblockstore.CName).(store.Store)
-	fn.index = a.MustComponent(redisindex.CName).(index.Index)
+	fn.index = a.MustComponent(index.CName).(index.Index)
 	fn.limit = a.MustComponent(limit.CName).(limit.Limit)
 	fn.handler = &rpcHandler{f: fn}
 	fn.metric = a.MustComponent(metric.CName).(metric.Metric)
@@ -57,7 +57,7 @@ func (fn *fileNode) Name() (name string) {
 }
 
 func (fn *fileNode) Get(ctx context.Context, k cid.Cid) (blocks.Block, error) {
-	exists, err := fn.index.Exists(ctx, k)
+	exists, err := fn.index.CidExists(ctx, k)
 	if err != nil {
 		return nil, err
 	}
@@ -72,12 +72,12 @@ func (fn *fileNode) Add(ctx context.Context, spaceId string, fileId string, bs [
 	if err != nil {
 		return err
 	}
-	unlock, err := fn.index.Lock(ctx, testutil.BlocksToKeys(bs))
+	unlock, err := fn.index.BlocksLock(ctx, bs)
 	if err != nil {
 		return err
 	}
 	defer unlock()
-	toUpload, err := fn.index.GetNonExistentBlocks(ctx, bs)
+	toUpload, err := fn.index.BlocksGetNonExistent(ctx, bs)
 	if err != nil {
 		return err
 	}
@@ -85,12 +85,20 @@ func (fn *fileNode) Add(ctx context.Context, spaceId string, fileId string, bs [
 		if err = fn.store.Add(ctx, toUpload); err != nil {
 			return err
 		}
+		if err = fn.index.BlocksAdd(ctx, bs); err != nil {
+			return err
+		}
 	}
-	return fn.index.Bind(ctx, storeKey, fileId, bs)
+	cidEntries, err := fn.index.CidEntriesByBlocks(ctx, bs)
+	if err != nil {
+		return err
+	}
+	defer cidEntries.Release()
+	return fn.index.FileBind(ctx, storeKey, fileId, cidEntries)
 }
 
 func (fn *fileNode) Check(ctx context.Context, spaceId string, cids ...cid.Cid) (result []*fileproto.BlockAvailability, err error) {
-	var storeKey string
+	var storeKey index.Key
 	if spaceId != "" {
 		if storeKey, err = fn.StoreKey(ctx, spaceId, false); err != nil {
 			return
@@ -99,7 +107,7 @@ func (fn *fileNode) Check(ctx context.Context, spaceId string, cids ...cid.Cid) 
 	result = make([]*fileproto.BlockAvailability, 0, len(cids))
 	var inSpaceM = make(map[string]struct{})
 	if spaceId != "" {
-		inSpace, err := fn.index.ExistsInStorage(ctx, storeKey, cids)
+		inSpace, err := fn.index.CidExistsInSpace(ctx, storeKey, cids)
 		if err != nil {
 			return nil, err
 		}
@@ -116,7 +124,7 @@ func (fn *fileNode) Check(ctx context.Context, spaceId string, cids ...cid.Cid) 
 			res.Status = fileproto.AvailabilityStatus_ExistsInSpace
 		} else {
 			var ex bool
-			if ex, err = fn.index.Exists(ctx, k); err != nil {
+			if ex, err = fn.index.CidExists(ctx, k); err != nil {
 				return nil, err
 			} else if ex {
 				res.Status = fileproto.AvailabilityStatus_Exists
@@ -132,39 +140,36 @@ func (fn *fileNode) BlocksBind(ctx context.Context, spaceId, fileId string, cids
 	if err != nil {
 		return err
 	}
-	unlock, err := fn.index.Lock(ctx, cids)
+	cidEntries, err := fn.index.CidEntries(ctx, cids)
 	if err != nil {
 		return err
 	}
-	defer unlock()
-	return fn.index.BindCids(ctx, storeKey, fileId, cids)
+	defer cidEntries.Release()
+	return fn.index.FileBind(ctx, storeKey, fileId, cidEntries)
 }
 
-func (fn *fileNode) StoreKey(ctx context.Context, spaceId string, checkLimit bool) (storageKey string, err error) {
+func (fn *fileNode) StoreKey(ctx context.Context, spaceId string, checkLimit bool) (storageKey index.Key, err error) {
 	if spaceId == "" {
-		return "", fileprotoerr.ErrForbidden
+		return storageKey, fileprotoerr.ErrForbidden
 	}
 	// this call also confirms that space exists and valid
-	limitBytes, storageKey, err := fn.limit.Check(ctx, spaceId)
+	limitBytes, groupId, err := fn.limit.Check(ctx, spaceId)
 	if err != nil {
 		return
 	}
 
-	if storageKey != spaceId {
-		// try to move store to the new key
-		mErr := fn.index.MoveStorage(ctx, spaceId, storageKey)
-		if mErr != nil && mErr != index.ErrStorageNotFound && mErr != index.ErrTargetStorageExists {
-			return "", mErr
-		}
+	storageKey = index.Key{
+		GroupId: groupId,
+		SpaceId: spaceId,
 	}
 
 	if checkLimit {
-		currentSize, e := fn.index.StorageSize(ctx, storageKey)
+		info, e := fn.index.GroupInfo(ctx, groupId)
 		if e != nil {
-			return "", e
+			return storageKey, e
 		}
-		if currentSize >= limitBytes {
-			return "", fileprotoerr.ErrSpaceLimitExceeded
+		if info.BytesUsage >= limitBytes {
+			return storageKey, fileprotoerr.ErrSpaceLimitExceeded
 		}
 	}
 	return
@@ -177,15 +182,9 @@ func (fn *fileNode) SpaceInfo(ctx context.Context, spaceId string) (info *filepr
 	if info.LimitBytes, storageKey, err = fn.limit.Check(ctx, spaceId); err != nil {
 		return nil, err
 	}
-	if info.UsageBytes, err = fn.index.StorageSize(ctx, storageKey); err != nil {
-		return nil, err
-	}
-	si, err := fn.index.StorageInfo(ctx, storageKey)
-	if err != nil {
-		return nil, err
-	}
-	info.CidsCount = uint64(si.CidCount)
-	info.FilesCount = uint64(si.FileCount)
+
+	// TODO:
+	_ = storageKey
 	return
 }
 
@@ -195,25 +194,29 @@ func (fn *fileNode) FilesDelete(ctx context.Context, spaceId string, fileIds []s
 		return
 	}
 	for _, fileId := range fileIds {
-		if err = fn.index.UnBind(ctx, storeKey, fileId); err != nil {
+		if err = fn.index.FileUnbind(ctx, storeKey, fileId); err != nil {
 			return
 		}
 	}
 	return
 }
 
-func (fn *fileNode) FileInfo(ctx context.Context, spaceId, fileId string) (info *fileproto.FileInfo, err error) {
+func (fn *fileNode) FileInfo(ctx context.Context, spaceId string, fileIds ...string) (info []*fileproto.FileInfo, err error) {
 	storeKey, err := fn.StoreKey(ctx, spaceId, false)
 	if err != nil {
 		return
 	}
-	fi, err := fn.index.FileInfo(ctx, storeKey, fileId)
+	fis, err := fn.index.FileInfo(ctx, storeKey, fileIds...)
 	if err != nil {
 		return nil, err
 	}
-	return &fileproto.FileInfo{
-		FileId:     fileId,
-		UsageBytes: fi.BytesUsage,
-		CidsCount:  fi.CidCount,
-	}, nil
+	info = make([]*fileproto.FileInfo, len(fis))
+	for i, fi := range fis {
+		info[i] = &fileproto.FileInfo{
+			FileId:     fileIds[i],
+			UsageBytes: fi.BytesUsage,
+			CidsCount:  fi.CidCount,
+		}
+	}
+	return
 }

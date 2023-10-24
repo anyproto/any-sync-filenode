@@ -29,4 +29,4 @@ deps:
 	go build -o deps github.com/gogo/protobuf/protoc-gen-gogofaster
 
 proto:
-	protoc --gogofaster_out=:. index/redisindex/indexproto/protos/*.proto
+	protoc --gogofaster_out=:. index/indexproto/protos/*.proto

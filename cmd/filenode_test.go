@@ -2,15 +2,17 @@ package main
 
 import (
 	"context"
-	"github.com/anyproto/any-sync-filenode/config"
-	"github.com/anyproto/any-sync-filenode/store/s3store"
+	"os"
+	"testing"
+
 	commonaccount "github.com/anyproto/any-sync/accountservice"
 	"github.com/anyproto/any-sync/app"
 	"github.com/anyproto/any-sync/metric"
 	"github.com/anyproto/any-sync/net/rpc"
 	"github.com/stretchr/testify/require"
-	"os"
-	"testing"
+
+	"github.com/anyproto/any-sync-filenode/config"
+	"github.com/anyproto/any-sync-filenode/store/s3store"
 )
 
 var ctx = context.Background()
@@ -27,7 +29,8 @@ func TestBootstrap(t *testing.T) {
 		Drpc:   rpc.Config{},
 		Metric: metric.Config{},
 		S3Store: s3store.Config{
-			Bucket: "test",
+			Bucket:      "test",
+			IndexBucket: "testIndex",
 		},
 		FileDevStore:     config.FileDevStore{},
 		NetworkStorePath: tmpDir,
