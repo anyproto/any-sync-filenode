@@ -47,6 +47,8 @@ type Index interface {
 	CidEntries(ctx context.Context, cids []cid.Cid) (entries *CidEntries, err error)
 	CidEntriesByBlocks(ctx context.Context, bs []blocks.Block) (entries *CidEntries, err error)
 	CidExistsInSpace(ctx context.Context, k Key, cids []cid.Cid) (exists []cid.Cid, err error)
+	
+	Migrate(ctx context.Context, key Key) error
 
 	app.ComponentRunnable
 }

@@ -38,6 +38,7 @@ func TestFileNode_Add(t *testing.T) {
 		)
 
 		fx.limit.EXPECT().Check(ctx, storeKey.SpaceId).Return(uint64(123), storeKey.GroupId, nil)
+		fx.index.EXPECT().Migrate(ctx, storeKey)
 		fx.index.EXPECT().GroupInfo(ctx, storeKey.GroupId).Return(index.GroupInfo{BytesUsage: uint64(120)}, nil)
 		fx.index.EXPECT().BlocksLock(ctx, []blocks.Block{b}).Return(func() {}, nil)
 		fx.index.EXPECT().BlocksGetNonExistent(ctx, []blocks.Block{b}).Return([]blocks.Block{b}, nil)
@@ -66,7 +67,7 @@ func TestFileNode_Add(t *testing.T) {
 		)
 
 		fx.limit.EXPECT().Check(ctx, storeKey.SpaceId).Return(uint64(123), storeKey.GroupId, nil)
-		//fx.index.EXPECT().MoveStorage(ctx, spaceId, storeKey).AnyTimes()
+		fx.index.EXPECT().Migrate(ctx, storeKey)
 		fx.index.EXPECT().GroupInfo(ctx, storeKey.GroupId).Return(index.GroupInfo{BytesUsage: uint64(124)}, nil)
 
 		resp, err := fx.handler.BlockPush(ctx, &fileproto.BlockPushRequest{
@@ -158,7 +159,7 @@ func TestFileNode_Check(t *testing.T) {
 		cids = append(cids, b.Cid().Bytes())
 	}
 	fx.limit.EXPECT().Check(ctx, storeKey.SpaceId).Return(uint64(100000), storeKey.GroupId, nil)
-	//fx.index.EXPECT().MoveStorage(ctx, spaceId, storeKey).AnyTimes()
+	fx.index.EXPECT().Migrate(ctx, storeKey)
 	fx.index.EXPECT().CidExistsInSpace(ctx, storeKey, testutil.BlocksToKeys(bs)).Return(testutil.BlocksToKeys(bs[:1]), nil)
 	fx.index.EXPECT().CidExists(ctx, bs[1].Cid()).Return(true, nil)
 	fx.index.EXPECT().CidExists(ctx, bs[2].Cid()).Return(false, nil)
@@ -190,7 +191,7 @@ func TestFileNode_BlocksBind(t *testing.T) {
 	}
 
 	fx.limit.EXPECT().Check(ctx, storeKey.SpaceId).Return(uint64(123), storeKey.GroupId, nil)
-	//	fx.index.EXPECT().MoveStorage(ctx, spaceId, storeKey).AnyTimes()
+	fx.index.EXPECT().Migrate(ctx, storeKey)
 	fx.index.EXPECT().GroupInfo(ctx, storeKey.GroupId).Return(index.GroupInfo{BytesUsage: 12}, nil)
 	fx.index.EXPECT().CidEntries(ctx, cids).Return(cidEntries, nil)
 	fx.index.EXPECT().FileBind(ctx, storeKey, fileId, cidEntries)
@@ -215,7 +216,7 @@ func TestFileNode_FileInfo(t *testing.T) {
 		fileId2  = testutil.NewRandCid().String()
 	)
 	fx.limit.EXPECT().Check(ctx, storeKey.SpaceId).AnyTimes().Return(uint64(100000), storeKey.GroupId, nil)
-	//fx.index.EXPECT().MoveStorage(ctx, spaceId, storeKey).AnyTimes()
+	fx.index.EXPECT().Migrate(ctx, storeKey)
 	fx.index.EXPECT().FileInfo(ctx, storeKey, fileId1, fileId2).Return([]index.FileInfo{{1, 1}, {2, 2}}, nil)
 
 	resp, err := fx.handler.FilesInfo(ctx, &fileproto.FilesInfoRequest{

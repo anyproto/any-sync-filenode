@@ -13,6 +13,7 @@ import (
 	"github.com/anyproto/any-sync/net/rpc/server"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
+	"go.uber.org/zap"
 
 	"github.com/anyproto/any-sync-filenode/index"
 	"github.com/anyproto/any-sync-filenode/limit"
@@ -161,6 +162,10 @@ func (fn *fileNode) StoreKey(ctx context.Context, spaceId string, checkLimit boo
 	storageKey = index.Key{
 		GroupId: groupId,
 		SpaceId: spaceId,
+	}
+
+	if e := fn.index.Migrate(ctx, storageKey); e != nil {
+		log.WarnCtx(ctx, "space migrate error", zap.String("spaceId", spaceId), zap.Error(e))
 	}
 
 	if checkLimit {
