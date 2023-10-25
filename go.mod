@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/OneOfOne/xxhash v1.2.2
 	github.com/ahmetb/govvv v0.3.0
-	github.com/anyproto/any-sync v0.3.5-0.20231025115513-9d662c59b350
+	github.com/anyproto/any-sync v0.3.5-0.20231025135038-838be4ed5f2b
 	github.com/aws/aws-sdk-go v1.46.3
 	github.com/cespare/xxhash/v2 v2.2.0
 	github.com/go-redsync/redsync/v4 v4.10.0
