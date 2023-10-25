@@ -2,7 +2,6 @@ package index
 
 import (
 	"context"
-	"slices"
 	"time"
 
 	"github.com/ipfs/go-cid"
@@ -28,18 +27,6 @@ type cidEntry struct {
 	Cid     cid.Cid
 	release func()
 	*indexproto.CidEntry
-}
-
-func (ce *cidEntry) AddGroupId(groupId string) {
-	if !slices.Contains(ce.GroupIds, groupId) {
-		ce.GroupIds = append(ce.GroupIds, groupId)
-	}
-}
-
-func (ce *cidEntry) RemoveGroupId(id string) {
-	ce.GroupIds = slices.DeleteFunc(ce.GroupIds, func(s string) bool {
-		return s == id
-	})
 }
 
 func (ce *cidEntry) Save(ctx context.Context, cl redis.Cmdable) error {

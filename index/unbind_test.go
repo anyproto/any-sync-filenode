@@ -45,7 +45,7 @@ func TestRedisIndex_UnBind(t *testing.T) {
 		require.NoError(t, err)
 		defer cids.Release()
 		for _, r := range cids.entries {
-			assert.NotContains(t, r.GroupIds, key.GroupId)
+			assert.Equal(t, int32(0), r.Refs)
 		}
 	})
 	t.Run("unbind intersection file", func(t *testing.T) {

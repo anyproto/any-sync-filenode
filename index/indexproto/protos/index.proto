@@ -8,8 +8,7 @@ message CidEntry {
     int64 createTime = 2;
     int64 updateTime = 3;
     int32 refs = 4;
-    repeated string groupIds = 5;
-    uint32 version = 6;
+    uint32 version = 5;
 }
 
 message CidList {

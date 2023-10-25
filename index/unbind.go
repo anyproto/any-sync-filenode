@@ -129,7 +129,7 @@ func (ri *redisIndex) FileUnbind(ctx context.Context, key Key, fileId string) (e
 
 	// update cids
 	for _, idx := range affectedCidIdx {
-		cids.entries[idx].RemoveGroupId(key.GroupId)
+		cids.entries[idx].Refs--
 		if saveErr := cids.entries[idx].Save(ctx, ri.cl); saveErr != nil {
 			log.WarnCtx(ctx, "unable to save cid info", zap.Error(saveErr), zap.String("cid", cids.entries[idx].Cid.String()))
 		}

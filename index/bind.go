@@ -111,7 +111,7 @@ func (ri *redisIndex) FileBind(ctx context.Context, key Key, fileId string, cids
 
 	// update cids
 	for _, idx := range newFileCidIdx {
-		cids.entries[idx].AddGroupId(key.GroupId)
+		cids.entries[idx].Refs++
 		if saveErr := cids.entries[idx].Save(ctx, ri.cl); saveErr != nil {
 			log.WarnCtx(ctx, "unable to save cid info", zap.Error(saveErr), zap.String("cid", cids.entries[idx].Cid.String()))
 		}
