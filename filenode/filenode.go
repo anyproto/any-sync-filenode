@@ -181,15 +181,61 @@ func (fn *fileNode) StoreKey(ctx context.Context, spaceId string, checkLimit boo
 }
 
 func (fn *fileNode) SpaceInfo(ctx context.Context, spaceId string) (info *fileproto.SpaceInfoResponse, err error) {
-	info = &fileproto.SpaceInfoResponse{}
+	var (
+		storageKey = index.Key{SpaceId: spaceId}
+		limitBytes uint64
+	)
+	if limitBytes, storageKey.GroupId, err = fn.limit.Check(ctx, spaceId); err != nil {
+		return nil, err
+	}
+	groupInfo, err := fn.index.GroupInfo(ctx, storageKey.GroupId)
+	if err != nil {
+		return nil, err
+	}
+	if info, err = fn.spaceInfo(ctx, storageKey, groupInfo); err != nil {
+		return nil, err
+	}
+	info.LimitBytes = limitBytes
+	return
+}
+
+func (fn *fileNode) AccountInfo(ctx context.Context) (info *fileproto.AccountInfoResponse, err error) {
+	info = &fileproto.AccountInfoResponse{}
 	// we have space/identity validation in limit.Check
-	var storageKey string
-	if info.LimitBytes, storageKey, err = fn.limit.Check(ctx, spaceId); err != nil {
+	var groupId string
+
+	if info.LimitBytes, groupId, err = fn.limit.Check(ctx, ""); err != nil {
 		return nil, err
 	}
 
-	// TODO:
-	_ = storageKey
+	groupInfo, err := fn.index.GroupInfo(ctx, groupId)
+	if err != nil {
+		return nil, err
+	}
+	info.TotalCidsCount = groupInfo.CidsCount
+	info.TotalUsageBytes = groupInfo.BytesUsage
+	for _, spaceId := range groupInfo.SpaceIds {
+		spaceInfo, err := fn.spaceInfo(ctx, index.Key{GroupId: groupId, SpaceId: spaceId}, groupInfo)
+		if err != nil {
+			return nil, err
+		}
+		spaceInfo.LimitBytes = info.LimitBytes
+		info.Spaces = append(info.Spaces, spaceInfo)
+	}
+	return
+}
+
+func (fn *fileNode) spaceInfo(ctx context.Context, key index.Key, groupInfo index.GroupInfo) (info *fileproto.SpaceInfoResponse, err error) {
+	info = &fileproto.SpaceInfoResponse{}
+	info.SpaceId = key.SpaceId
+	spaceInfo, err := fn.index.SpaceInfo(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	info.TotalUsageBytes = groupInfo.BytesUsage
+	info.FilesCount = uint64(spaceInfo.FileCount)
+	info.CidsCount = spaceInfo.CidsCount
+	info.SpaceUsageBytes = spaceInfo.BytesUsage
 	return
 }
 
@@ -198,12 +244,7 @@ func (fn *fileNode) FilesDelete(ctx context.Context, spaceId string, fileIds []s
 	if err != nil {
 		return
 	}
-	for _, fileId := range fileIds {
-		if err = fn.index.FileUnbind(ctx, storeKey, fileId); err != nil {
-			return
-		}
-	}
-	return
+	return fn.index.FileUnbind(ctx, storeKey, fileIds...)
 }
 
 func (fn *fileNode) FileInfo(ctx context.Context, spaceId string, fileIds ...string) (info []*fileproto.FileInfo, err error) {
@@ -220,7 +261,7 @@ func (fn *fileNode) FileInfo(ctx context.Context, spaceId string, fileIds ...str
 		info[i] = &fileproto.FileInfo{
 			FileId:     fileIds[i],
 			UsageBytes: fi.BytesUsage,
-			CidsCount:  fi.CidCount,
+			CidsCount:  uint32(fi.CidsCount),
 		}
 	}
 	return

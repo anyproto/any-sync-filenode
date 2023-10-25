@@ -90,6 +90,7 @@ func (ri *redisIndex) FileBind(ctx context.Context, key Key, fileId string, cids
 			groupInfo.Size_ += cids.entries[idx].Size_
 		}
 	}
+	groupInfo.AddSpaceId(key.SpaceId)
 	if isNewFile {
 		spaceInfo.FileCount++
 	}

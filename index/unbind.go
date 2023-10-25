@@ -7,22 +7,30 @@ import (
 	"go.uber.org/zap"
 )
 
-func (ri *redisIndex) FileUnbind(ctx context.Context, key Key, fileId string) (err error) {
-	var (
-		sk = spaceKey(key)
-		gk = groupKey(key)
-	)
-	_, gRelease, err := ri.AcquireKey(ctx, gk)
+func (ri *redisIndex) FileUnbind(ctx context.Context, key Key, fileIds ...string) (err error) {
+	_, gRelease, err := ri.AcquireKey(ctx, groupKey(key))
 	if err != nil {
 		return
 	}
 	defer gRelease()
-	_, sRelease, err := ri.AcquireKey(ctx, sk)
+	_, sRelease, err := ri.AcquireKey(ctx, spaceKey(key))
 	if err != nil {
 		return
 	}
 	defer sRelease()
+	for _, fileId := range fileIds {
+		if err = ri.fileUnbind(ctx, key, fileId); err != nil {
+			return
+		}
+	}
+	return
+}
 
+func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, fileId string) (err error) {
+	var (
+		sk = spaceKey(key)
+		gk = groupKey(key)
+	)
 	// get file entry
 	fileInfo, isNewFile, err := ri.getFileEntry(ctx, key, fileId)
 	if err != nil {

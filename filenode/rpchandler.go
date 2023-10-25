@@ -202,6 +202,21 @@ func (r rpcHandler) SpaceInfo(ctx context.Context, req *fileproto.SpaceInfoReque
 	return
 }
 
+func (r rpcHandler) AccountInfo(ctx context.Context, req *fileproto.AccountInfoRequest) (resp *fileproto.AccountInfoResponse, err error) {
+	st := time.Now()
+	defer func() {
+		r.f.metric.RequestLog(ctx,
+			"file.accountInfo",
+			metric.TotalDur(time.Since(st)),
+			zap.Error(err),
+		)
+	}()
+	if resp, err = r.f.AccountInfo(ctx); err != nil {
+		return
+	}
+	return
+}
+
 func convertCids(bCids [][]byte) (cids []cid.Cid) {
 	cids = make([]cid.Cid, 0, len(bCids))
 	var uniqMap map[string]struct{}

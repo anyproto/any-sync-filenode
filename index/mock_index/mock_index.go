@@ -195,17 +195,22 @@ func (mr *MockIndexMockRecorder) FileInfo(arg0, arg1 any, arg2 ...any) *gomock.C
 }
 
 // FileUnbind mocks base method.
-func (m *MockIndex) FileUnbind(arg0 context.Context, arg1 index.Key, arg2 string) error {
+func (m *MockIndex) FileUnbind(arg0 context.Context, arg1 index.Key, arg2 ...string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FileUnbind", arg0, arg1, arg2)
+	varargs := []any{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "FileUnbind", varargs...)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // FileUnbind indicates an expected call of FileUnbind.
-func (mr *MockIndexMockRecorder) FileUnbind(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockIndexMockRecorder) FileUnbind(arg0, arg1 any, arg2 ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FileUnbind", reflect.TypeOf((*MockIndex)(nil).FileUnbind), arg0, arg1, arg2)
+	varargs := append([]any{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FileUnbind", reflect.TypeOf((*MockIndex)(nil).FileUnbind), varargs...)
 }
 
 // GroupInfo mocks base method.

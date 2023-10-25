@@ -95,6 +95,12 @@ func (f *groupEntry) Save(ctx context.Context, k Key, cl redis.Pipeliner) {
 	cl.HSet(ctx, groupKey(k), infoKey, data)
 }
 
+func (f *groupEntry) AddSpaceId(spaceId string) {
+	if !slices.Contains(f.SpaceIds, spaceId) {
+		f.SpaceIds = append(f.SpaceIds, spaceId)
+	}
+}
+
 func (ri *redisIndex) getGroupEntry(ctx context.Context, key Key) (entry *groupEntry, err error) {
 	result, err := ri.cl.HGet(ctx, groupKey(key), infoKey).Result()
 	if err != nil && !errors.Is(err, redis.Nil) {

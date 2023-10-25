@@ -26,14 +26,12 @@ const CName = "filenode.index"
 var log = logger.NewNamed(CName)
 
 var (
-	ErrCidsNotExist        = errors.New("cids not exist")
-	ErrTargetStorageExists = errors.New("target storage exists")
-	ErrStorageNotFound     = errors.New("storage not found")
+	ErrCidsNotExist = errors.New("cids not exist")
 )
 
 type Index interface {
 	FileBind(ctx context.Context, key Key, fileId string, cidEntries *CidEntries) (err error)
-	FileUnbind(ctx context.Context, kye Key, fileId string) (err error)
+	FileUnbind(ctx context.Context, kye Key, fileIds ...string) (err error)
 	FileInfo(ctx context.Context, key Key, fileIds ...string) (fileInfo []FileInfo, err error)
 
 	GroupInfo(ctx context.Context, groupId string) (info GroupInfo, err error)
@@ -64,17 +62,19 @@ type Key struct {
 
 type GroupInfo struct {
 	BytesUsage uint64
-	CidsCount  uint32
+	CidsCount  uint64
+	SpaceIds   []string
 }
 
 type SpaceInfo struct {
 	BytesUsage uint64
+	CidsCount  uint64
 	FileCount  uint32
 }
 
 type FileInfo struct {
 	BytesUsage uint64
-	CidCount   uint32
+	CidsCount  uint64
 }
 
 /*
@@ -138,7 +138,7 @@ func (ri *redisIndex) FileInfo(ctx context.Context, key Key, fileIds ...string) 
 		}
 		fileInfos[i] = FileInfo{
 			BytesUsage: fEntry.Size_,
-			CidCount:   uint32(len(fEntry.Cids)),
+			CidsCount:  uint64(len(fEntry.Cids)),
 		}
 	}
 	return
@@ -190,6 +190,7 @@ func (ri *redisIndex) GroupInfo(ctx context.Context, groupId string) (info Group
 	return GroupInfo{
 		BytesUsage: sEntry.Size_,
 		CidsCount:  sEntry.CidCount,
+		SpaceIds:   sEntry.SpaceIds,
 	}, nil
 }
 
@@ -205,6 +206,7 @@ func (ri *redisIndex) SpaceInfo(ctx context.Context, key Key) (info SpaceInfo, e
 	}
 	return SpaceInfo{
 		BytesUsage: sEntry.Size_,
+		CidsCount:  sEntry.CidCount,
 		FileCount:  sEntry.FileCount,
 	}, nil
 }

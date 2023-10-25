@@ -229,6 +229,39 @@ func TestFileNode_FileInfo(t *testing.T) {
 	assert.Equal(t, uint64(2), resp.FilesInfo[1].UsageBytes)
 }
 
+func TestFileNode_AccountInfo(t *testing.T) {
+	fx := newFixture(t)
+	defer fx.Finish(t)
+
+	var (
+		storeKey = newRandKey()
+	)
+	fx.limit.EXPECT().Check(ctx, "").AnyTimes().Return(uint64(100000), storeKey.GroupId, nil)
+	fx.index.EXPECT().GroupInfo(ctx, storeKey.GroupId).Return(index.GroupInfo{
+		BytesUsage: 100,
+		CidsCount:  10,
+		SpaceIds:   []string{storeKey.SpaceId},
+	}, nil)
+	fx.index.EXPECT().SpaceInfo(ctx, storeKey).Return(index.SpaceInfo{
+		BytesUsage: 90,
+		CidsCount:  9,
+		FileCount:  1,
+	}, nil)
+
+	resp, err := fx.handler.AccountInfo(ctx, &fileproto.AccountInfoRequest{})
+	require.NoError(t, err)
+	require.Len(t, resp.Spaces, 1)
+	assert.Equal(t, uint64(100), resp.TotalUsageBytes)
+	assert.Equal(t, uint64(10), resp.TotalCidsCount)
+	assert.Equal(t, uint64(100000), resp.LimitBytes)
+
+	assert.Equal(t, uint64(90), resp.Spaces[0].SpaceUsageBytes)
+	assert.Equal(t, uint64(9), resp.Spaces[0].CidsCount)
+	assert.Equal(t, uint64(1), resp.Spaces[0].FilesCount)
+	assert.Equal(t, uint64(100000), resp.Spaces[0].LimitBytes)
+	assert.Equal(t, uint64(100), resp.Spaces[0].TotalUsageBytes)
+}
+
 func newFixture(t *testing.T) *fixture {
 	ctrl := gomock.NewController(t)
 	fx := &fixture{

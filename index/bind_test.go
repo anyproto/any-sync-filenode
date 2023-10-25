@@ -28,7 +28,7 @@ func TestRedisIndex_Bind(t *testing.T) {
 		require.NoError(t, fx.FileBind(ctx, key, fileId, cids))
 		fInfo, err := fx.FileInfo(ctx, key, fileId)
 		require.NoError(t, err)
-		assert.Equal(t, uint32(len(bs)), fInfo[0].CidCount)
+		assert.Equal(t, uint64(len(bs)), fInfo[0].CidsCount)
 		assert.Equal(t, sumSize, fInfo[0].BytesUsage)
 	})
 
@@ -60,13 +60,15 @@ func TestRedisIndex_Bind(t *testing.T) {
 		assert.Equal(t, SpaceInfo{
 			BytesUsage: sumSize,
 			FileCount:  2,
+			CidsCount:  uint64(len(bs)),
 		}, spaceInfo)
 
 		groupInfo, err := fx.GroupInfo(ctx, key.GroupId)
 		require.NoError(t, err)
 		assert.Equal(t, GroupInfo{
 			BytesUsage: sumSize,
-			CidsCount:  uint32(len(bs)),
+			CidsCount:  uint64(len(bs)),
+			SpaceIds:   []string{key.SpaceId},
 		}, groupInfo)
 
 	})
@@ -92,7 +94,7 @@ func TestRedisIndex_Bind(t *testing.T) {
 
 		fInfo, err := fx.FileInfo(ctx, key, fileId)
 		require.NoError(t, err)
-		assert.Equal(t, uint32(len(bs)), fInfo[0].CidCount)
+		assert.Equal(t, uint64(len(bs)), fInfo[0].CidsCount)
 		assert.Equal(t, sumSize, fInfo[0].BytesUsage)
 	})
 }

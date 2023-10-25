@@ -78,7 +78,7 @@ func TestRedisIndex_UnBind(t *testing.T) {
 
 		groupInfo, err := fx.GroupInfo(ctx, key.GroupId)
 		require.NoError(t, err)
-		assert.Equal(t, uint32(2), groupInfo.CidsCount)
+		assert.Equal(t, uint64(2), groupInfo.CidsCount)
 		assert.Equal(t, file1Size, groupInfo.BytesUsage)
 		spaceInfo, err := fx.SpaceInfo(ctx, key)
 		require.NoError(t, err)

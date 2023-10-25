@@ -20,7 +20,8 @@ message GroupEntry {
     int64 createTime = 2;
     int64 updateTime = 3;
     uint64 size = 4;
-    uint32 cidCount = 5;
+    uint64 cidCount = 5;
+    repeated string spaceIds = 6;
 }
 
 message SpaceEntry {
@@ -29,7 +30,7 @@ message SpaceEntry {
     int64 updateTime = 3;
     uint64 size = 4;
     uint32 fileCount = 5;
-    uint32 cidCount = 6;
+    uint64 cidCount = 6;
 }
 
 message FileEntry {
