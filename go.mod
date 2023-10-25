@@ -6,7 +6,7 @@ require (
 	github.com/ahmetb/govvv v0.3.0
 	github.com/anyproto/any-sync v0.3.1
 	github.com/aws/aws-sdk-go v1.45.25
-	github.com/go-redsync/redsync/v4 v4.9.4
+	github.com/go-redsync/redsync/v4 v4.10.0
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/snappy v0.0.4
 	github.com/ipfs/go-block-format v0.2.0
