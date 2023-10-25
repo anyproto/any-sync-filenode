@@ -3,15 +3,17 @@ package filedevstore
 import (
 	"context"
 	"fmt"
-	"github.com/anyproto/any-sync-filenode/config"
-	"github.com/anyproto/any-sync-filenode/store"
+	"os"
+	"path/filepath"
+
 	"github.com/anyproto/any-sync/app"
 	"github.com/anyproto/any-sync/app/logger"
 	"github.com/anyproto/any-sync/commonfile/fileblockstore"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
-	"os"
-	"path/filepath"
+
+	"github.com/anyproto/any-sync-filenode/config"
+	"github.com/anyproto/any-sync-filenode/store"
 )
 
 const CName = fileblockstore.CName
@@ -95,4 +97,12 @@ func (s *fsstore) DeleteMany(ctx context.Context, toDelete []cid.Cid) error {
 		_ = s.Delete(ctx, k)
 	}
 	return nil
+}
+
+func (s *fsstore) IndexGet(ctx context.Context, key string) (value []byte, err error) {
+	return os.ReadFile(filepath.Join(s.path, key))
+}
+
+func (s *fsstore) IndexPut(ctx context.Context, key string, value []byte) (err error) {
+	return os.WriteFile(filepath.Join(s.path, key), value, 0777)
 }

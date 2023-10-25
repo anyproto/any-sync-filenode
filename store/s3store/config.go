@@ -13,6 +13,7 @@ type Config struct {
 	Profile        string      `yaml:"profile"`
 	Region         string      `yaml:"region"`
 	Bucket         string      `yaml:"bucket"`
+	IndexBucket    string      `yaml:"indexBucket"`
 	Endpoint       string      `yaml:"endpoint"`
 	MaxThreads     int         `yaml:"maxThreads"`
 	Credentials    Credentials `yaml:"credentials"`

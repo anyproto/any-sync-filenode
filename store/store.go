@@ -3,6 +3,7 @@ package store
 
 import (
 	"context"
+
 	"github.com/anyproto/any-sync/app"
 	"github.com/anyproto/any-sync/commonfile/fileblockstore"
 	"github.com/ipfs/go-cid"
@@ -11,5 +12,8 @@ import (
 type Store interface {
 	fileblockstore.BlockStore
 	DeleteMany(ctx context.Context, toDelete []cid.Cid) error
+
+	IndexGet(ctx context.Context, key string) (value []byte, err error)
+	IndexPut(ctx context.Context, key string, value []byte) (err error)
 	app.Component
 }

@@ -2,6 +2,7 @@ package redisprovider
 
 import (
 	"context"
+
 	"github.com/anyproto/any-sync/app"
 	"github.com/redis/go-redis/v9"
 )
@@ -48,7 +49,13 @@ func (r *redisProvider) Name() (name string) {
 }
 
 func (r *redisProvider) Run(ctx context.Context) (err error) {
-	return r.redis.Ping(ctx).Err()
+	if err = r.redis.Ping(ctx).Err(); err != nil {
+		return
+	}
+	if err = r.redis.BFAdd(ctx, "_test_bf", 1).Err(); err != nil {
+		return
+	}
+	return r.redis.Del(ctx, "_test_bf").Err()
 }
 
 func (r *redisProvider) Redis() redis.UniversalClient {

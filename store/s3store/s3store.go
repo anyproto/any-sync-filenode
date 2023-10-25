@@ -5,10 +5,10 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 	"sync"
 	"time"
 
-	"github.com/anyproto/any-sync-filenode/store"
 	"github.com/anyproto/any-sync/app"
 	"github.com/anyproto/any-sync/app/logger"
 	"github.com/anyproto/any-sync/commonfile/fileblockstore"
@@ -19,6 +19,8 @@ import (
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	"go.uber.org/zap"
+
+	"github.com/anyproto/any-sync-filenode/store"
 )
 
 const CName = fileblockstore.CName
@@ -35,10 +37,11 @@ type S3Store interface {
 }
 
 type s3store struct {
-	bucket  *string
-	client  *s3.S3
-	limiter chan struct{}
-	sess    *session.Session
+	bucket      *string
+	indexBucket *string
+	client      *s3.S3
+	limiter     chan struct{}
+	sess        *session.Session
 }
 
 func (s *s3store) Init(a *app.App) (err error) {
@@ -48,6 +51,9 @@ func (s *s3store) Init(a *app.App) (err error) {
 	}
 	if conf.Bucket == "" {
 		return fmt.Errorf("s3 bucket is empty")
+	}
+	if conf.IndexBucket == "" {
+		return fmt.Errorf("s3 index bucket is empty")
 	}
 	if conf.MaxThreads <= 0 {
 		conf.MaxThreads = 16
@@ -81,6 +87,8 @@ func (s *s3store) Init(a *app.App) (err error) {
 		return fmt.Errorf("failed to create session to s3: %v", err)
 	}
 	s.bucket = aws.String(conf.Bucket)
+	s.indexBucket = aws.String(conf.IndexBucket)
+
 	s.client = s3.New(s.sess)
 	s.limiter = make(chan struct{}, conf.MaxThreads)
 	return nil
@@ -104,6 +112,9 @@ func (s *s3store) Get(ctx context.Context, k cid.Cid) (blocks.Block, error) {
 		Key:    aws.String(k.String()),
 	})
 	if err != nil {
+		if strings.HasPrefix(err.Error(), s3.ErrCodeNoSuchKey) {
+			return nil, fileblockstore.ErrCIDNotFound
+		}
 		return nil, err
 	}
 	defer obj.Body.Close()
@@ -201,6 +212,31 @@ func (s *s3store) Delete(ctx context.Context, c cid.Cid) error {
 		zap.Duration("wait", wait),
 	)
 	return err
+}
+
+func (s *s3store) IndexGet(ctx context.Context, key string) (value []byte, err error) {
+	obj, err := s.client.GetObjectWithContext(ctx, &s3.GetObjectInput{
+		Bucket: s.indexBucket,
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		if strings.HasPrefix(err.Error(), s3.ErrCodeNoSuchKey) {
+			// nil value means not found
+			return nil, nil
+		}
+		return nil, err
+	}
+	defer obj.Body.Close()
+	return io.ReadAll(obj.Body)
+}
+
+func (s *s3store) IndexPut(ctx context.Context, key string, data []byte) (err error) {
+	_, err = s.client.PutObjectWithContext(ctx, &s3.PutObjectInput{
+		Key:    aws.String(key),
+		Body:   bytes.NewReader(data),
+		Bucket: s.indexBucket,
+	})
+	return
 }
 
 func (s *s3store) Close(ctx context.Context) (err error) {

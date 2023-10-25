@@ -21,6 +21,7 @@ s3Store:
   region: eu-central-1
   profile: default
   bucket: anytype-test
+  indexBucket: anytype-test
   maxThreads: 16
 
 redis:

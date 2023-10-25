@@ -2,18 +2,19 @@ package filenode
 
 import (
 	"context"
+	"time"
+
 	"github.com/anyproto/any-sync/commonfile/fileproto"
 	"github.com/anyproto/any-sync/commonfile/fileproto/fileprotoerr"
 	"github.com/anyproto/any-sync/metric"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	"go.uber.org/zap"
-	"time"
 )
 
 const (
 	cidSizeLimit     = 2 << 20 // 2 Mb
-	fileInfoReqLimit = 100
+	fileInfoReqLimit = 1000
 )
 
 type rpcHandler struct {
@@ -163,20 +164,10 @@ func (r rpcHandler) FilesInfo(ctx context.Context, req *fileproto.FilesInfoReque
 		err = fileprotoerr.ErrQuerySizeExceeded
 		return
 	}
-	resp = &fileproto.FilesInfoResponse{
-		FilesInfo: make([]*fileproto.FileInfo, len(req.FileIds)),
-	}
-	_, err = r.f.StoreKey(ctx, req.SpaceId, false)
+	resp = &fileproto.FilesInfoResponse{}
+	resp.FilesInfo, err = r.f.FileInfo(ctx, req.SpaceId, req.FileIds...)
 	if err != nil {
 		return nil, err
-	}
-	var info *fileproto.FileInfo
-	for i, fileId := range req.FileIds {
-		info, err = r.f.FileInfo(ctx, req.SpaceId, fileId)
-		if err != nil {
-			return nil, err
-		}
-		resp.FilesInfo[i] = info
 	}
 	return resp, nil
 }
@@ -206,6 +197,21 @@ func (r rpcHandler) SpaceInfo(ctx context.Context, req *fileproto.SpaceInfoReque
 		)
 	}()
 	if resp, err = r.f.SpaceInfo(ctx, req.SpaceId); err != nil {
+		return
+	}
+	return
+}
+
+func (r rpcHandler) AccountInfo(ctx context.Context, req *fileproto.AccountInfoRequest) (resp *fileproto.AccountInfoResponse, err error) {
+	st := time.Now()
+	defer func() {
+		r.f.metric.RequestLog(ctx,
+			"file.accountInfo",
+			metric.TotalDur(time.Since(st)),
+			zap.Error(err),
+		)
+	}()
+	if resp, err = r.f.AccountInfo(ctx); err != nil {
 		return
 	}
 	return
