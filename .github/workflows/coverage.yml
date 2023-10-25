@@ -21,7 +21,7 @@ jobs:
     # redis for tests
     services:
       redis:
-        image: redis
+        image: redis/redis-stack-server
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 10s
