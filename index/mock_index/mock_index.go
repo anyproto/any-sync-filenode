@@ -284,6 +284,21 @@ func (mr *MockIndexMockRecorder) Run(arg0 any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Run", reflect.TypeOf((*MockIndex)(nil).Run), arg0)
 }
 
+// SpaceDelete mocks base method.
+func (m *MockIndex) SpaceDelete(arg0 context.Context, arg1 index.Key) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SpaceDelete", arg0, arg1)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SpaceDelete indicates an expected call of SpaceDelete.
+func (mr *MockIndexMockRecorder) SpaceDelete(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SpaceDelete", reflect.TypeOf((*MockIndex)(nil).SpaceDelete), arg0, arg1)
+}
+
 // SpaceInfo mocks base method.
 func (m *MockIndex) SpaceInfo(arg0 context.Context, arg1 index.Key) (index.SpaceInfo, error) {
 	m.ctrl.T.Helper()

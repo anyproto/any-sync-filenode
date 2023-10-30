@@ -48,6 +48,7 @@ type Index interface {
 
 	Migrate(ctx context.Context, key Key) error
 
+	SpaceDelete(ctx context.Context, key Key) (ok bool, err error)
 	app.ComponentRunnable
 }
 

@@ -86,7 +86,7 @@ type groupEntry struct {
 	*indexproto.GroupEntry
 }
 
-func (f *groupEntry) Save(ctx context.Context, k Key, cl redis.Pipeliner) {
+func (f *groupEntry) Save(ctx context.Context, k Key, cl redis.Cmdable) {
 	f.UpdateTime = time.Now().Unix()
 	data, err := f.Marshal()
 	if err != nil {

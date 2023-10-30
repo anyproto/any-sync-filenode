@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/OneOfOne/xxhash v1.2.2
 	github.com/ahmetb/govvv v0.3.0
-	github.com/anyproto/any-sync v0.3.5
+	github.com/anyproto/any-sync v0.3.7-0.20231030162112-676be4488a03
 	github.com/aws/aws-sdk-go v1.46.3
 	github.com/cespare/xxhash/v2 v2.2.0
 	github.com/go-redsync/redsync/v4 v4.10.0
@@ -65,7 +65,7 @@ require (
 	github.com/prometheus/common v0.44.0 // indirect
 	github.com/prometheus/procfs v0.11.1 // indirect
 	github.com/quic-go/qtls-go1-20 v0.3.4 // indirect
-	github.com/quic-go/quic-go v0.39.1 // indirect
+	github.com/quic-go/quic-go v0.39.3 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/tyler-smith/go-bip39 v1.1.0 // indirect
 	github.com/zeebo/errs v1.3.0 // indirect

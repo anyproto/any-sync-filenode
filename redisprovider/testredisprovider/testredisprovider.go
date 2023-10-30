@@ -3,14 +3,23 @@ package testredisprovider
 import (
 	"context"
 	"fmt"
-	"github.com/anyproto/any-sync-filenode/redisprovider"
+
 	"github.com/anyproto/any-sync/app"
 	"github.com/redis/go-redis/v9"
+
+	"github.com/anyproto/any-sync-filenode/redisprovider"
 )
 
 func NewTestRedisProvider() *TestRedisProvider {
 	return &TestRedisProvider{
 		db:           6,
+		flushOnStart: true,
+	}
+}
+
+func NewTestRedisProviderNum(num int) *TestRedisProvider {
+	return &TestRedisProvider{
+		db:           num,
 		flushOnStart: true,
 	}
 }
