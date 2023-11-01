@@ -40,9 +40,17 @@ func TestRedisIndex_SpaceDelete(t *testing.T) {
 	require.NoError(t, fx.FileBind(ctx, key, fileId2, cids2))
 	cids2.Release()
 
+	groupInfo, err := fx.GroupInfo(ctx, key.GroupId)
+	require.NoError(t, err)
+	assert.NotEmpty(t, groupInfo.BytesUsage)
+
 	ok, err = fx.SpaceDelete(ctx, key)
 	require.NoError(t, err)
 	assert.True(t, ok)
+
+	groupInfo, err = fx.GroupInfo(ctx, key.GroupId)
+	require.NoError(t, err)
+	assert.Empty(t, groupInfo.BytesUsage)
 
 	// second call
 	ok, err = fx.SpaceDelete(ctx, key)

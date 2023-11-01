@@ -54,7 +54,7 @@ func (d *deleteLog) Name() (name string) {
 
 func (d *deleteLog) Run(ctx context.Context) (err error) {
 	if !d.disableTicker {
-		d.ticker = periodicsync.NewPeriodicSync(300, time.Hour, d.checkLog, log)
+		d.ticker = periodicsync.NewPeriodicSync(60, time.Hour, d.checkLog, log)
 		d.ticker.Run()
 	}
 	return

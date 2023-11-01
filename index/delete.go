@@ -29,17 +29,6 @@ func (ri *redisIndex) SpaceDelete(ctx context.Context, key Key) (ok bool, err er
 		return false, nil
 	}
 
-	groupInfo, err := ri.getGroupEntry(ctx, key)
-	if err != nil {
-		return
-	}
-	if !slices.Contains(groupInfo.SpaceIds, key.SpaceId) {
-		return false, nil
-	}
-	groupInfo.SpaceIds = slices.DeleteFunc(groupInfo.SpaceIds, func(spaceId string) bool {
-		return spaceId == key.SpaceId
-	})
-
 	keys, err := ri.cl.HKeys(ctx, sk).Result()
 	if err != nil {
 		return
@@ -51,6 +40,18 @@ func (ri *redisIndex) SpaceDelete(ctx context.Context, key Key) (ok bool, err er
 			}
 		}
 	}
+
+	groupInfo, err := ri.getGroupEntry(ctx, key)
+	if err != nil {
+		return
+	}
+	if !slices.Contains(groupInfo.SpaceIds, key.SpaceId) {
+		return false, nil
+	}
+	groupInfo.SpaceIds = slices.DeleteFunc(groupInfo.SpaceIds, func(spaceId string) bool {
+		return spaceId == key.SpaceId
+	})
+
 	_, err = ri.cl.Pipelined(ctx, func(pipe redis.Pipeliner) error {
 		groupInfo.Save(ctx, key, ri.cl)
 		return nil
