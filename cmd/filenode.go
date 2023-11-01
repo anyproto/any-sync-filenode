@@ -28,6 +28,7 @@ import (
 
 	"github.com/anyproto/any-sync-filenode/account"
 	"github.com/anyproto/any-sync-filenode/config"
+	"github.com/anyproto/any-sync-filenode/deletelog"
 	"github.com/anyproto/any-sync-filenode/filenode"
 	"github.com/anyproto/any-sync-filenode/index"
 	"github.com/anyproto/any-sync-filenode/limit"
@@ -109,8 +110,6 @@ func Bootstrap(a *app.App) {
 		Register(nodeconf.New()).
 		Register(peerservice.New()).
 		Register(secureservice.New()).
-		Register(yamux.New()).
-		Register(quic.New()).
 		Register(pool.New()).
 		Register(coordinatorclient.New()).
 		Register(limit.New()).
@@ -119,6 +118,8 @@ func Bootstrap(a *app.App) {
 		Register(index.New()).
 		Register(metric.New()).
 		Register(server.New()).
-		Register(filenode.New())
-
+		Register(filenode.New()).
+		Register(deletelog.New()).
+		Register(yamux.New()).
+		Register(quic.New())
 }
