@@ -3,10 +3,10 @@ module github.com/anyproto/any-sync-filenode
 go 1.21
 
 require (
-	github.com/OneOfOne/xxhash v1.2.2
+	github.com/OneOfOne/xxhash v1.2.8
 	github.com/ahmetb/govvv v0.3.0
 	github.com/anyproto/any-sync v0.3.7
-	github.com/aws/aws-sdk-go v1.46.3
+	github.com/aws/aws-sdk-go v1.46.6
 	github.com/cespare/xxhash/v2 v2.2.0
 	github.com/go-redsync/redsync/v4 v4.10.0
 	github.com/gogo/protobuf v1.3.2
