@@ -73,12 +73,6 @@ func (ri *redisIndex) acquireKey(ctx context.Context, key string) (exists bool, 
 		_, _ = mu.Unlock()
 	}
 
-	// update activity by key
-	if err = ri.updateKeyUsage(ctx, key); err != nil {
-		release()
-		return false, nil, err
-	}
-
 	// check in redis
 	ex, err := ri.cl.Exists(ctx, key).Result()
 	if err != nil {

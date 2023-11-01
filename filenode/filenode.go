@@ -188,6 +188,11 @@ func (fn *fileNode) SpaceInfo(ctx context.Context, spaceId string) (info *filepr
 	if limitBytes, storageKey.GroupId, err = fn.limit.Check(ctx, spaceId); err != nil {
 		return nil, err
 	}
+
+	if e := fn.index.Migrate(ctx, storageKey); e != nil {
+		log.WarnCtx(ctx, "space migrate error", zap.String("spaceId", spaceId), zap.Error(e))
+	}
+
 	groupInfo, err := fn.index.GroupInfo(ctx, storageKey.GroupId)
 	if err != nil {
 		return nil, err
