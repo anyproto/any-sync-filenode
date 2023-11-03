@@ -192,7 +192,7 @@ func (ri *redisIndex) persistKey(ctx context.Context, storeKey, key string, dead
 		stat.errors.Add(1)
 		return
 	}
-	if int64(res[0]) > deadline {
+	if int64(res[0]) > deadline || res[0] == 0 {
 		stat.missed.Add(1)
 		return
 	}
