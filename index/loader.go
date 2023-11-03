@@ -11,6 +11,8 @@ import (
 
 	"github.com/cespare/xxhash/v2"
 	"github.com/go-redsync/redsync/v4"
+	blocks "github.com/ipfs/go-block-format"
+	"github.com/ipfs/go-cid"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
@@ -32,6 +34,8 @@ func init() {
 type persistentStore interface {
 	IndexGet(ctx context.Context, key string) (value []byte, err error)
 	IndexPut(ctx context.Context, key string, value []byte) (err error)
+
+	Get(ctx context.Context, k cid.Cid) (blocks.Block, error)
 }
 
 func bloomFilterKey(key string) string {
@@ -188,7 +192,7 @@ func (ri *redisIndex) persistKey(ctx context.Context, storeKey, key string, dead
 		stat.errors.Add(1)
 		return
 	}
-	if int64(res[0]) > deadline {
+	if int64(res[0]) > deadline || res[0] == 0 {
 		stat.missed.Add(1)
 		return
 	}

@@ -26,6 +26,7 @@ func (ri *redisIndex) CidEntries(ctx context.Context, cids []cid.Cid) (entries *
 	entries = &CidEntries{}
 	for _, c := range cids {
 		if err = ri.getAndAddToEntries(ctx, entries, c); err != nil {
+			entries.Release()
 			return nil, err
 		}
 	}
@@ -63,14 +64,15 @@ func (ri *redisIndex) CidEntriesByBlocks(ctx context.Context, bs []blocks.Block)
 }
 
 func (ri *redisIndex) getAndAddToEntries(ctx context.Context, entries *CidEntries, c cid.Cid) (err error) {
-	ok, release, err := ri.AcquireKey(ctx, cidKey(c))
+	_, release, err := ri.AcquireKey(ctx, cidKey(c))
 	if err != nil {
 		return
 	}
-	if !ok {
+	//temporarily ignore the exists check to make a deep check
+	/*if !ok {
 		release()
 		return ErrCidsNotExist
-	}
+	}*/
 	entry, err := ri.getCidEntry(ctx, c)
 	if err != nil {
 		release()
@@ -130,7 +132,15 @@ func (ri *redisIndex) getCidEntry(ctx context.Context, c cid.Cid) (entry *cidEnt
 	cidData, err := ri.cl.Get(ctx, ck).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
-			err = ErrCidsNotExist
+			// temporary additional check: try to load data from store and restore cid
+			var b blocks.Block
+			if b, err = ri.persistStore.Get(ctx, c); err != nil {
+				log.WarnCtx(ctx, "restore cid entry error", zap.String("cid", c.String()), zap.Error(err))
+				err = ErrCidsNotExist
+				return
+			}
+			log.InfoCtx(ctx, "restore cid entry", zap.String("cid", c.String()))
+			return ri.createCidEntry(ctx, b)
 		}
 		return
 	}

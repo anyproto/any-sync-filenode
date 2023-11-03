@@ -1,10 +1,12 @@
 package index
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 
 	"github.com/anyproto/any-sync-filenode/index/indexproto"
 	"github.com/anyproto/any-sync-filenode/testutil"
@@ -53,7 +55,7 @@ func TestRedisIndex_CidEntries(t *testing.T) {
 		require.NoError(t, fx.BlocksAdd(ctx, bs[:3]))
 
 		cids := testutil.BlocksToKeys(bs)
-
+		fx.persistStore.EXPECT().Get(ctx, gomock.Any()).Return(nil, fmt.Errorf("err")).AnyTimes()
 		_, err := fx.CidEntries(ctx, cids)
 		assert.EqualError(t, err, ErrCidsNotExist.Error())
 	})
@@ -87,6 +89,23 @@ func TestRedisIndex_CidEntries(t *testing.T) {
 			assert.NotEmpty(t, e.UpdateTime)
 			assert.NotEmpty(t, e.Version)
 		}
+	})
+	t.Run("restore from store", func(t *testing.T) {
+		bs := testutil.NewRandBlocks(4)
+		fx := newFixture(t)
+		defer fx.Finish(t)
+
+		require.NoError(t, fx.BlocksAdd(ctx, bs[:3]))
+
+		cids := testutil.BlocksToKeys(bs)
+
+		fx.persistStore.EXPECT().Get(ctx, bs[3].Cid()).Return(bs[3], nil)
+
+		result, err := fx.CidEntries(ctx, cids)
+		defer result.Release()
+		require.NoError(t, err)
+		require.Len(t, result.entries, len(bs))
+		t.Log(result.entries[3])
 	})
 }
 
