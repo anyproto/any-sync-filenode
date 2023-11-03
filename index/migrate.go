@@ -2,6 +2,7 @@ package index
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 
@@ -63,6 +64,11 @@ func (ri *redisIndex) Migrate(ctx context.Context, key Key) (err error) {
 	for _, k := range keys {
 		if strings.HasPrefix(k, "f:") {
 			if err = ri.migrateFile(ctx, key, migrateKey, k); err != nil {
+				if errors.Is(err, ErrCidsNotExist) {
+					err = nil
+					log.WarnCtx(ctx, "migrate cid no exists", zap.String("spaceId", key.SpaceId), zap.String("fileId", k))
+					continue
+				}
 				return
 			}
 		}
