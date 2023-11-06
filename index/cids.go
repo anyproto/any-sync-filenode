@@ -56,6 +56,7 @@ func (ri *redisIndex) CidEntriesByBlocks(ctx context.Context, bs []blocks.Block)
 			continue
 		}
 		if err = ri.getAndAddToEntries(ctx, entries, b.Cid()); err != nil {
+			entries.Release()
 			return nil, err
 		}
 		visited[b.Cid().KeyString()] = struct{}{}

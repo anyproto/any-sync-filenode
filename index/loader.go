@@ -53,6 +53,12 @@ func (ri *redisIndex) CheckKey(ctx context.Context, key string) (exists bool, er
 	if exists, release, err = ri.acquireKey(ctx, key); err != nil {
 		return
 	}
+	if exists {
+		if err = ri.updateKeyUsage(ctx, key); err != nil {
+			release()
+			return false, err
+		}
+	}
 	release()
 	return
 }
