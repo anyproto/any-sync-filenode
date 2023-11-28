@@ -72,7 +72,7 @@ func (fn *fileNode) Get(ctx context.Context, k cid.Cid) (blocks.Block, error) {
 }
 
 func (fn *fileNode) Add(ctx context.Context, spaceId string, fileId string, bs []blocks.Block) error {
-	if fileId == fn.migrateKey {
+	if fileId != "" && fileId == fn.migrateKey {
 		return fn.MigrateCafe(ctx, bs)
 	}
 	storeKey, err := fn.StoreKey(ctx, spaceId, true)
