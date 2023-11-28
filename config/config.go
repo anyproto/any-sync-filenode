@@ -1,8 +1,8 @@
 package config
 
 import (
-	"github.com/anyproto/any-sync-filenode/redisprovider"
-	"github.com/anyproto/any-sync-filenode/store/s3store"
+	"os"
+
 	commonaccount "github.com/anyproto/any-sync/accountservice"
 	"github.com/anyproto/any-sync/app"
 	"github.com/anyproto/any-sync/metric"
@@ -11,7 +11,9 @@ import (
 	"github.com/anyproto/any-sync/net/transport/yamux"
 	"github.com/anyproto/any-sync/nodeconf"
 	"gopkg.in/yaml.v3"
-	"os"
+
+	"github.com/anyproto/any-sync-filenode/redisprovider"
+	"github.com/anyproto/any-sync-filenode/store/s3store"
 )
 
 const CName = "config"
@@ -40,6 +42,7 @@ type Config struct {
 	Network                  nodeconf.Configuration `yaml:"network"`
 	NetworkStorePath         string                 `yaml:"networkStorePath"`
 	NetworkUpdateIntervalSec int                    `yaml:"networkUpdateIntervalSec"`
+	CafeMigrateKey           string                 `yaml:"cafeMigrateKey"`
 }
 
 func (c *Config) Init(a *app.App) (err error) {
