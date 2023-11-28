@@ -15,6 +15,7 @@ import (
 	"github.com/ipfs/go-cid"
 	"go.uber.org/zap"
 
+	"github.com/anyproto/any-sync-filenode/config"
 	"github.com/anyproto/any-sync-filenode/index"
 	"github.com/anyproto/any-sync-filenode/limit"
 	"github.com/anyproto/any-sync-filenode/store"
@@ -37,11 +38,12 @@ type Service interface {
 }
 
 type fileNode struct {
-	index   index.Index
-	store   store.Store
-	limit   limit.Limit
-	metric  metric.Metric
-	handler *rpcHandler
+	index      index.Index
+	store      store.Store
+	limit      limit.Limit
+	metric     metric.Metric
+	migrateKey string
+	handler    *rpcHandler
 }
 
 func (fn *fileNode) Init(a *app.App) (err error) {
@@ -50,6 +52,7 @@ func (fn *fileNode) Init(a *app.App) (err error) {
 	fn.limit = a.MustComponent(limit.CName).(limit.Limit)
 	fn.handler = &rpcHandler{f: fn}
 	fn.metric = a.MustComponent(metric.CName).(metric.Metric)
+	fn.migrateKey = a.MustComponent(config.CName).(*config.Config).CafeMigrateKey
 	return fileproto.DRPCRegisterFile(a.MustComponent(server.CName).(server.DRPCServer), fn.handler)
 }
 
@@ -69,6 +72,9 @@ func (fn *fileNode) Get(ctx context.Context, k cid.Cid) (blocks.Block, error) {
 }
 
 func (fn *fileNode) Add(ctx context.Context, spaceId string, fileId string, bs []blocks.Block) error {
+	if fileId != "" && fileId == fn.migrateKey {
+		return fn.MigrateCafe(ctx, bs)
+	}
 	storeKey, err := fn.StoreKey(ctx, spaceId, true)
 	if err != nil {
 		return err
@@ -270,4 +276,20 @@ func (fn *fileNode) FileInfo(ctx context.Context, spaceId string, fileIds ...str
 		}
 	}
 	return
+}
+
+func (fn *fileNode) MigrateCafe(ctx context.Context, bs []blocks.Block) error {
+	unlock, err := fn.index.BlocksLock(ctx, bs)
+	if err != nil {
+		return err
+	}
+	defer unlock()
+
+	if err = fn.store.Add(ctx, bs); err != nil {
+		return err
+	}
+	if err = fn.index.BlocksAdd(ctx, bs); err != nil {
+		return err
+	}
+	return nil
 }
