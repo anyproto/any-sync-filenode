@@ -13,3 +13,4 @@ jobs:
     uses: anyproto/any-sync-node/.github/workflows/push-docker-image-reusable.yml@main
     with:
       release: ${{ github.event.inputs.release }}
+      dockerfile-cmd: /bin/any-sync-filenode -c /etc/any-sync-filenode/config.yml
