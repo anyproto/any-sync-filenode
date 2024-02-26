@@ -12,16 +12,11 @@ func (ri *redisIndex) FileBind(ctx context.Context, key Key, fileId string, cids
 		sk = spaceKey(key)
 		gk = groupKey(key)
 	)
-	_, gRelease, err := ri.AcquireKey(ctx, gk)
+	entry, release, err := ri.AcquireSpace(ctx, key)
 	if err != nil {
 		return
 	}
-	defer gRelease()
-	_, sRelease, err := ri.AcquireKey(ctx, sk)
-	if err != nil {
-		return
-	}
-	defer sRelease()
+	defer release()
 
 	// get file entry
 	fileInfo, isNewFile, err := ri.getFileEntry(ctx, key, fileId)
@@ -61,16 +56,6 @@ func (ri *redisIndex) FileBind(ctx context.Context, key Key, fileId string, cids
 		return
 	}
 
-	// load group and space info
-	spaceInfo, err := ri.getSpaceEntry(ctx, key)
-	if err != nil {
-		return
-	}
-	groupInfo, err := ri.getGroupEntry(ctx, key)
-	if err != nil {
-		return
-	}
-
 	// calculate new group and space stats
 	for i, idx := range newFileCidIdx {
 		ex, err := cidExistGroupCmds[i].Result()
@@ -78,21 +63,21 @@ func (ri *redisIndex) FileBind(ctx context.Context, key Key, fileId string, cids
 			return err
 		}
 		if !ex {
-			spaceInfo.CidCount++
-			spaceInfo.Size_ += cids.entries[idx].Size_
+			entry.space.CidCount++
+			entry.space.Size_ += cids.entries[idx].Size_
 		}
 		ex, err = cidExistSpaceCmds[i].Result()
 		if err != nil {
 			return err
 		}
 		if !ex {
-			groupInfo.CidCount++
-			groupInfo.Size_ += cids.entries[idx].Size_
+			entry.group.CidCount++
+			entry.group.Size_ += cids.entries[idx].Size_
 		}
 	}
-	groupInfo.AddSpaceId(key.SpaceId)
+	entry.group.AddSpaceId(key.SpaceId)
 	if isNewFile {
-		spaceInfo.FileCount++
+		entry.space.FileCount++
 	}
 
 	// make group and space updates in one tx
@@ -104,8 +89,8 @@ func (ri *redisIndex) FileBind(ctx context.Context, key Key, fileId string, cids
 			tx.HIncrBy(ctx, sk, ck, 1)
 		}
 		// save info
-		spaceInfo.Save(ctx, key, tx)
-		groupInfo.Save(ctx, key, tx)
+		entry.space.Save(ctx, key, tx)
+		entry.group.Save(ctx, key, tx)
 		fileInfo.Save(ctx, key, fileId, tx)
 		return nil
 	})

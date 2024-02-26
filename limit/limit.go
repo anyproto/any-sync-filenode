@@ -5,13 +5,14 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/anyproto/any-sync/app"
 	"github.com/anyproto/any-sync/app/ocache"
 	"github.com/anyproto/any-sync/coordinator/coordinatorclient"
 	"github.com/anyproto/any-sync/net/peer"
 	"go.uber.org/atomic"
-	"strings"
-	"time"
 )
 
 const CName = "filenode.limit"
@@ -94,6 +95,7 @@ func decodeId(id string) (spaceId string, identity []byte, err error) {
 	idx := strings.Index(id, ":")
 	if idx == -1 {
 		err = fmt.Errorf("unexpected limit id")
+		return
 	}
 	spaceId = id[:idx]
 	if identity, err = hex.DecodeString(id[idx+1:]); err != nil {

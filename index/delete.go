@@ -10,22 +10,16 @@ import (
 
 func (ri *redisIndex) SpaceDelete(ctx context.Context, key Key) (ok bool, err error) {
 	var (
-		gk = groupKey(key)
 		sk = spaceKey(key)
 	)
 
-	_, gRelease, err := ri.AcquireKey(ctx, gk)
+	entry, release, err := ri.AcquireSpace(ctx, key)
 	if err != nil {
 		return
 	}
-	defer gRelease()
-	spaceExists, sRelease, err := ri.AcquireKey(ctx, sk)
-	if err != nil {
-		return
-	}
-	defer sRelease()
+	defer release()
 
-	if !spaceExists {
+	if !entry.spaceExists {
 		return false, nil
 	}
 
@@ -35,25 +29,21 @@ func (ri *redisIndex) SpaceDelete(ctx context.Context, key Key) (ok bool, err er
 	}
 	for _, k := range keys {
 		if strings.HasPrefix(k, "f:") {
-			if err = ri.fileUnbind(ctx, key, k[2:]); err != nil {
+			if err = ri.fileUnbind(ctx, key, entry, k[2:]); err != nil {
 				return
 			}
 		}
 	}
 
-	groupInfo, err := ri.getGroupEntry(ctx, key)
-	if err != nil {
-		return
-	}
-	if !slices.Contains(groupInfo.SpaceIds, key.SpaceId) {
+	if !slices.Contains(entry.group.SpaceIds, key.SpaceId) {
 		return false, nil
 	}
-	groupInfo.SpaceIds = slices.DeleteFunc(groupInfo.SpaceIds, func(spaceId string) bool {
+	entry.group.SpaceIds = slices.DeleteFunc(entry.group.SpaceIds, func(spaceId string) bool {
 		return spaceId == key.SpaceId
 	})
 
 	_, err = ri.cl.Pipelined(ctx, func(pipe redis.Pipeliner) error {
-		groupInfo.Save(ctx, key, pipe)
+		entry.group.Save(ctx, key, pipe)
 		return nil
 	})
 	if err != nil {

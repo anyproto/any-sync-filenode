@@ -8,25 +8,20 @@ import (
 )
 
 func (ri *redisIndex) FileUnbind(ctx context.Context, key Key, fileIds ...string) (err error) {
-	_, gRelease, err := ri.AcquireKey(ctx, groupKey(key))
+	entry, release, err := ri.AcquireSpace(ctx, key)
 	if err != nil {
 		return
 	}
-	defer gRelease()
-	_, sRelease, err := ri.AcquireKey(ctx, spaceKey(key))
-	if err != nil {
-		return
-	}
-	defer sRelease()
+	defer release()
 	for _, fileId := range fileIds {
-		if err = ri.fileUnbind(ctx, key, fileId); err != nil {
+		if err = ri.fileUnbind(ctx, key, entry, fileId); err != nil {
 			return
 		}
 	}
 	return
 }
 
-func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, fileId string) (err error) {
+func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, entry groupSpaceEntry, fileId string) (err error) {
 	var (
 		sk = spaceKey(key)
 		gk = groupKey(key)
@@ -64,16 +59,6 @@ func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, fileId string) (e
 		return
 	}
 
-	// load group and space info
-	spaceInfo, err := ri.getSpaceEntry(ctx, key)
-	if err != nil {
-		return
-	}
-	groupInfo, err := ri.getGroupEntry(ctx, key)
-	if err != nil {
-		return
-	}
-
 	// update info and calculate changes
 	var (
 		groupRemoveKeys = make([]string, 0, len(cids.entries))
@@ -83,7 +68,7 @@ func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, fileId string) (e
 		affectedCidIdx  = make([]int, 0, len(cids.entries))
 	)
 
-	spaceInfo.FileCount--
+	entry.space.FileCount--
 	for i, c := range cids.entries {
 		res, err := groupCidRefs[i].Result()
 		if err != nil {
@@ -92,8 +77,8 @@ func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, fileId string) (e
 		ck := cidKey(c.Cid)
 		if res == "1" {
 			groupRemoveKeys = append(groupRemoveKeys, ck)
-			groupInfo.Size_ -= c.Size_
-			groupInfo.CidCount--
+			entry.group.Size_ -= c.Size_
+			entry.group.CidCount--
 			affectedCidIdx = append(affectedCidIdx, i)
 		} else {
 			groupDecrKeys = append(groupDecrKeys, ck)
@@ -104,8 +89,8 @@ func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, fileId string) (e
 		}
 		if res == "1" {
 			spaceRemoveKeys = append(spaceRemoveKeys, ck)
-			spaceInfo.Size_ -= c.Size_
-			spaceInfo.CidCount--
+			entry.space.Size_ -= c.Size_
+			entry.space.CidCount--
 		} else {
 			spaceDecrKeys = append(spaceDecrKeys, ck)
 		}
@@ -130,8 +115,8 @@ func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, fileId string) (e
 				tx.HIncrBy(ctx, gk, k, -1)
 			}
 		}
-		spaceInfo.Save(ctx, key, tx)
-		groupInfo.Save(ctx, key, tx)
+		entry.space.Save(ctx, key, tx)
+		entry.group.Save(ctx, key, tx)
 		return nil
 	})
 

@@ -121,3 +121,10 @@ func (ri *redisIndex) getGroupEntry(ctx context.Context, key Key) (entry *groupE
 	}
 	return &groupEntry{GroupEntry: groupEntryProto}, nil
 }
+
+type groupSpaceEntry struct {
+	space       *spaceEntry
+	group       *groupEntry
+	spaceExists bool
+	groupExists bool
+}
