@@ -8,15 +8,18 @@ import (
 )
 
 func (ri *redisIndex) FileBind(ctx context.Context, key Key, fileId string, cids *CidEntries) (err error) {
-	var (
-		sk = spaceKey(key)
-		gk = groupKey(key)
-	)
 	entry, release, err := ri.AcquireSpace(ctx, key)
 	if err != nil {
 		return
 	}
 	defer release()
+
+	return ri.fileBind(ctx, key, fileId, cids, entry)
+}
+
+func (ri *redisIndex) fileBind(ctx context.Context, key Key, fileId string, cids *CidEntries, entry groupSpaceEntry) (err error) {
+	var gk = groupKey(key)
+	var sk = spaceKey(key)
 
 	// get file entry
 	fileInfo, isNewFile, err := ri.getFileEntry(ctx, key, fileId)

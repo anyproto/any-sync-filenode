@@ -9,19 +9,20 @@ import (
 )
 
 func (ri *redisIndex) SpaceDelete(ctx context.Context, key Key) (ok bool, err error) {
-	var (
-		sk = spaceKey(key)
-	)
-
 	entry, release, err := ri.AcquireSpace(ctx, key)
 	if err != nil {
 		return
 	}
 	defer release()
 
+	return ri.spaceDelete(ctx, key, entry)
+}
+
+func (ri *redisIndex) spaceDelete(ctx context.Context, key Key, entry groupSpaceEntry) (ok bool, err error) {
 	if !entry.spaceExists {
 		return false, nil
 	}
+	sk := spaceKey(key)
 
 	keys, err := ri.cl.HKeys(ctx, sk).Result()
 	if err != nil {

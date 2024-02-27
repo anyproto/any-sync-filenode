@@ -14,6 +14,7 @@ import (
 	"github.com/anyproto/any-sync-filenode/index/indexproto"
 )
 
+// Migrate from the version without groups
 func (ri *redisIndex) Migrate(ctx context.Context, key Key) (err error) {
 	st := time.Now()
 	// fast check before lock the key

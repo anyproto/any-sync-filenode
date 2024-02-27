@@ -3,6 +3,7 @@ package index
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/rand"
 	"strconv"
 	"sync"
@@ -95,17 +96,26 @@ func (ri *redisIndex) AcquireSpace(ctx context.Context, key Key) (entry groupSpa
 		sRelease()
 		return
 	}
+
+	if entry.space.GetGroupId() != key.GroupId {
+		gRelease()
+		sRelease()
+		err = fmt.Errorf("space and group mismatched")
+		return
+	}
+
 	release = func() {
 		gRelease()
 		sRelease()
 	}
 	entry.spaceExists = sExists
 	entry.groupExists = gExists
+
 	return
 }
 
 func (ri *redisIndex) acquireKey(ctx context.Context, key string) (exists bool, release func(), err error) {
-	mu := ri.redsync.NewMutex("_lock:"+key, redsync.WithExpiry(time.Minute))
+	mu := ri.redsync.NewMutex("_lock:"+key, redsync.WithExpiry(time.Minute*20))
 	if err = mu.LockContext(ctx); err != nil {
 		return
 	}
