@@ -54,7 +54,7 @@ func (r rpcHandler) BlockGet(ctx context.Context, req *fileproto.BlockGetRequest
 	return resp, nil
 }
 
-func (r rpcHandler) BlockPush(ctx context.Context, req *fileproto.BlockPushRequest) (resp *fileproto.BlockPushResponse, err error) {
+func (r rpcHandler) BlockPush(ctx context.Context, req *fileproto.BlockPushRequest) (resp *fileproto.Ok, err error) {
 	var c cid.Cid
 	st := time.Now()
 	defer func() {
@@ -91,7 +91,7 @@ func (r rpcHandler) BlockPush(ctx context.Context, req *fileproto.BlockPushReque
 	if err = r.f.Add(ctx, req.SpaceId, req.FileId, []blocks.Block{b}); err != nil {
 		return nil, err
 	}
-	return &fileproto.BlockPushResponse{}, nil
+	return &fileproto.Ok{}, nil
 }
 
 func (r rpcHandler) BlocksCheck(ctx context.Context, req *fileproto.BlocksCheckRequest) (resp *fileproto.BlocksCheckResponse, err error) {
@@ -114,7 +114,7 @@ func (r rpcHandler) BlocksCheck(ctx context.Context, req *fileproto.BlocksCheckR
 	}, nil
 }
 
-func (r rpcHandler) BlocksBind(ctx context.Context, req *fileproto.BlocksBindRequest) (resp *fileproto.BlocksBindResponse, err error) {
+func (r rpcHandler) BlocksBind(ctx context.Context, req *fileproto.BlocksBindRequest) (resp *fileproto.Ok, err error) {
 	st := time.Now()
 	defer func() {
 		r.f.metric.RequestLog(ctx,
@@ -129,7 +129,7 @@ func (r rpcHandler) BlocksBind(ctx context.Context, req *fileproto.BlocksBindReq
 	if err = r.f.BlocksBind(ctx, req.SpaceId, req.FileId, convertCids(req.Cids)...); err != nil {
 		return nil, err
 	}
-	return &fileproto.BlocksBindResponse{}, nil
+	return &fileproto.Ok{}, nil
 }
 
 func (r rpcHandler) FilesDelete(ctx context.Context, req *fileproto.FilesDeleteRequest) (resp *fileproto.FilesDeleteResponse, err error) {
@@ -215,6 +215,16 @@ func (r rpcHandler) AccountInfo(ctx context.Context, req *fileproto.AccountInfoR
 		return
 	}
 	return
+}
+
+func (r rpcHandler) AccountLimitSet(ctx context.Context, request *fileproto.AccountLimitSetRequest) (*fileproto.Ok, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r rpcHandler) SpaceLimitSet(ctx context.Context, request *fileproto.SpaceLimitSetRequest) (*fileproto.Ok, error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 func convertCids(bCids [][]byte) (cids []cid.Cid) {
