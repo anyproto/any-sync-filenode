@@ -8,7 +8,7 @@ require (
 	github.com/anyproto/any-sync v0.3.7
 	github.com/aws/aws-sdk-go v1.50.30
 	github.com/cespare/xxhash/v2 v2.2.0
-	github.com/go-redsync/redsync/v4 v4.11.0
+	github.com/go-redsync/redsync/v4 v4.12.1
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/snappy v0.0.4
 	github.com/ipfs/go-block-format v0.2.0
