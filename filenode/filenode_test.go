@@ -10,6 +10,8 @@ import (
 	"github.com/anyproto/any-sync/commonfile/fileproto/fileprotoerr"
 	"github.com/anyproto/any-sync/metric"
 	"github.com/anyproto/any-sync/net/rpc/server"
+	"github.com/anyproto/any-sync/nodeconf"
+	"github.com/anyproto/any-sync/nodeconf/mock_nodeconf"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	"github.com/stretchr/testify/assert"
@@ -269,6 +271,7 @@ func newFixture(t *testing.T) *fixture {
 		index:    mock_index.NewMockIndex(ctrl),
 		store:    mock_store.NewMockStore(ctrl),
 		limit:    mock_limit.NewMockLimit(ctrl),
+		nodeConf: mock_nodeconf.NewMockService(ctrl),
 		serv:     server.New(),
 		ctrl:     ctrl,
 		a:        new(app.App),
@@ -287,19 +290,32 @@ func newFixture(t *testing.T) *fixture {
 	fx.limit.EXPECT().Run(gomock.Any()).AnyTimes()
 	fx.limit.EXPECT().Close(gomock.Any()).AnyTimes()
 
-	fx.a.Register(metric.New()).Register(fx.serv).Register(fx.index).Register(fx.store).Register(fx.limit).Register(fx.fileNode).Register(&config.Config{})
+	fx.nodeConf.EXPECT().Name().Return(nodeconf.CName).AnyTimes()
+	fx.nodeConf.EXPECT().Init(gomock.Any()).AnyTimes()
+	fx.nodeConf.EXPECT().Run(gomock.Any()).AnyTimes()
+	fx.nodeConf.EXPECT().Close(gomock.Any()).AnyTimes()
+
+	fx.a.Register(metric.New()).
+		Register(fx.serv).
+		Register(fx.index).
+		Register(fx.store).
+		Register(fx.limit).
+		Register(fx.fileNode).
+		Register(fx.nodeConf).
+		Register(&config.Config{})
 	require.NoError(t, fx.a.Start(ctx))
 	return fx
 }
 
 type fixture struct {
 	*fileNode
-	index *mock_index.MockIndex
-	store *mock_store.MockStore
-	ctrl  *gomock.Controller
-	a     *app.App
-	limit *mock_limit.MockLimit
-	serv  server.DRPCServer
+	index    *mock_index.MockIndex
+	store    *mock_store.MockStore
+	ctrl     *gomock.Controller
+	a        *app.App
+	limit    *mock_limit.MockLimit
+	serv     server.DRPCServer
+	nodeConf *mock_nodeconf.MockService
 }
 
 func (fx *fixture) Finish(t *testing.T) {

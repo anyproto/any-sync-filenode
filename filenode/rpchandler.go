@@ -217,14 +217,34 @@ func (r rpcHandler) AccountInfo(ctx context.Context, req *fileproto.AccountInfoR
 	return
 }
 
-func (r rpcHandler) AccountLimitSet(ctx context.Context, request *fileproto.AccountLimitSetRequest) (*fileproto.Ok, error) {
-	//TODO implement me
-	panic("implement me")
+func (r rpcHandler) AccountLimitSet(ctx context.Context, req *fileproto.AccountLimitSetRequest) (resp *fileproto.Ok, err error) {
+	st := time.Now()
+	defer func() {
+		r.f.metric.RequestLog(ctx,
+			"file.accountLimitSet",
+			metric.TotalDur(time.Since(st)),
+			zap.Error(err),
+		)
+	}()
+	if err = r.f.AccountLimitSet(ctx, req.Identity, req.Limit); err != nil {
+		return
+	}
+	return &fileproto.Ok{}, nil
 }
 
-func (r rpcHandler) SpaceLimitSet(ctx context.Context, request *fileproto.SpaceLimitSetRequest) (*fileproto.Ok, error) {
-	//TODO implement me
-	panic("implement me")
+func (r rpcHandler) SpaceLimitSet(ctx context.Context, req *fileproto.SpaceLimitSetRequest) (resp *fileproto.Ok, err error) {
+	st := time.Now()
+	defer func() {
+		r.f.metric.RequestLog(ctx,
+			"file.spaceLimitSet",
+			metric.TotalDur(time.Since(st)),
+			zap.Error(err),
+		)
+	}()
+	if err = r.f.SpaceLimitSet(ctx, req.SpaceId, req.Limit); err != nil {
+		return
+	}
+	return &fileproto.Ok{}, nil
 }
 
 func convertCids(bCids [][]byte) (cids []cid.Cid) {

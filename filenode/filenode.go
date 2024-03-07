@@ -3,6 +3,7 @@ package filenode
 import (
 	"context"
 	"errors"
+	"slices"
 
 	"github.com/anyproto/any-sync/app"
 	"github.com/anyproto/any-sync/app/logger"
@@ -10,7 +11,9 @@ import (
 	"github.com/anyproto/any-sync/commonfile/fileproto"
 	"github.com/anyproto/any-sync/commonfile/fileproto/fileprotoerr"
 	"github.com/anyproto/any-sync/metric"
+	"github.com/anyproto/any-sync/net/peer"
 	"github.com/anyproto/any-sync/net/rpc/server"
+	"github.com/anyproto/any-sync/nodeconf"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	"go.uber.org/zap"
@@ -42,6 +45,7 @@ type fileNode struct {
 	store      store.Store
 	limit      limit.Limit
 	metric     metric.Metric
+	nodeConf   nodeconf.Service
 	migrateKey string
 	handler    *rpcHandler
 }
@@ -53,6 +57,7 @@ func (fn *fileNode) Init(a *app.App) (err error) {
 	fn.handler = &rpcHandler{f: fn}
 	fn.metric = a.MustComponent(metric.CName).(metric.Metric)
 	fn.migrateKey = a.MustComponent(config.CName).(*config.Config).CafeMigrateKey
+	fn.nodeConf = a.MustComponent(nodeconf.CName).(nodeconf.Service)
 	return fileproto.DRPCRegisterFile(a.MustComponent(server.CName).(server.DRPCServer), fn.handler)
 }
 
@@ -292,4 +297,26 @@ func (fn *fileNode) MigrateCafe(ctx context.Context, bs []blocks.Block) error {
 		return err
 	}
 	return nil
+}
+
+func (fn *fileNode) AccountLimitSet(ctx context.Context, identity string, limit uint64) (err error) {
+	peerId, err := peer.CtxPeerId(ctx)
+	if err != nil {
+		return
+	}
+	// check that call from the coordinator or the payment node
+	if !slices.Contains(fn.nodeConf.NodeTypes(peerId), nodeconf.NodeTypeCoordinator) &&
+		!slices.Contains(fn.nodeConf.NodeTypes(peerId), nodeconf.NodeTypePaymentProcessingNode) {
+		return fileprotoerr.ErrForbidden
+	}
+
+	return fn.index.SetGroupLimit(ctx, identity, limit)
+}
+
+func (fn *fileNode) SpaceLimitSet(ctx context.Context, spaceId string, limit uint64) (err error) {
+	storeKey, err := fn.StoreKey(ctx, spaceId, false)
+	if err != nil {
+		return
+	}
+	return fn.index.SetSpaceLimit(ctx, storeKey, limit)
 }

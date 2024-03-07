@@ -5,6 +5,7 @@
 //
 //	mockgen -destination mock_index/mock_index.go github.com/anyproto/any-sync-filenode/index Index
 //
+
 // Package mock_index is a generated GoMock package.
 package mock_index
 
@@ -282,6 +283,34 @@ func (m *MockIndex) Run(arg0 context.Context) error {
 func (mr *MockIndexMockRecorder) Run(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Run", reflect.TypeOf((*MockIndex)(nil).Run), arg0)
+}
+
+// SetGroupLimit mocks base method.
+func (m *MockIndex) SetGroupLimit(arg0 context.Context, arg1 string, arg2 uint64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetGroupLimit", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetGroupLimit indicates an expected call of SetGroupLimit.
+func (mr *MockIndexMockRecorder) SetGroupLimit(arg0, arg1, arg2 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetGroupLimit", reflect.TypeOf((*MockIndex)(nil).SetGroupLimit), arg0, arg1, arg2)
+}
+
+// SetSpaceLimit mocks base method.
+func (m *MockIndex) SetSpaceLimit(arg0 context.Context, arg1 index.Key, arg2 uint64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetSpaceLimit", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetSpaceLimit indicates an expected call of SetSpaceLimit.
+func (mr *MockIndexMockRecorder) SetSpaceLimit(arg0, arg1, arg2 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetSpaceLimit", reflect.TypeOf((*MockIndex)(nil).SetSpaceLimit), arg0, arg1, arg2)
 }
 
 // SpaceDelete mocks base method.
