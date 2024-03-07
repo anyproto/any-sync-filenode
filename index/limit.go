@@ -2,6 +2,7 @@ package index
 
 import (
 	"context"
+	"strconv"
 	"strings"
 
 	"github.com/anyproto/any-sync/commonfile/fileproto/fileprotoerr"
@@ -153,20 +154,23 @@ func (op *spaceLimitOp) isolateSpace(ctx context.Context, entry groupSpaceEntry)
 	sk := spaceKey(key)
 	gk := groupKey(key)
 
-	keys, err := op.cl.HKeys(ctx, sk).Result()
+	keys, err := op.cl.HGetAll(ctx, sk).Result()
 	if err != nil {
 		return
 	}
 
 	var cids []cid.Cid
+	var cidRefs []int64
 	// collect all cids
-	for _, k := range keys {
+	for k, val := range keys {
 		if strings.HasPrefix(k, "c:") {
 			c, cErr := cid.Decode(k[2:])
 			if cErr != nil {
 				log.WarnCtx(ctx, "can't decode cid", zap.String("cid", k[2:]), zap.Error(cErr))
 			} else {
+				ref, _ := strconv.ParseInt(val, 10, 64)
 				cids = append(cids, c)
+				cidRefs = append(cidRefs, ref)
 			}
 		}
 	}
@@ -183,7 +187,7 @@ func (op *spaceLimitOp) isolateSpace(ctx context.Context, entry groupSpaceEntry)
 	var groupDecrResults = make([]*redis.IntCmd, len(cids))
 	if _, err = op.cl.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
 		for i, c := range cids {
-			groupDecrResults[i] = pipe.HIncrBy(ctx, gk, cidKey(c), -1)
+			groupDecrResults[i] = pipe.HIncrBy(ctx, gk, cidKey(c), -cidRefs[i])
 		}
 		return nil
 	}); err != nil {

@@ -43,6 +43,11 @@ func (ri *redisIndex) spaceDelete(ctx context.Context, key Key, entry groupSpace
 		return spaceId == key.SpaceId
 	})
 
+	// in case of isolated space - return limit to the group
+	if entry.space.Limit != 0 {
+		entry.group.Limit += entry.space.Limit
+	}
+
 	_, err = ri.cl.Pipelined(ctx, func(pipe redis.Pipeliner) error {
 		entry.group.Save(ctx, pipe)
 		pipe.Del(ctx, sk)
