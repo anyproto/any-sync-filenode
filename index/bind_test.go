@@ -66,9 +66,11 @@ func TestRedisIndex_Bind(t *testing.T) {
 		groupInfo, err := fx.GroupInfo(ctx, key.GroupId)
 		require.NoError(t, err)
 		assert.Equal(t, GroupInfo{
-			BytesUsage: sumSize,
-			CidsCount:  uint64(len(bs)),
-			SpaceIds:   []string{key.SpaceId},
+			BytesUsage:   sumSize,
+			CidsCount:    uint64(len(bs)),
+			AccountLimit: fx.defaultLimit,
+			Limit:        fx.defaultLimit,
+			SpaceIds:     []string{key.SpaceId},
 		}, groupInfo)
 
 	})

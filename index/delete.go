@@ -44,7 +44,8 @@ func (ri *redisIndex) spaceDelete(ctx context.Context, key Key, entry groupSpace
 	})
 
 	_, err = ri.cl.Pipelined(ctx, func(pipe redis.Pipeliner) error {
-		entry.group.Save(ctx, key, pipe)
+		entry.group.Save(ctx, pipe)
+		pipe.Del(ctx, sk)
 		return nil
 	})
 	if err != nil {

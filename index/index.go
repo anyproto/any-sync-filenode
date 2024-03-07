@@ -17,6 +17,7 @@ import (
 	"github.com/ipfs/go-cid"
 	"github.com/redis/go-redis/v9"
 
+	"github.com/anyproto/any-sync-filenode/config"
 	"github.com/anyproto/any-sync-filenode/redisprovider"
 	"github.com/anyproto/any-sync-filenode/store/s3store"
 )
@@ -44,7 +45,10 @@ type Index interface {
 	CidExists(ctx context.Context, c cid.Cid) (ok bool, err error)
 	CidEntries(ctx context.Context, cids []cid.Cid) (entries *CidEntries, err error)
 	CidEntriesByBlocks(ctx context.Context, bs []blocks.Block) (entries *CidEntries, err error)
-	CidExistsInSpace(ctx context.Context, k Key, cids []cid.Cid) (exists []cid.Cid, err error)
+	CidExistsInSpace(ctx context.Context, key Key, cids []cid.Cid) (exists []cid.Cid, err error)
+
+	SetGroupLimit(ctx context.Context, groupId string, limit uint64) (err error)
+	SetSpaceLimit(ctx context.Context, key Key, limit uint64) (err error)
 
 	Migrate(ctx context.Context, key Key) error
 
@@ -62,14 +66,17 @@ type Key struct {
 }
 
 type GroupInfo struct {
-	BytesUsage uint64
-	CidsCount  uint64
-	SpaceIds   []string
+	BytesUsage   uint64
+	CidsCount    uint64
+	AccountLimit uint64
+	Limit        uint64
+	SpaceIds     []string
 }
 
 type SpaceInfo struct {
 	BytesUsage uint64
 	CidsCount  uint64
+	Limit      uint64
 	FileCount  uint32
 }
 
@@ -101,14 +108,17 @@ type redisIndex struct {
 	persistStore persistentStore
 	persistTtl   time.Duration
 	ticker       periodicsync.PeriodicSync
+	defaultLimit uint64
 }
 
 func (ri *redisIndex) Init(a *app.App) (err error) {
 	ri.cl = a.MustComponent(redisprovider.CName).(redisprovider.RedisProvider).Redis()
 	ri.persistStore = a.MustComponent(s3store.CName).(persistentStore)
 	ri.redsync = redsync.New(goredis.NewPool(ri.cl))
+	conf := app.MustComponent[*config.Config](a)
 	// todo: move to config
 	ri.persistTtl = time.Hour
+	ri.defaultLimit = conf.DefaultLimit
 	return
 }
 
@@ -189,9 +199,11 @@ func (ri *redisIndex) GroupInfo(ctx context.Context, groupId string) (info Group
 		return
 	}
 	return GroupInfo{
-		BytesUsage: sEntry.Size_,
-		CidsCount:  sEntry.CidCount,
-		SpaceIds:   sEntry.SpaceIds,
+		BytesUsage:   sEntry.Size_,
+		CidsCount:    sEntry.CidCount,
+		AccountLimit: sEntry.AccountLimit,
+		Limit:        sEntry.Limit,
+		SpaceIds:     sEntry.SpaceIds,
 	}, nil
 }
 
@@ -208,6 +220,7 @@ func (ri *redisIndex) SpaceInfo(ctx context.Context, key Key) (info SpaceInfo, e
 	return SpaceInfo{
 		BytesUsage: sEntry.Size_,
 		CidsCount:  sEntry.CidCount,
+		Limit:      sEntry.Limit,
 		FileCount:  sEntry.FileCount,
 	}, nil
 }

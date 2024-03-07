@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
+	"github.com/anyproto/any-sync-filenode/config"
 	"github.com/anyproto/any-sync-filenode/redisprovider/testredisprovider"
 	"github.com/anyproto/any-sync-filenode/store/mock_store"
 	"github.com/anyproto/any-sync-filenode/store/s3store"
@@ -34,7 +35,7 @@ func newFixture(t *testing.T) (fx *fixture) {
 	fx.persistStore.EXPECT().Name().Return(s3store.CName).AnyTimes()
 	fx.persistStore.EXPECT().Init(gomock.Any()).AnyTimes()
 
-	fx.a.Register(testredisprovider.NewTestRedisProvider()).Register(fx.redisIndex).Register(fx.persistStore)
+	fx.a.Register(testredisprovider.NewTestRedisProvider()).Register(fx.redisIndex).Register(fx.persistStore).Register(&config.Config{DefaultLimit: 1024})
 	require.NoError(t, fx.a.Start(ctx))
 	return
 }

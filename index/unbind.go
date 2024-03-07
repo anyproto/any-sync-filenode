@@ -43,6 +43,8 @@ func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, entry groupSpaceE
 	}
 	defer cids.Release()
 
+	isolatedSpace := entry.space.Limit != 0
+
 	// fetch cid refs in one pipeline
 	var (
 		groupCidRefs = make([]*redis.StringCmd, len(cids.entries))
@@ -50,7 +52,9 @@ func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, entry groupSpaceE
 	)
 	_, err = ri.cl.Pipelined(ctx, func(pipe redis.Pipeliner) error {
 		for i, c := range cids.entries {
-			groupCidRefs[i] = pipe.HGet(ctx, gk, cidKey(c.Cid))
+			if !isolatedSpace {
+				groupCidRefs[i] = pipe.HGet(ctx, gk, cidKey(c.Cid))
+			}
 			spaceCidRefs[i] = pipe.HGet(ctx, sk, cidKey(c.Cid))
 		}
 		return nil
@@ -70,20 +74,21 @@ func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, entry groupSpaceE
 
 	entry.space.FileCount--
 	for i, c := range cids.entries {
-		res, err := groupCidRefs[i].Result()
-		if err != nil {
-			return err
-		}
 		ck := cidKey(c.Cid)
-		if res == "1" {
-			groupRemoveKeys = append(groupRemoveKeys, ck)
-			entry.group.Size_ -= c.Size_
-			entry.group.CidCount--
-			affectedCidIdx = append(affectedCidIdx, i)
-		} else {
-			groupDecrKeys = append(groupDecrKeys, ck)
+		if !isolatedSpace {
+			res, err := groupCidRefs[i].Result()
+			if err != nil {
+				return err
+			}
+			if res == "1" {
+				groupRemoveKeys = append(groupRemoveKeys, ck)
+				entry.group.Size_ -= c.Size_
+				entry.group.CidCount--
+			} else {
+				groupDecrKeys = append(groupDecrKeys, ck)
+			}
 		}
-		res, err = spaceCidRefs[i].Result()
+		res, err := spaceCidRefs[i].Result()
 		if err != nil {
 			return err
 		}
@@ -91,6 +96,7 @@ func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, entry groupSpaceE
 			spaceRemoveKeys = append(spaceRemoveKeys, ck)
 			entry.space.Size_ -= c.Size_
 			entry.space.CidCount--
+			affectedCidIdx = append(affectedCidIdx, i)
 		} else {
 			spaceDecrKeys = append(spaceDecrKeys, ck)
 		}
@@ -116,7 +122,7 @@ func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, entry groupSpaceE
 			}
 		}
 		entry.space.Save(ctx, key, tx)
-		entry.group.Save(ctx, key, tx)
+		entry.group.Save(ctx, tx)
 		return nil
 	})
 

@@ -43,56 +43,57 @@ type Config struct {
 	NetworkStorePath         string                 `yaml:"networkStorePath"`
 	NetworkUpdateIntervalSec int                    `yaml:"networkUpdateIntervalSec"`
 	CafeMigrateKey           string                 `yaml:"cafeMigrateKey"`
+	DefaultLimit             uint64                 `yaml:"defaultLimit"`
 }
 
 func (c *Config) Init(a *app.App) (err error) {
 	return
 }
 
-func (c Config) Name() (name string) {
+func (c *Config) Name() (name string) {
 	return CName
 }
 
-func (c Config) GetAccount() commonaccount.Config {
+func (c *Config) GetAccount() commonaccount.Config {
 	return c.Account
 }
 
-func (c Config) GetS3Store() s3store.Config {
+func (c *Config) GetS3Store() s3store.Config {
 	return c.S3Store
 }
 
-func (c Config) GetDevStore() FileDevStore {
+func (c *Config) GetDevStore() FileDevStore {
 	return c.FileDevStore
 }
 
-func (c Config) GetDrpc() rpc.Config {
+func (c *Config) GetDrpc() rpc.Config {
 	return c.Drpc
 }
 
-func (c Config) GetMetric() metric.Config {
+func (c *Config) GetMetric() metric.Config {
 	return c.Metric
 }
 
-func (c Config) GetRedis() redisprovider.Config {
+func (c *Config) GetRedis() redisprovider.Config {
 	return c.Redis
 }
 
-func (c Config) GetNodeConf() nodeconf.Configuration {
+func (c *Config) GetNodeConf() nodeconf.Configuration {
 	return c.Network
 }
 
-func (c Config) GetNodeConfStorePath() string {
+func (c *Config) GetNodeConfStorePath() string {
 	return c.NetworkStorePath
 }
 
-func (c Config) GetNodeConfUpdateInterval() int {
+func (c *Config) GetNodeConfUpdateInterval() int {
 	return c.NetworkUpdateIntervalSec
 }
 
-func (c Config) GetYamux() yamux.Config {
+func (c *Config) GetYamux() yamux.Config {
 	return c.Yamux
 }
 
-func (c Config) GetQuic() quic.Config {
+func (c *Config) GetQuic() quic.Config {
 	return c.Quic
 }

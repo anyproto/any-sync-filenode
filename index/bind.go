@@ -27,6 +27,8 @@ func (ri *redisIndex) fileBind(ctx context.Context, key Key, fileId string, cids
 		return
 	}
 
+	isolatedSpace := entry.space.Limit != 0
+
 	// make a list of indexes of non-exists cids
 	var newFileCidIdx = make([]int, 0, len(cids.entries))
 	for i, c := range cids.entries {
@@ -42,6 +44,8 @@ func (ri *redisIndex) fileBind(ctx context.Context, key Key, fileId string, cids
 		return
 	}
 
+	var affectedCidIdx = make([]int, 0, len(cids.entries))
+
 	// get all cids from space and group in one pipeline
 	var (
 		cidExistSpaceCmds = make([]*redis.BoolCmd, len(newFileCidIdx))
@@ -51,7 +55,9 @@ func (ri *redisIndex) fileBind(ctx context.Context, key Key, fileId string, cids
 		for i, idx := range newFileCidIdx {
 			ck := cidKey(cids.entries[idx].Cid)
 			cidExistSpaceCmds[i] = pipe.HExists(ctx, sk, ck)
-			cidExistGroupCmds[i] = pipe.HExists(ctx, gk, ck)
+			if !isolatedSpace {
+				cidExistGroupCmds[i] = pipe.HExists(ctx, gk, ck)
+			}
 		}
 		return nil
 	})
@@ -61,21 +67,24 @@ func (ri *redisIndex) fileBind(ctx context.Context, key Key, fileId string, cids
 
 	// calculate new group and space stats
 	for i, idx := range newFileCidIdx {
-		ex, err := cidExistGroupCmds[i].Result()
+		if !isolatedSpace {
+			ex, err := cidExistGroupCmds[i].Result()
+			if err != nil {
+				return err
+			}
+			if !ex {
+				entry.group.CidCount++
+				entry.group.Size_ += cids.entries[idx].Size_
+			}
+		}
+		ex, err := cidExistSpaceCmds[i].Result()
 		if err != nil {
 			return err
 		}
 		if !ex {
 			entry.space.CidCount++
 			entry.space.Size_ += cids.entries[idx].Size_
-		}
-		ex, err = cidExistSpaceCmds[i].Result()
-		if err != nil {
-			return err
-		}
-		if !ex {
-			entry.group.CidCount++
-			entry.group.Size_ += cids.entries[idx].Size_
+			affectedCidIdx = append(affectedCidIdx, idx)
 		}
 	}
 	entry.group.AddSpaceId(key.SpaceId)
@@ -88,18 +97,20 @@ func (ri *redisIndex) fileBind(ctx context.Context, key Key, fileId string, cids
 		// increment cid refs
 		for _, idx := range newFileCidIdx {
 			ck := cidKey(cids.entries[idx].Cid)
-			tx.HIncrBy(ctx, gk, ck, 1)
+			if !isolatedSpace {
+				tx.HIncrBy(ctx, gk, ck, 1)
+			}
 			tx.HIncrBy(ctx, sk, ck, 1)
 		}
 		// save info
 		entry.space.Save(ctx, key, tx)
-		entry.group.Save(ctx, key, tx)
+		entry.group.Save(ctx, tx)
 		fileInfo.Save(ctx, key, fileId, tx)
 		return nil
 	})
 
 	// update cids
-	for _, idx := range newFileCidIdx {
+	for _, idx := range affectedCidIdx {
 		cids.entries[idx].Refs++
 		if saveErr := cids.entries[idx].Save(ctx, ri.cl); saveErr != nil {
 			log.WarnCtx(ctx, "unable to save cid info", zap.Error(saveErr), zap.String("cid", cids.entries[idx].Cid.String()))
