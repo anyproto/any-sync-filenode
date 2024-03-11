@@ -10,6 +10,52 @@ import (
 	"github.com/anyproto/any-sync-filenode/testutil"
 )
 
+func TestRedisIndex_CheckLimits(t *testing.T) {
+	t.Run("isolated space", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
+
+		k := newRandKey()
+		limit := uint64(10)
+		require.NoError(t, fx.SetSpaceLimit(ctx, k, limit))
+		// no error
+		assert.NoError(t, fx.CheckLimits(ctx, k))
+
+		// add 10 blocks
+		bs := testutil.NewRandBlocks(10)
+		require.NoError(t, fx.BlocksAdd(ctx, bs))
+		fileId := testutil.NewRandCid().String()
+		cids, err := fx.CidEntriesByBlocks(ctx, bs)
+		require.NoError(t, err)
+		require.NoError(t, fx.FileBind(ctx, k, fileId, cids))
+		cids.Release()
+
+		assert.ErrorIs(t, fx.CheckLimits(ctx, k), ErrLimitExceed)
+	})
+	t.Run("group", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
+
+		k := newRandKey()
+		limit := uint64(10)
+		require.NoError(t, fx.SetGroupLimit(ctx, k.GroupId, limit))
+		// no error
+		assert.NoError(t, fx.CheckLimits(ctx, k))
+
+		// add 10 blocks
+		bs := testutil.NewRandBlocks(10)
+		require.NoError(t, fx.BlocksAdd(ctx, bs))
+		fileId := testutil.NewRandCid().String()
+		cids, err := fx.CidEntriesByBlocks(ctx, bs)
+		require.NoError(t, err)
+		require.NoError(t, fx.FileBind(ctx, k, fileId, cids))
+		cids.Release()
+
+		assert.ErrorIs(t, fx.CheckLimits(ctx, k), ErrLimitExceed)
+	})
+
+}
+
 func TestRedisIndex_SetGroupLimit(t *testing.T) {
 	t.Run("increase limit", func(t *testing.T) {
 		fx := newFixture(t)

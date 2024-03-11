@@ -49,6 +49,7 @@ type Index interface {
 
 	SetGroupLimit(ctx context.Context, groupId string, limit uint64) (err error)
 	SetSpaceLimit(ctx context.Context, key Key, limit uint64) (err error)
+	CheckLimits(ctx context.Context, key Key) error
 
 	Migrate(ctx context.Context, key Key) error
 

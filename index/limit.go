@@ -2,6 +2,7 @@ package index
 
 import (
 	"context"
+	"errors"
 	"strconv"
 	"strings"
 
@@ -10,6 +11,30 @@ import (
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
+
+var ErrLimitExceed = errors.New("limit exceed")
+
+func (ri *redisIndex) CheckLimits(ctx context.Context, key Key) (err error) {
+	entry, release, err := ri.AcquireSpace(ctx, key)
+	if err != nil {
+		return
+	}
+	defer release()
+
+	// isolated space
+	if entry.space.Limit != 0 {
+		if entry.space.Size_ >= entry.space.Limit {
+			return ErrLimitExceed
+		}
+		return
+	}
+
+	// group limit
+	if entry.group.Size_ >= entry.group.Limit {
+		return ErrLimitExceed
+	}
+	return
+}
 
 func (ri *redisIndex) SetGroupLimit(ctx context.Context, groupId string, limit uint64) (err error) {
 	op := &spaceLimitOp{

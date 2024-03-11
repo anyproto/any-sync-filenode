@@ -87,6 +87,20 @@ func (mr *MockIndexMockRecorder) BlocksLock(arg0, arg1 any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BlocksLock", reflect.TypeOf((*MockIndex)(nil).BlocksLock), arg0, arg1)
 }
 
+// CheckLimits mocks base method.
+func (m *MockIndex) CheckLimits(arg0 context.Context, arg1 index.Key) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CheckLimits", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CheckLimits indicates an expected call of CheckLimits.
+func (mr *MockIndexMockRecorder) CheckLimits(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckLimits", reflect.TypeOf((*MockIndex)(nil).CheckLimits), arg0, arg1)
+}
+
 // CidEntries mocks base method.
 func (m *MockIndex) CidEntries(arg0 context.Context, arg1 []cid.Cid) (*index.CidEntries, error) {
 	m.ctrl.T.Helper()

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"slices"
 
+	"github.com/anyproto/any-sync/acl"
 	"github.com/anyproto/any-sync/app"
 	"github.com/anyproto/any-sync/app/logger"
 	"github.com/anyproto/any-sync/commonfile/fileblockstore"
@@ -20,7 +21,6 @@ import (
 
 	"github.com/anyproto/any-sync-filenode/config"
 	"github.com/anyproto/any-sync-filenode/index"
-	"github.com/anyproto/any-sync-filenode/limit"
 	"github.com/anyproto/any-sync-filenode/store"
 )
 
@@ -41,9 +41,9 @@ type Service interface {
 }
 
 type fileNode struct {
+	acl        acl.AclService
 	index      index.Index
 	store      store.Store
-	limit      limit.Limit
 	metric     metric.Metric
 	nodeConf   nodeconf.Service
 	migrateKey string
@@ -51,9 +51,9 @@ type fileNode struct {
 }
 
 func (fn *fileNode) Init(a *app.App) (err error) {
+	fn.acl = a.MustComponent(acl.CName).(acl.AclService)
 	fn.store = a.MustComponent(fileblockstore.CName).(store.Store)
 	fn.index = a.MustComponent(index.CName).(index.Index)
-	fn.limit = a.MustComponent(limit.CName).(limit.Limit)
 	fn.handler = &rpcHandler{f: fn}
 	fn.metric = a.MustComponent(metric.CName).(metric.Metric)
 	fn.migrateKey = a.MustComponent(config.CName).(*config.Config).CafeMigrateKey
@@ -164,15 +164,32 @@ func (fn *fileNode) StoreKey(ctx context.Context, spaceId string, checkLimit boo
 	if spaceId == "" {
 		return storageKey, fileprotoerr.ErrForbidden
 	}
-	// this call also confirms that space exists and valid
-	limitBytes, groupId, err := fn.limit.Check(ctx, spaceId)
+
+	identity, err := peer.CtxPubKey(ctx)
 	if err != nil {
-		return
+		return storageKey, fileprotoerr.ErrForbidden
 	}
 
+	ownerPubKey, err := fn.acl.OwnerPubKey(ctx, spaceId)
+	if err != nil {
+		log.WarnCtx(ctx, "acl ownerPubKey error", zap.Error(err))
+		return storageKey, fileprotoerr.ErrForbidden
+	}
 	storageKey = index.Key{
-		GroupId: groupId,
+		GroupId: ownerPubKey.Account(),
 		SpaceId: spaceId,
+	}
+
+	// if it not owner
+	if identity.Account() != storageKey.GroupId {
+		permissions, err := fn.acl.Permissions(ctx, identity, spaceId)
+		if err != nil {
+			log.WarnCtx(ctx, "acl permissions error", zap.Error(err))
+			return storageKey, fileprotoerr.ErrForbidden
+		}
+		if !permissions.CanWrite() {
+			return storageKey, fileprotoerr.ErrForbidden
+		}
 	}
 
 	if e := fn.index.Migrate(ctx, storageKey); e != nil {
@@ -180,30 +197,23 @@ func (fn *fileNode) StoreKey(ctx context.Context, spaceId string, checkLimit boo
 	}
 
 	if checkLimit {
-		info, e := fn.index.GroupInfo(ctx, groupId)
-		if e != nil {
-			return storageKey, e
-		}
-		if info.BytesUsage >= limitBytes {
-			return storageKey, fileprotoerr.ErrSpaceLimitExceeded
+		if err = fn.index.CheckLimits(ctx, storageKey); err != nil {
+			if errors.Is(err, index.ErrLimitExceed) {
+				return storageKey, fileprotoerr.ErrSpaceLimitExceeded
+			} else {
+				log.WarnCtx(ctx, "check limit error", zap.Error(err))
+				return storageKey, fileprotoerr.ErrUnexpected
+			}
 		}
 	}
 	return
 }
 
 func (fn *fileNode) SpaceInfo(ctx context.Context, spaceId string) (info *fileproto.SpaceInfoResponse, err error) {
-	var (
-		storageKey = index.Key{SpaceId: spaceId}
-		limitBytes uint64
-	)
-	if limitBytes, storageKey.GroupId, err = fn.limit.Check(ctx, spaceId); err != nil {
+	storageKey, err := fn.StoreKey(ctx, spaceId, false)
+	if err != nil {
 		return nil, err
 	}
-
-	if e := fn.index.Migrate(ctx, storageKey); e != nil {
-		log.WarnCtx(ctx, "space migrate error", zap.String("spaceId", spaceId), zap.Error(e))
-	}
-
 	groupInfo, err := fn.index.GroupInfo(ctx, storageKey.GroupId)
 	if err != nil {
 		return nil, err
@@ -211,18 +221,18 @@ func (fn *fileNode) SpaceInfo(ctx context.Context, spaceId string) (info *filepr
 	if info, err = fn.spaceInfo(ctx, storageKey, groupInfo); err != nil {
 		return nil, err
 	}
-	info.LimitBytes = limitBytes
 	return
 }
 
 func (fn *fileNode) AccountInfo(ctx context.Context) (info *fileproto.AccountInfoResponse, err error) {
 	info = &fileproto.AccountInfoResponse{}
-	// we have space/identity validation in limit.Check
-	var groupId string
 
-	if info.LimitBytes, groupId, err = fn.limit.Check(ctx, ""); err != nil {
-		return nil, err
+	identity, err := peer.CtxPubKey(ctx)
+	if err != nil {
+		return nil, fileprotoerr.ErrForbidden
 	}
+
+	groupId := identity.Account()
 
 	groupInfo, err := fn.index.GroupInfo(ctx, groupId)
 	if err != nil {
@@ -230,12 +240,13 @@ func (fn *fileNode) AccountInfo(ctx context.Context) (info *fileproto.AccountInf
 	}
 	info.TotalCidsCount = groupInfo.CidsCount
 	info.TotalUsageBytes = groupInfo.BytesUsage
+	info.LimitBytes = groupInfo.Limit
+	info.AccountLimitBytes = groupInfo.AccountLimit
 	for _, spaceId := range groupInfo.SpaceIds {
 		spaceInfo, err := fn.spaceInfo(ctx, index.Key{GroupId: groupId, SpaceId: spaceId}, groupInfo)
 		if err != nil {
 			return nil, err
 		}
-		spaceInfo.LimitBytes = info.LimitBytes
 		info.Spaces = append(info.Spaces, spaceInfo)
 	}
 	return
@@ -248,7 +259,13 @@ func (fn *fileNode) spaceInfo(ctx context.Context, key index.Key, groupInfo inde
 	if err != nil {
 		return nil, err
 	}
-	info.TotalUsageBytes = groupInfo.BytesUsage
+	if spaceInfo.Limit == 0 {
+		info.TotalUsageBytes = groupInfo.BytesUsage
+		info.LimitBytes = groupInfo.Limit
+	} else {
+		info.TotalUsageBytes = spaceInfo.BytesUsage
+		info.LimitBytes = spaceInfo.Limit
+	}
 	info.FilesCount = uint64(spaceInfo.FileCount)
 	info.CidsCount = spaceInfo.CidsCount
 	info.SpaceUsageBytes = spaceInfo.BytesUsage

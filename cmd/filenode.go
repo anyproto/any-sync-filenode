@@ -11,8 +11,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/anyproto/any-sync/acl"
 	"github.com/anyproto/any-sync/app"
 	"github.com/anyproto/any-sync/app/logger"
+	"github.com/anyproto/any-sync/consensus/consensusclient"
 	"github.com/anyproto/any-sync/coordinator/coordinatorclient"
 	"github.com/anyproto/any-sync/coordinator/nodeconfsource"
 	"github.com/anyproto/any-sync/metric"
@@ -31,7 +33,6 @@ import (
 	"github.com/anyproto/any-sync-filenode/deletelog"
 	"github.com/anyproto/any-sync-filenode/filenode"
 	"github.com/anyproto/any-sync-filenode/index"
-	"github.com/anyproto/any-sync-filenode/limit"
 	"github.com/anyproto/any-sync-filenode/redisprovider"
 
 	// import this to keep govvv in go.mod on mod tidy
@@ -112,7 +113,8 @@ func Bootstrap(a *app.App) {
 		Register(secureservice.New()).
 		Register(pool.New()).
 		Register(coordinatorclient.New()).
-		Register(limit.New()).
+		Register(consensusclient.New()).
+		Register(acl.New()).
 		Register(store()).
 		Register(redisprovider.New()).
 		Register(index.New()).

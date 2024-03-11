@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/OneOfOne/xxhash v1.2.8
 	github.com/ahmetb/govvv v0.3.0
-	github.com/anyproto/any-sync v0.3.33-0.20240307195012-19798f2295a5
+	github.com/anyproto/any-sync v0.3.33-0.20240311160147-68c9a7065d47
 	github.com/aws/aws-sdk-go v1.50.21
 	github.com/cespare/xxhash/v2 v2.2.0
 	github.com/go-redsync/redsync/v4 v4.11.0
@@ -15,7 +15,6 @@ require (
 	github.com/ipfs/go-cid v0.4.1
 	github.com/redis/go-redis/v9 v9.3.0
 	github.com/stretchr/testify v1.8.4
-	go.uber.org/atomic v1.11.0
 	go.uber.org/mock v0.4.0
 	go.uber.org/zap v1.27.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -33,6 +32,7 @@ require (
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.0.1 // indirect
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
+	github.com/cheggaaa/mb/v3 v3.0.2 // indirect
 	github.com/consensys/bavard v0.1.13 // indirect
 	github.com/consensys/gnark-crypto v0.12.1 // indirect
 	github.com/crate-crypto/go-kzg-4844 v0.7.0 // indirect
@@ -81,6 +81,7 @@ require (
 	github.com/supranational/blst v0.3.11 // indirect
 	github.com/tyler-smith/go-bip39 v1.1.0 // indirect
 	github.com/zeebo/errs v1.3.0 // indirect
+	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.20.0 // indirect
 	golang.org/x/exp v0.0.0-20240205201215-2c58cdc269a3 // indirect
