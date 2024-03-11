@@ -120,6 +120,9 @@ func (ri *redisIndex) Init(a *app.App) (err error) {
 	// todo: move to config
 	ri.persistTtl = time.Hour
 	ri.defaultLimit = conf.DefaultLimit
+	if ri.defaultLimit == 0 {
+		ri.defaultLimit = 1 << 30
+	}
 	return
 }
 
