@@ -6,14 +6,14 @@ require (
 	github.com/OneOfOne/xxhash v1.2.8
 	github.com/ahmetb/govvv v0.3.0
 	github.com/anyproto/any-sync v0.3.33-0.20240311160147-68c9a7065d47
-	github.com/aws/aws-sdk-go v1.50.21
+	github.com/aws/aws-sdk-go v1.50.30
 	github.com/cespare/xxhash/v2 v2.2.0
 	github.com/go-redsync/redsync/v4 v4.11.0
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb
 	github.com/ipfs/go-block-format v0.2.0
 	github.com/ipfs/go-cid v0.4.1
-	github.com/redis/go-redis/v9 v9.3.0
+	github.com/redis/go-redis/v9 v9.5.1
 	github.com/stretchr/testify v1.8.4
 	go.uber.org/mock v0.4.0
 	go.uber.org/zap v1.27.0
