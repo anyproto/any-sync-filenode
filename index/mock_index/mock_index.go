@@ -228,6 +228,21 @@ func (mr *MockIndexMockRecorder) FileUnbind(arg0, arg1 any, arg2 ...any) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FileUnbind", reflect.TypeOf((*MockIndex)(nil).FileUnbind), varargs...)
 }
 
+// FilesList mocks base method.
+func (m *MockIndex) FilesList(arg0 context.Context, arg1 index.Key) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FilesList", arg0, arg1)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FilesList indicates an expected call of FilesList.
+func (mr *MockIndexMockRecorder) FilesList(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FilesList", reflect.TypeOf((*MockIndex)(nil).FilesList), arg0, arg1)
+}
+
 // GroupInfo mocks base method.
 func (m *MockIndex) GroupInfo(arg0 context.Context, arg1 string) (index.GroupInfo, error) {
 	m.ctrl.T.Helper()

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/anyproto/any-sync/app"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
@@ -16,6 +17,29 @@ import (
 )
 
 var ctx = context.Background()
+
+func TestRedisIndex_FilesList(t *testing.T) {
+	fx := newFixture(t)
+	defer fx.Finish(t)
+
+	k := newRandKey()
+	limit := uint64(10)
+	require.NoError(t, fx.SetSpaceLimit(ctx, k, limit))
+	// no error
+	assert.NoError(t, fx.CheckLimits(ctx, k))
+
+	bs := testutil.NewRandBlocks(3)
+	require.NoError(t, fx.BlocksAdd(ctx, bs))
+	fileId := testutil.NewRandCid().String()
+	cids, err := fx.CidEntriesByBlocks(ctx, bs)
+	require.NoError(t, err)
+	require.NoError(t, fx.FileBind(ctx, k, fileId, cids))
+	cids.Release()
+
+	fileIds, err := fx.FilesList(ctx, k)
+	require.NoError(t, err)
+	assert.Equal(t, []string{fileId}, fileIds)
+}
 
 func newRandKey() Key {
 	return Key{

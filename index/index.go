@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/OneOfOne/xxhash"
@@ -34,6 +35,7 @@ type Index interface {
 	FileBind(ctx context.Context, key Key, fileId string, cidEntries *CidEntries) (err error)
 	FileUnbind(ctx context.Context, kye Key, fileIds ...string) (err error)
 	FileInfo(ctx context.Context, key Key, fileIds ...string) (fileInfo []FileInfo, err error)
+	FilesList(ctx context.Context, key Key) (fileIds []string, err error)
 
 	GroupInfo(ctx context.Context, groupId string) (info GroupInfo, err error)
 	SpaceInfo(ctx context.Context, key Key) (info SpaceInfo, err error)
@@ -154,6 +156,25 @@ func (ri *redisIndex) FileInfo(ctx context.Context, key Key, fileIds ...string) 
 		fileInfos[i] = FileInfo{
 			BytesUsage: fEntry.Size_,
 			CidsCount:  uint64(len(fEntry.Cids)),
+		}
+	}
+	return
+}
+
+func (ri *redisIndex) FilesList(ctx context.Context, key Key) (fileIds []string, err error) {
+	sk := spaceKey(key)
+	_, release, err := ri.AcquireKey(ctx, sk)
+	if err != nil {
+		return
+	}
+	defer release()
+	allKeys, err := ri.cl.HKeys(ctx, sk).Result()
+	if err != nil {
+		return
+	}
+	for _, k := range allKeys {
+		if strings.HasPrefix(k, "f:") {
+			fileIds = append(fileIds, k[2:])
 		}
 	}
 	return

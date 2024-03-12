@@ -172,6 +172,33 @@ func (r rpcHandler) FilesInfo(ctx context.Context, req *fileproto.FilesInfoReque
 	return resp, nil
 }
 
+func (r rpcHandler) FilesGet(req *fileproto.FilesGetRequest, stream fileproto.DRPCFile_FilesGetStream) (err error) {
+	ctx := stream.Context()
+	st := time.Now()
+	defer func() {
+		r.f.metric.RequestLog(ctx,
+			"file.filesGet",
+			metric.TotalDur(time.Since(st)),
+			metric.SpaceId(req.SpaceId),
+			zap.Error(err),
+		)
+	}()
+
+	fileIds, err := r.f.FilesGet(ctx, req.SpaceId)
+	if err != nil {
+		return
+	}
+
+	for _, fileId := range fileIds {
+		if err = stream.Send(&fileproto.FilesGetResponse{
+			FileId: fileId,
+		}); err != nil {
+			return
+		}
+	}
+	return
+}
+
 func (r rpcHandler) Check(ctx context.Context, req *fileproto.CheckRequest) (*fileproto.CheckResponse, error) {
 	st := time.Now()
 	defer func() {

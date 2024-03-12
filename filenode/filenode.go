@@ -337,3 +337,11 @@ func (fn *fileNode) SpaceLimitSet(ctx context.Context, spaceId string, limit uin
 	}
 	return fn.index.SetSpaceLimit(ctx, storeKey, limit)
 }
+
+func (fn *fileNode) FilesGet(ctx context.Context, spaceId string) (fileIds []string, err error) {
+	storeKey, err := fn.StoreKey(ctx, spaceId, false)
+	if err != nil {
+		return
+	}
+	return fn.index.FilesList(ctx, storeKey)
+}
