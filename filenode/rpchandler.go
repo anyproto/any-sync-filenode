@@ -35,6 +35,7 @@ func (r rpcHandler) BlockGet(ctx context.Context, req *fileproto.BlockGetRequest
 			metric.SpaceId(req.SpaceId),
 			metric.Size(size),
 			metric.Cid(c.String()),
+			zap.Bool("wait", req.Wait),
 			zap.Error(err),
 		)
 	}()
@@ -45,7 +46,7 @@ func (r rpcHandler) BlockGet(ctx context.Context, req *fileproto.BlockGetRequest
 	if err != nil {
 		return nil, err
 	}
-	b, err := r.f.Get(ctx, c)
+	b, err := r.f.Get(ctx, c, req.Wait)
 	if err != nil {
 		return nil, err
 	} else {

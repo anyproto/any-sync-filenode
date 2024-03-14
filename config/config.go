@@ -44,6 +44,7 @@ type Config struct {
 	NetworkUpdateIntervalSec int                    `yaml:"networkUpdateIntervalSec"`
 	CafeMigrateKey           string                 `yaml:"cafeMigrateKey"`
 	DefaultLimit             uint64                 `yaml:"defaultLimit"`
+	PersistTtl               uint                   `yaml:"persistTtl"`
 }
 
 func (c *Config) Init(a *app.App) (err error) {

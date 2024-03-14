@@ -65,13 +65,19 @@ func (fn *fileNode) Name() (name string) {
 	return CName
 }
 
-func (fn *fileNode) Get(ctx context.Context, k cid.Cid) (blocks.Block, error) {
-	exists, err := fn.index.CidExists(ctx, k)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
-		return nil, fileprotoerr.ErrCIDNotFound
+func (fn *fileNode) Get(ctx context.Context, k cid.Cid, wait bool) (blocks.Block, error) {
+	if wait {
+		if err := fn.index.WaitCidExists(ctx, k); err != nil {
+			return nil, err
+		}
+	} else {
+		exists, err := fn.index.CidExists(ctx, k)
+		if err != nil {
+			return nil, err
+		}
+		if !exists {
+			return nil, fileprotoerr.ErrCIDNotFound
+		}
 	}
 	return fn.store.Get(ctx, k)
 }
@@ -100,6 +106,7 @@ func (fn *fileNode) Add(ctx context.Context, spaceId string, fileId string, bs [
 		if err = fn.index.BlocksAdd(ctx, bs); err != nil {
 			return err
 		}
+		fn.index.OnBlockUploaded(ctx, bs...)
 	}
 	cidEntries, err := fn.index.CidEntriesByBlocks(ctx, bs)
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/OneOfOne/xxhash"
@@ -43,7 +44,9 @@ type Index interface {
 	BlocksGetNonExistent(ctx context.Context, bs []blocks.Block) (nonExistent []blocks.Block, err error)
 	BlocksLock(ctx context.Context, bs []blocks.Block) (unlock func(), err error)
 	BlocksAdd(ctx context.Context, bs []blocks.Block) (err error)
+	OnBlockUploaded(ctx context.Context, bs ...blocks.Block)
 
+	WaitCidExists(ctx context.Context, c cid.Cid) (err error)
 	CidExists(ctx context.Context, c cid.Cid) (ok bool, err error)
 	CidEntries(ctx context.Context, cids []cid.Cid) (entries *CidEntries, err error)
 	CidEntriesByBlocks(ctx context.Context, bs []blocks.Block) (entries *CidEntries, err error)
@@ -112,6 +115,12 @@ type redisIndex struct {
 	persistTtl   time.Duration
 	ticker       periodicsync.PeriodicSync
 	defaultLimit uint64
+
+	cidSubscriptionsMu sync.Mutex
+	cidSubscriptions   map[string]map[chan struct{}]struct{}
+
+	ctx       context.Context
+	ctxCancel context.CancelFunc
 }
 
 func (ri *redisIndex) Init(a *app.App) (err error) {
@@ -119,12 +128,17 @@ func (ri *redisIndex) Init(a *app.App) (err error) {
 	ri.persistStore = a.MustComponent(s3store.CName).(persistentStore)
 	ri.redsync = redsync.New(goredis.NewPool(ri.cl))
 	conf := app.MustComponent[*config.Config](a)
-	// todo: move to config
-	ri.persistTtl = time.Hour
+
+	ri.persistTtl = time.Second * time.Duration(conf.PersistTtl)
+	if ri.persistTtl == 0 {
+		ri.persistTtl = time.Hour
+	}
 	ri.defaultLimit = conf.DefaultLimit
 	if ri.defaultLimit == 0 {
 		ri.defaultLimit = 1 << 30
 	}
+	ri.cidSubscriptions = make(map[string]map[chan struct{}]struct{})
+	ri.ctx, ri.ctxCancel = context.WithCancel(context.Background())
 	return
 }
 
@@ -138,6 +152,7 @@ func (ri *redisIndex) Run(ctx context.Context) (err error) {
 		return nil
 	}, log)
 	ri.ticker.Run()
+	go ri.subscription(ctx)
 	return
 }
 
@@ -253,6 +268,9 @@ func (ri *redisIndex) SpaceInfo(ctx context.Context, key Key) (info SpaceInfo, e
 func (ri *redisIndex) Close(ctx context.Context) error {
 	if ri.ticker != nil {
 		ri.ticker.Close()
+	}
+	if ri.ctxCancel != nil {
+		ri.ctxCancel()
 	}
 	return nil
 }

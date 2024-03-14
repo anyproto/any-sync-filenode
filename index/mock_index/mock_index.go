@@ -300,6 +300,23 @@ func (mr *MockIndexMockRecorder) Name() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockIndex)(nil).Name))
 }
 
+// OnBlockUploaded mocks base method.
+func (m *MockIndex) OnBlockUploaded(arg0 context.Context, arg1 ...blocks.Block) {
+	m.ctrl.T.Helper()
+	varargs := []any{arg0}
+	for _, a := range arg1 {
+		varargs = append(varargs, a)
+	}
+	m.ctrl.Call(m, "OnBlockUploaded", varargs...)
+}
+
+// OnBlockUploaded indicates an expected call of OnBlockUploaded.
+func (mr *MockIndexMockRecorder) OnBlockUploaded(arg0 any, arg1 ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{arg0}, arg1...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OnBlockUploaded", reflect.TypeOf((*MockIndex)(nil).OnBlockUploaded), varargs...)
+}
+
 // Run mocks base method.
 func (m *MockIndex) Run(arg0 context.Context) error {
 	m.ctrl.T.Helper()
@@ -370,4 +387,18 @@ func (m *MockIndex) SpaceInfo(arg0 context.Context, arg1 index.Key) (index.Space
 func (mr *MockIndexMockRecorder) SpaceInfo(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SpaceInfo", reflect.TypeOf((*MockIndex)(nil).SpaceInfo), arg0, arg1)
+}
+
+// WaitCidExists mocks base method.
+func (m *MockIndex) WaitCidExists(arg0 context.Context, arg1 cid.Cid) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WaitCidExists", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// WaitCidExists indicates an expected call of WaitCidExists.
+func (mr *MockIndexMockRecorder) WaitCidExists(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitCidExists", reflect.TypeOf((*MockIndex)(nil).WaitCidExists), arg0, arg1)
 }

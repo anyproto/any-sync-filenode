@@ -48,6 +48,7 @@ func TestFileNode_Add(t *testing.T) {
 		fx.index.EXPECT().BlocksAdd(ctx, []blocks.Block{b})
 		fx.index.EXPECT().CidEntriesByBlocks(ctx, []blocks.Block{b}).Return(&index.CidEntries{}, nil)
 		fx.index.EXPECT().FileBind(ctx, storeKey, fileId, gomock.Any())
+		fx.index.EXPECT().OnBlockUploaded(ctx, []blocks.Block{b})
 
 		resp, err := fx.handler.BlockPush(ctx, &fileproto.BlockPushRequest{
 			SpaceId: storeKey.SpaceId,

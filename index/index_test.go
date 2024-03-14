@@ -49,6 +49,10 @@ func newRandKey() Key {
 }
 
 func newFixture(t *testing.T) (fx *fixture) {
+	return newFixtureConfig(t, nil)
+}
+
+func newFixtureConfig(t *testing.T, conf *config.Config) (fx *fixture) {
 	ctrl := gomock.NewController(t)
 	fx = &fixture{
 		redisIndex:   New().(*redisIndex),
@@ -58,8 +62,10 @@ func newFixture(t *testing.T) (fx *fixture) {
 	}
 	fx.persistStore.EXPECT().Name().Return(s3store.CName).AnyTimes()
 	fx.persistStore.EXPECT().Init(gomock.Any()).AnyTimes()
-
-	fx.a.Register(testredisprovider.NewTestRedisProvider()).Register(fx.redisIndex).Register(fx.persistStore).Register(&config.Config{DefaultLimit: 1024})
+	if conf == nil {
+		conf = &config.Config{DefaultLimit: 1024, PersistTtl: 3600}
+	}
+	fx.a.Register(testredisprovider.NewTestRedisProvider()).Register(fx.redisIndex).Register(fx.persistStore).Register(conf)
 	require.NoError(t, fx.a.Start(ctx))
 	return
 }
