@@ -12,10 +12,8 @@ github.com/VictoriaMetrics/fastcache v1.12.1/go.mod h1:tX04vaqcNoQeGLD+ra5pU5sWk
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=
 github.com/ahmetb/govvv v0.3.0 h1:YGLGwEyiUwHFy5eh/RUhdupbuaCGBYn5T5GWXp+WJB0=
 github.com/ahmetb/govvv v0.3.0/go.mod h1:4WRFpdWtc/YtKgPFwa1dr5+9hiRY5uKAL08bOlxOR6s=
-github.com/anyproto/any-sync v0.3.33-0.20240312131811-dbff72a85b9f h1:+J2mpq/9kyigck8o1FrxEGB8Z7rM9cTkINM1xJ42wL0=
-github.com/anyproto/any-sync v0.3.33-0.20240312131811-dbff72a85b9f/go.mod h1:JORhDzUQfTRzvHfxOuHqLyyDYZdaeIBzVPafSkkSbSY=
-github.com/anyproto/any-sync v0.3.33-0.20240314125822-3b41982485ad h1:Rshuuw/25ZUcM8UGPki9rNQnd6+ckhfz/HyFkZylDdI=
-github.com/anyproto/any-sync v0.3.33-0.20240314125822-3b41982485ad/go.mod h1:JORhDzUQfTRzvHfxOuHqLyyDYZdaeIBzVPafSkkSbSY=
+github.com/anyproto/any-sync v0.3.33 h1:ui7JRpeTbb8AiSyDfVWtrzCVgXg3/RnwWPhf21ROLS0=
+github.com/anyproto/any-sync v0.3.33/go.mod h1:JORhDzUQfTRzvHfxOuHqLyyDYZdaeIBzVPafSkkSbSY=
 github.com/anyproto/go-chash v0.1.0 h1:I9meTPjXFRfXZHRJzjOHC/XF7Q5vzysKkiT/grsogXY=
 github.com/anyproto/go-chash v0.1.0/go.mod h1:0UjNQi3PDazP0fINpFYu6VKhuna+W/V+1vpXHAfNgLY=
 github.com/anyproto/go-slip10 v1.0.0 h1:uAEtSuudR3jJBOfkOXf3bErxVoxbuKwdoJN55M1i6IA=
