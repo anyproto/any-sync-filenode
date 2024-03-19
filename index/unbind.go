@@ -8,25 +8,20 @@ import (
 )
 
 func (ri *redisIndex) FileUnbind(ctx context.Context, key Key, fileIds ...string) (err error) {
-	_, gRelease, err := ri.AcquireKey(ctx, groupKey(key))
+	entry, release, err := ri.AcquireSpace(ctx, key)
 	if err != nil {
 		return
 	}
-	defer gRelease()
-	_, sRelease, err := ri.AcquireKey(ctx, spaceKey(key))
-	if err != nil {
-		return
-	}
-	defer sRelease()
+	defer release()
 	for _, fileId := range fileIds {
-		if err = ri.fileUnbind(ctx, key, fileId); err != nil {
+		if err = ri.fileUnbind(ctx, key, entry, fileId); err != nil {
 			return
 		}
 	}
 	return
 }
 
-func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, fileId string) (err error) {
+func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, entry groupSpaceEntry, fileId string) (err error) {
 	var (
 		sk = spaceKey(key)
 		gk = groupKey(key)
@@ -48,6 +43,8 @@ func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, fileId string) (e
 	}
 	defer cids.Release()
 
+	isolatedSpace := entry.space.Limit != 0
+
 	// fetch cid refs in one pipeline
 	var (
 		groupCidRefs = make([]*redis.StringCmd, len(cids.entries))
@@ -55,21 +52,13 @@ func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, fileId string) (e
 	)
 	_, err = ri.cl.Pipelined(ctx, func(pipe redis.Pipeliner) error {
 		for i, c := range cids.entries {
-			groupCidRefs[i] = pipe.HGet(ctx, gk, cidKey(c.Cid))
+			if !isolatedSpace {
+				groupCidRefs[i] = pipe.HGet(ctx, gk, cidKey(c.Cid))
+			}
 			spaceCidRefs[i] = pipe.HGet(ctx, sk, cidKey(c.Cid))
 		}
 		return nil
 	})
-	if err != nil {
-		return
-	}
-
-	// load group and space info
-	spaceInfo, err := ri.getSpaceEntry(ctx, key)
-	if err != nil {
-		return
-	}
-	groupInfo, err := ri.getGroupEntry(ctx, key)
 	if err != nil {
 		return
 	}
@@ -83,29 +72,31 @@ func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, fileId string) (e
 		affectedCidIdx  = make([]int, 0, len(cids.entries))
 	)
 
-	spaceInfo.FileCount--
+	entry.space.FileCount--
 	for i, c := range cids.entries {
-		res, err := groupCidRefs[i].Result()
-		if err != nil {
-			return err
-		}
 		ck := cidKey(c.Cid)
-		if res == "1" {
-			groupRemoveKeys = append(groupRemoveKeys, ck)
-			groupInfo.Size_ -= c.Size_
-			groupInfo.CidCount--
-			affectedCidIdx = append(affectedCidIdx, i)
-		} else {
-			groupDecrKeys = append(groupDecrKeys, ck)
+		if !isolatedSpace {
+			res, err := groupCidRefs[i].Result()
+			if err != nil {
+				return err
+			}
+			if res == "1" {
+				groupRemoveKeys = append(groupRemoveKeys, ck)
+				entry.group.Size_ -= c.Size_
+				entry.group.CidCount--
+			} else {
+				groupDecrKeys = append(groupDecrKeys, ck)
+			}
 		}
-		res, err = spaceCidRefs[i].Result()
+		res, err := spaceCidRefs[i].Result()
 		if err != nil {
 			return err
 		}
 		if res == "1" {
 			spaceRemoveKeys = append(spaceRemoveKeys, ck)
-			spaceInfo.Size_ -= c.Size_
-			spaceInfo.CidCount--
+			entry.space.Size_ -= c.Size_
+			entry.space.CidCount--
+			affectedCidIdx = append(affectedCidIdx, i)
 		} else {
 			spaceDecrKeys = append(spaceDecrKeys, ck)
 		}
@@ -130,8 +121,8 @@ func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, fileId string) (e
 				tx.HIncrBy(ctx, gk, k, -1)
 			}
 		}
-		spaceInfo.Save(ctx, key, tx)
-		groupInfo.Save(ctx, key, tx)
+		entry.space.Save(ctx, key, tx)
+		entry.group.Save(ctx, tx)
 		return nil
 	})
 

@@ -9,22 +9,21 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
+	"github.com/anyproto/any-sync-filenode/config"
 	"github.com/anyproto/any-sync-filenode/testutil"
 )
 
 func TestRedisIndex_PersistKeys(t *testing.T) {
 	t.Run("no keys", func(t *testing.T) {
-		fx := newFixture(t)
+		fx := newFixtureConfig(t, &config.Config{PersistTtl: 2})
 		defer fx.Finish(t)
-		fx.persistTtl = time.Second * 2
 		bs := testutil.NewRandBlocks(5)
 		require.NoError(t, fx.BlocksAdd(ctx, bs))
 		fx.PersistKeys(ctx)
 	})
 	t.Run("persist", func(t *testing.T) {
-		fx := newFixture(t)
+		fx := newFixtureConfig(t, &config.Config{PersistTtl: 1})
 		defer fx.Finish(t)
-		fx.persistTtl = time.Second
 		bs := testutil.NewRandBlocks(5)
 		require.NoError(t, fx.BlocksAdd(ctx, bs))
 		for _, b := range bs {
@@ -46,9 +45,9 @@ func TestRedisIndex_PersistKeys(t *testing.T) {
 }
 
 func TestRedisIndex_AcquireKey(t *testing.T) {
-	fx := newFixture(t)
+	fx := newFixtureConfig(t, &config.Config{PersistTtl: 1})
 	defer fx.Finish(t)
-	fx.persistTtl = time.Second
+
 	bs := testutil.NewRandBlocks(5)
 	require.NoError(t, fx.BlocksAdd(ctx, bs))
 	for _, b := range bs {

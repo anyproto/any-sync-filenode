@@ -42,6 +42,7 @@ func (ri *redisIndex) CidEntriesByString(ctx context.Context, cids []string) (en
 			return
 		}
 		if err = ri.getAndAddToEntries(ctx, entries, c); err != nil {
+			entries.Release()
 			return nil, err
 		}
 	}

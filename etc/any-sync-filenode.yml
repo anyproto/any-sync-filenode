@@ -63,3 +63,4 @@ network:
   creationTime: 2023-04-13T20:29:23.453806629+02:00
 networkStorePath: .
 networkUpdateIntervalSec: 600
+defaultLimit: 1073741824

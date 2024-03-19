@@ -35,6 +35,7 @@ func (r rpcHandler) BlockGet(ctx context.Context, req *fileproto.BlockGetRequest
 			metric.SpaceId(req.SpaceId),
 			metric.Size(size),
 			metric.Cid(c.String()),
+			zap.Bool("wait", req.Wait),
 			zap.Error(err),
 		)
 	}()
@@ -45,7 +46,7 @@ func (r rpcHandler) BlockGet(ctx context.Context, req *fileproto.BlockGetRequest
 	if err != nil {
 		return nil, err
 	}
-	b, err := r.f.Get(ctx, c)
+	b, err := r.f.Get(ctx, c, req.Wait)
 	if err != nil {
 		return nil, err
 	} else {
@@ -54,7 +55,7 @@ func (r rpcHandler) BlockGet(ctx context.Context, req *fileproto.BlockGetRequest
 	return resp, nil
 }
 
-func (r rpcHandler) BlockPush(ctx context.Context, req *fileproto.BlockPushRequest) (resp *fileproto.BlockPushResponse, err error) {
+func (r rpcHandler) BlockPush(ctx context.Context, req *fileproto.BlockPushRequest) (resp *fileproto.Ok, err error) {
 	var c cid.Cid
 	st := time.Now()
 	defer func() {
@@ -91,7 +92,7 @@ func (r rpcHandler) BlockPush(ctx context.Context, req *fileproto.BlockPushReque
 	if err = r.f.Add(ctx, req.SpaceId, req.FileId, []blocks.Block{b}); err != nil {
 		return nil, err
 	}
-	return &fileproto.BlockPushResponse{}, nil
+	return &fileproto.Ok{}, nil
 }
 
 func (r rpcHandler) BlocksCheck(ctx context.Context, req *fileproto.BlocksCheckRequest) (resp *fileproto.BlocksCheckResponse, err error) {
@@ -114,7 +115,7 @@ func (r rpcHandler) BlocksCheck(ctx context.Context, req *fileproto.BlocksCheckR
 	}, nil
 }
 
-func (r rpcHandler) BlocksBind(ctx context.Context, req *fileproto.BlocksBindRequest) (resp *fileproto.BlocksBindResponse, err error) {
+func (r rpcHandler) BlocksBind(ctx context.Context, req *fileproto.BlocksBindRequest) (resp *fileproto.Ok, err error) {
 	st := time.Now()
 	defer func() {
 		r.f.metric.RequestLog(ctx,
@@ -129,7 +130,7 @@ func (r rpcHandler) BlocksBind(ctx context.Context, req *fileproto.BlocksBindReq
 	if err = r.f.BlocksBind(ctx, req.SpaceId, req.FileId, convertCids(req.Cids)...); err != nil {
 		return nil, err
 	}
-	return &fileproto.BlocksBindResponse{}, nil
+	return &fileproto.Ok{}, nil
 }
 
 func (r rpcHandler) FilesDelete(ctx context.Context, req *fileproto.FilesDeleteRequest) (resp *fileproto.FilesDeleteResponse, err error) {
@@ -170,6 +171,33 @@ func (r rpcHandler) FilesInfo(ctx context.Context, req *fileproto.FilesInfoReque
 		return nil, err
 	}
 	return resp, nil
+}
+
+func (r rpcHandler) FilesGet(req *fileproto.FilesGetRequest, stream fileproto.DRPCFile_FilesGetStream) (err error) {
+	ctx := stream.Context()
+	st := time.Now()
+	defer func() {
+		r.f.metric.RequestLog(ctx,
+			"file.filesGet",
+			metric.TotalDur(time.Since(st)),
+			metric.SpaceId(req.SpaceId),
+			zap.Error(err),
+		)
+	}()
+
+	fileIds, err := r.f.FilesGet(ctx, req.SpaceId)
+	if err != nil {
+		return
+	}
+
+	for _, fileId := range fileIds {
+		if err = stream.Send(&fileproto.FilesGetResponse{
+			FileId: fileId,
+		}); err != nil {
+			return
+		}
+	}
+	return
 }
 
 func (r rpcHandler) Check(ctx context.Context, req *fileproto.CheckRequest) (*fileproto.CheckResponse, error) {
@@ -215,6 +243,36 @@ func (r rpcHandler) AccountInfo(ctx context.Context, req *fileproto.AccountInfoR
 		return
 	}
 	return
+}
+
+func (r rpcHandler) AccountLimitSet(ctx context.Context, req *fileproto.AccountLimitSetRequest) (resp *fileproto.Ok, err error) {
+	st := time.Now()
+	defer func() {
+		r.f.metric.RequestLog(ctx,
+			"file.accountLimitSet",
+			metric.TotalDur(time.Since(st)),
+			zap.Error(err),
+		)
+	}()
+	if err = r.f.AccountLimitSet(ctx, req.Identity, req.Limit); err != nil {
+		return
+	}
+	return &fileproto.Ok{}, nil
+}
+
+func (r rpcHandler) SpaceLimitSet(ctx context.Context, req *fileproto.SpaceLimitSetRequest) (resp *fileproto.Ok, err error) {
+	st := time.Now()
+	defer func() {
+		r.f.metric.RequestLog(ctx,
+			"file.spaceLimitSet",
+			metric.TotalDur(time.Since(st)),
+			zap.Error(err),
+		)
+	}()
+	if err = r.f.SpaceLimitSet(ctx, req.SpaceId, req.Limit); err != nil {
+		return
+	}
+	return &fileproto.Ok{}, nil
 }
 
 func convertCids(bCids [][]byte) (cids []cid.Cid) {

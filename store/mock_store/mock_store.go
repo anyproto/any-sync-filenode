@@ -5,6 +5,7 @@
 //
 //	mockgen -destination mock_store/mock_store.go github.com/anyproto/any-sync-filenode/store Store
 //
+
 // Package mock_store is a generated GoMock package.
 package mock_store
 

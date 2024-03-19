@@ -45,6 +45,9 @@ func TestRedisIndex_SpaceDelete(t *testing.T) {
 	assert.NotEmpty(t, groupInfo.BytesUsage)
 	assert.Contains(t, groupInfo.SpaceIds, key.SpaceId)
 
+	require.NoError(t, fx.SetGroupLimit(ctx, key.GroupId, 5000))
+	require.NoError(t, fx.SetSpaceLimit(ctx, key, 4000))
+
 	ok, err = fx.SpaceDelete(ctx, key)
 	require.NoError(t, err)
 	assert.True(t, ok)
@@ -53,6 +56,8 @@ func TestRedisIndex_SpaceDelete(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, groupInfo.BytesUsage)
 	assert.NotContains(t, groupInfo.SpaceIds, key.SpaceId)
+	assert.Equal(t, uint64(5000), groupInfo.AccountLimit)
+	assert.Equal(t, uint64(5000), groupInfo.Limit)
 
 	// second call
 	ok, err = fx.SpaceDelete(ctx, key)

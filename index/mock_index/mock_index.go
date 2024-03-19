@@ -5,6 +5,7 @@
 //
 //	mockgen -destination mock_index/mock_index.go github.com/anyproto/any-sync-filenode/index Index
 //
+
 // Package mock_index is a generated GoMock package.
 package mock_index
 
@@ -84,6 +85,20 @@ func (m *MockIndex) BlocksLock(arg0 context.Context, arg1 []blocks.Block) (func(
 func (mr *MockIndexMockRecorder) BlocksLock(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BlocksLock", reflect.TypeOf((*MockIndex)(nil).BlocksLock), arg0, arg1)
+}
+
+// CheckLimits mocks base method.
+func (m *MockIndex) CheckLimits(arg0 context.Context, arg1 index.Key) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CheckLimits", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CheckLimits indicates an expected call of CheckLimits.
+func (mr *MockIndexMockRecorder) CheckLimits(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckLimits", reflect.TypeOf((*MockIndex)(nil).CheckLimits), arg0, arg1)
 }
 
 // CidEntries mocks base method.
@@ -213,6 +228,21 @@ func (mr *MockIndexMockRecorder) FileUnbind(arg0, arg1 any, arg2 ...any) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FileUnbind", reflect.TypeOf((*MockIndex)(nil).FileUnbind), varargs...)
 }
 
+// FilesList mocks base method.
+func (m *MockIndex) FilesList(arg0 context.Context, arg1 index.Key) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FilesList", arg0, arg1)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FilesList indicates an expected call of FilesList.
+func (mr *MockIndexMockRecorder) FilesList(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FilesList", reflect.TypeOf((*MockIndex)(nil).FilesList), arg0, arg1)
+}
+
 // GroupInfo mocks base method.
 func (m *MockIndex) GroupInfo(arg0 context.Context, arg1 string) (index.GroupInfo, error) {
 	m.ctrl.T.Helper()
@@ -270,6 +300,23 @@ func (mr *MockIndexMockRecorder) Name() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockIndex)(nil).Name))
 }
 
+// OnBlockUploaded mocks base method.
+func (m *MockIndex) OnBlockUploaded(arg0 context.Context, arg1 ...blocks.Block) {
+	m.ctrl.T.Helper()
+	varargs := []any{arg0}
+	for _, a := range arg1 {
+		varargs = append(varargs, a)
+	}
+	m.ctrl.Call(m, "OnBlockUploaded", varargs...)
+}
+
+// OnBlockUploaded indicates an expected call of OnBlockUploaded.
+func (mr *MockIndexMockRecorder) OnBlockUploaded(arg0 any, arg1 ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{arg0}, arg1...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OnBlockUploaded", reflect.TypeOf((*MockIndex)(nil).OnBlockUploaded), varargs...)
+}
+
 // Run mocks base method.
 func (m *MockIndex) Run(arg0 context.Context) error {
 	m.ctrl.T.Helper()
@@ -282,6 +329,34 @@ func (m *MockIndex) Run(arg0 context.Context) error {
 func (mr *MockIndexMockRecorder) Run(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Run", reflect.TypeOf((*MockIndex)(nil).Run), arg0)
+}
+
+// SetGroupLimit mocks base method.
+func (m *MockIndex) SetGroupLimit(arg0 context.Context, arg1 string, arg2 uint64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetGroupLimit", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetGroupLimit indicates an expected call of SetGroupLimit.
+func (mr *MockIndexMockRecorder) SetGroupLimit(arg0, arg1, arg2 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetGroupLimit", reflect.TypeOf((*MockIndex)(nil).SetGroupLimit), arg0, arg1, arg2)
+}
+
+// SetSpaceLimit mocks base method.
+func (m *MockIndex) SetSpaceLimit(arg0 context.Context, arg1 index.Key, arg2 uint64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetSpaceLimit", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetSpaceLimit indicates an expected call of SetSpaceLimit.
+func (mr *MockIndexMockRecorder) SetSpaceLimit(arg0, arg1, arg2 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetSpaceLimit", reflect.TypeOf((*MockIndex)(nil).SetSpaceLimit), arg0, arg1, arg2)
 }
 
 // SpaceDelete mocks base method.
@@ -312,4 +387,18 @@ func (m *MockIndex) SpaceInfo(arg0 context.Context, arg1 index.Key) (index.Space
 func (mr *MockIndexMockRecorder) SpaceInfo(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SpaceInfo", reflect.TypeOf((*MockIndex)(nil).SpaceInfo), arg0, arg1)
+}
+
+// WaitCidExists mocks base method.
+func (m *MockIndex) WaitCidExists(arg0 context.Context, arg1 cid.Cid) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WaitCidExists", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// WaitCidExists indicates an expected call of WaitCidExists.
+func (mr *MockIndexMockRecorder) WaitCidExists(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitCidExists", reflect.TypeOf((*MockIndex)(nil).WaitCidExists), arg0, arg1)
 }

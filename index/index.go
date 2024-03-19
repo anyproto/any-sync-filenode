@@ -5,6 +5,8 @@ import (
 	"context"
 	"errors"
 	"strconv"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/OneOfOne/xxhash"
@@ -17,6 +19,7 @@ import (
 	"github.com/ipfs/go-cid"
 	"github.com/redis/go-redis/v9"
 
+	"github.com/anyproto/any-sync-filenode/config"
 	"github.com/anyproto/any-sync-filenode/redisprovider"
 	"github.com/anyproto/any-sync-filenode/store/s3store"
 )
@@ -33,6 +36,7 @@ type Index interface {
 	FileBind(ctx context.Context, key Key, fileId string, cidEntries *CidEntries) (err error)
 	FileUnbind(ctx context.Context, kye Key, fileIds ...string) (err error)
 	FileInfo(ctx context.Context, key Key, fileIds ...string) (fileInfo []FileInfo, err error)
+	FilesList(ctx context.Context, key Key) (fileIds []string, err error)
 
 	GroupInfo(ctx context.Context, groupId string) (info GroupInfo, err error)
 	SpaceInfo(ctx context.Context, key Key) (info SpaceInfo, err error)
@@ -40,11 +44,17 @@ type Index interface {
 	BlocksGetNonExistent(ctx context.Context, bs []blocks.Block) (nonExistent []blocks.Block, err error)
 	BlocksLock(ctx context.Context, bs []blocks.Block) (unlock func(), err error)
 	BlocksAdd(ctx context.Context, bs []blocks.Block) (err error)
+	OnBlockUploaded(ctx context.Context, bs ...blocks.Block)
 
+	WaitCidExists(ctx context.Context, c cid.Cid) (err error)
 	CidExists(ctx context.Context, c cid.Cid) (ok bool, err error)
 	CidEntries(ctx context.Context, cids []cid.Cid) (entries *CidEntries, err error)
 	CidEntriesByBlocks(ctx context.Context, bs []blocks.Block) (entries *CidEntries, err error)
-	CidExistsInSpace(ctx context.Context, k Key, cids []cid.Cid) (exists []cid.Cid, err error)
+	CidExistsInSpace(ctx context.Context, key Key, cids []cid.Cid) (exists []cid.Cid, err error)
+
+	SetGroupLimit(ctx context.Context, groupId string, limit uint64) (err error)
+	SetSpaceLimit(ctx context.Context, key Key, limit uint64) (err error)
+	CheckLimits(ctx context.Context, key Key) error
 
 	Migrate(ctx context.Context, key Key) error
 
@@ -62,14 +72,17 @@ type Key struct {
 }
 
 type GroupInfo struct {
-	BytesUsage uint64
-	CidsCount  uint64
-	SpaceIds   []string
+	BytesUsage   uint64
+	CidsCount    uint64
+	AccountLimit uint64
+	Limit        uint64
+	SpaceIds     []string
 }
 
 type SpaceInfo struct {
 	BytesUsage uint64
 	CidsCount  uint64
+	Limit      uint64
 	FileCount  uint32
 }
 
@@ -101,14 +114,31 @@ type redisIndex struct {
 	persistStore persistentStore
 	persistTtl   time.Duration
 	ticker       periodicsync.PeriodicSync
+	defaultLimit uint64
+
+	cidSubscriptionsMu sync.Mutex
+	cidSubscriptions   map[string]map[chan struct{}]struct{}
+
+	ctx       context.Context
+	ctxCancel context.CancelFunc
 }
 
 func (ri *redisIndex) Init(a *app.App) (err error) {
 	ri.cl = a.MustComponent(redisprovider.CName).(redisprovider.RedisProvider).Redis()
 	ri.persistStore = a.MustComponent(s3store.CName).(persistentStore)
 	ri.redsync = redsync.New(goredis.NewPool(ri.cl))
-	// todo: move to config
-	ri.persistTtl = time.Hour
+	conf := app.MustComponent[*config.Config](a)
+
+	ri.persistTtl = time.Second * time.Duration(conf.PersistTtl)
+	if ri.persistTtl == 0 {
+		ri.persistTtl = time.Hour
+	}
+	ri.defaultLimit = conf.DefaultLimit
+	if ri.defaultLimit == 0 {
+		ri.defaultLimit = 1 << 30
+	}
+	ri.cidSubscriptions = make(map[string]map[chan struct{}]struct{})
+	ri.ctx, ri.ctxCancel = context.WithCancel(context.Background())
 	return
 }
 
@@ -122,6 +152,7 @@ func (ri *redisIndex) Run(ctx context.Context) (err error) {
 		return nil
 	}, log)
 	ri.ticker.Run()
+	go ri.subscription(ctx)
 	return
 }
 
@@ -140,6 +171,25 @@ func (ri *redisIndex) FileInfo(ctx context.Context, key Key, fileIds ...string) 
 		fileInfos[i] = FileInfo{
 			BytesUsage: fEntry.Size_,
 			CidsCount:  uint64(len(fEntry.Cids)),
+		}
+	}
+	return
+}
+
+func (ri *redisIndex) FilesList(ctx context.Context, key Key) (fileIds []string, err error) {
+	sk := spaceKey(key)
+	_, release, err := ri.AcquireKey(ctx, sk)
+	if err != nil {
+		return
+	}
+	defer release()
+	allKeys, err := ri.cl.HKeys(ctx, sk).Result()
+	if err != nil {
+		return
+	}
+	for _, k := range allKeys {
+		if strings.HasPrefix(k, "f:") {
+			fileIds = append(fileIds, k[2:])
 		}
 	}
 	return
@@ -189,9 +239,11 @@ func (ri *redisIndex) GroupInfo(ctx context.Context, groupId string) (info Group
 		return
 	}
 	return GroupInfo{
-		BytesUsage: sEntry.Size_,
-		CidsCount:  sEntry.CidCount,
-		SpaceIds:   sEntry.SpaceIds,
+		BytesUsage:   sEntry.Size_,
+		CidsCount:    sEntry.CidCount,
+		AccountLimit: sEntry.AccountLimit,
+		Limit:        sEntry.Limit,
+		SpaceIds:     sEntry.SpaceIds,
 	}, nil
 }
 
@@ -208,6 +260,7 @@ func (ri *redisIndex) SpaceInfo(ctx context.Context, key Key) (info SpaceInfo, e
 	return SpaceInfo{
 		BytesUsage: sEntry.Size_,
 		CidsCount:  sEntry.CidCount,
+		Limit:      sEntry.Limit,
 		FileCount:  sEntry.FileCount,
 	}, nil
 }
@@ -215,6 +268,9 @@ func (ri *redisIndex) SpaceInfo(ctx context.Context, key Key) (info SpaceInfo, e
 func (ri *redisIndex) Close(ctx context.Context) error {
 	if ri.ticker != nil {
 		ri.ticker.Close()
+	}
+	if ri.ctxCancel != nil {
+		ri.ctxCancel()
 	}
 	return nil
 }

@@ -48,6 +48,7 @@ func (ri *redisIndex) getFileEntry(ctx context.Context, k Key, fileId string) (e
 }
 
 type spaceEntry struct {
+	Id string
 	*indexproto.SpaceEntry
 }
 
@@ -68,6 +69,7 @@ func (ri *redisIndex) getSpaceEntry(ctx context.Context, key Key) (entry *spaceE
 	if errors.Is(err, redis.Nil) {
 		now := time.Now().Unix()
 		return &spaceEntry{
+			Id: key.SpaceId,
 			SpaceEntry: &indexproto.SpaceEntry{
 				CreateTime: now,
 				UpdateTime: now,
@@ -79,20 +81,20 @@ func (ri *redisIndex) getSpaceEntry(ctx context.Context, key Key) (entry *spaceE
 	if err = spaceEntryProto.Unmarshal([]byte(result)); err != nil {
 		return
 	}
-	return &spaceEntry{SpaceEntry: spaceEntryProto}, nil
+	return &spaceEntry{SpaceEntry: spaceEntryProto, Id: key.SpaceId}, nil
 }
 
 type groupEntry struct {
 	*indexproto.GroupEntry
 }
 
-func (f *groupEntry) Save(ctx context.Context, k Key, cl redis.Cmdable) {
+func (f *groupEntry) Save(ctx context.Context, cl redis.Cmdable) {
 	f.UpdateTime = time.Now().Unix()
 	data, err := f.Marshal()
 	if err != nil {
 		return
 	}
-	cl.HSet(ctx, groupKey(k), infoKey, data)
+	cl.HSet(ctx, groupKey(Key{GroupId: f.GroupId}), infoKey, data)
 }
 
 func (f *groupEntry) AddSpaceId(spaceId string) {
@@ -110,8 +112,12 @@ func (ri *redisIndex) getGroupEntry(ctx context.Context, key Key) (entry *groupE
 		now := time.Now().Unix()
 		return &groupEntry{
 			GroupEntry: &indexproto.GroupEntry{
-				CreateTime: now,
-				UpdateTime: now,
+				GroupId:      key.GroupId,
+				CreateTime:   now,
+				UpdateTime:   now,
+				Size_:        0,
+				Limit:        ri.defaultLimit,
+				AccountLimit: ri.defaultLimit,
 			},
 		}, nil
 	}
@@ -119,5 +125,13 @@ func (ri *redisIndex) getGroupEntry(ctx context.Context, key Key) (entry *groupE
 	if err = groupEntryProto.Unmarshal([]byte(result)); err != nil {
 		return
 	}
+	groupEntryProto.GroupId = key.GroupId
 	return &groupEntry{GroupEntry: groupEntryProto}, nil
+}
+
+type groupSpaceEntry struct {
+	space       *spaceEntry
+	group       *groupEntry
+	spaceExists bool
+	groupExists bool
 }
