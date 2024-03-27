@@ -126,6 +126,10 @@ func (ri *redisIndex) getGroupEntry(ctx context.Context, key Key) (entry *groupE
 		return
 	}
 	groupEntryProto.GroupId = key.GroupId
+	if groupEntryProto.AccountLimit == 0 {
+		groupEntryProto.Limit = ri.defaultLimit
+		groupEntryProto.AccountLimit = ri.defaultLimit
+	}
 	return &groupEntry{GroupEntry: groupEntryProto}, nil
 }
 
