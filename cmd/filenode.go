@@ -106,6 +106,7 @@ func main() {
 
 func Bootstrap(a *app.App) {
 	a.Register(account.New()).
+		Register(metric.New()).
 		Register(nodeconfsource.New()).
 		Register(nodeconfstore.New()).
 		Register(nodeconf.New()).
@@ -118,7 +119,6 @@ func Bootstrap(a *app.App) {
 		Register(store()).
 		Register(redisprovider.New()).
 		Register(index.New()).
-		Register(metric.New()).
 		Register(server.New()).
 		Register(filenode.New()).
 		Register(deletelog.New()).
