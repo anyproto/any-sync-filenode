@@ -9,7 +9,7 @@ require (
 	github.com/ahmetb/govvv v0.3.0
 	github.com/anyproto/any-sync v0.4.0
 	github.com/aws/aws-sdk-go v1.51.11
-	github.com/cespare/xxhash/v2 v2.2.0
+	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/go-redsync/redsync/v4 v4.12.1
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb
