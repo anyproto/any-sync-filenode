@@ -7,7 +7,7 @@ toolchain go1.22.1
 require (
 	github.com/OneOfOne/xxhash v1.2.8
 	github.com/ahmetb/govvv v0.3.0
-	github.com/anyproto/any-sync v0.4.8
+	github.com/anyproto/any-sync v0.4.10
 	github.com/aws/aws-sdk-go v1.51.25
 	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/go-redsync/redsync/v4 v4.13.0
