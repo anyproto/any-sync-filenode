@@ -13,4 +13,5 @@ jobs:
     uses: anyproto/any-sync-node/.github/workflows/push-docker-image-reusable.yml@main
     with:
       release: ${{ github.event.inputs.release }}
+      dockerfile-run: apt-get update && apt-get install -y ca-certificates
       dockerfile-cmd: /bin/any-sync-filenode -c /etc/any-sync-filenode/config.yml
