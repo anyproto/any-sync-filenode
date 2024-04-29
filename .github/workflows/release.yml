@@ -10,7 +10,7 @@ permissions: write-all
 
 jobs:
   release-reusable:
-    uses: anyproto/any-sync-node/.github/workflows/release-reusable.yml@reusableReleaseWorkflow
+    uses: anyproto/any-sync-node/.github/workflows/release-reusable.yml@main
     secrets: inherit # pass all secrets
     with:
       start_redis: true
