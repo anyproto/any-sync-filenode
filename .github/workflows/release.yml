@@ -13,4 +13,4 @@ jobs:
     uses: anyproto/any-sync-node/.github/workflows/release-reusable.yml@main
     secrets: inherit # pass all secrets
     with:
-      start_mongodb: true
+      start_redis: true
