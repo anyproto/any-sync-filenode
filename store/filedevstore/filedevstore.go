@@ -77,7 +77,7 @@ func (s *fsstore) GetMany(ctx context.Context, ks []cid.Cid) <-chan blocks.Block
 
 func (s *fsstore) Add(ctx context.Context, bs []blocks.Block) error {
 	for _, b := range bs {
-		if err := os.WriteFile(filepath.Join(s.path, b.Cid().String()), b.RawData(), 0777); err != nil {
+		if err := os.WriteFile(filepath.Join(s.path, b.Cid().String()), b.RawData(), 0644); err != nil {
 			return err
 		}
 	}
@@ -104,5 +104,5 @@ func (s *fsstore) IndexGet(ctx context.Context, key string) (value []byte, err e
 }
 
 func (s *fsstore) IndexPut(ctx context.Context, key string, value []byte) (err error) {
-	return os.WriteFile(filepath.Join(s.path, key), value, 0777)
+	return os.WriteFile(filepath.Join(s.path, key), value, 0644)
 }
