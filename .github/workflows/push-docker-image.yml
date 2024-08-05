@@ -11,4 +11,4 @@ jobs:
     with:
       release: ${{ github.event.release.tag_name }}
       dockerfile-run: apt-get update && apt-get install -y ca-certificates
-      dockerfile-cmd: /bin/any-sync-filenode -c /etc/any-sync-filenode/config.yml
+      dockerfile-cmd: '["/bin/any-sync-filenode", "-c", "/etc/any-sync-filenode/config.yml"]'
