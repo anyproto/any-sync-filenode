@@ -4,6 +4,9 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/anyproto/any-sync-filenode/filenode"
+	"github.com/anyproto/any-sync-filenode/stat"
+	"github.com/anyproto/any-sync/metric"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -17,7 +20,6 @@ import (
 	"github.com/anyproto/any-sync/consensus/consensusclient"
 	"github.com/anyproto/any-sync/coordinator/coordinatorclient"
 	"github.com/anyproto/any-sync/coordinator/nodeconfsource"
-	"github.com/anyproto/any-sync/metric"
 	"github.com/anyproto/any-sync/net/peerservice"
 	"github.com/anyproto/any-sync/net/pool"
 	"github.com/anyproto/any-sync/net/rpc/server"
@@ -31,7 +33,6 @@ import (
 	"github.com/anyproto/any-sync-filenode/account"
 	"github.com/anyproto/any-sync-filenode/config"
 	"github.com/anyproto/any-sync-filenode/deletelog"
-	"github.com/anyproto/any-sync-filenode/filenode"
 	"github.com/anyproto/any-sync-filenode/index"
 	"github.com/anyproto/any-sync-filenode/redisprovider"
 
@@ -106,6 +107,7 @@ func main() {
 
 func Bootstrap(a *app.App) {
 	a.Register(account.New()).
+		Register(stat.New()).
 		Register(metric.New()).
 		Register(nodeconfsource.New()).
 		Register(nodeconfstore.New()).

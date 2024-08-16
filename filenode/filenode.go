@@ -3,6 +3,7 @@ package filenode
 import (
 	"context"
 	"errors"
+	"github.com/gogo/protobuf/jsonpb"
 	"slices"
 
 	"github.com/anyproto/any-sync/acl"
@@ -231,17 +232,31 @@ func (fn *fileNode) SpaceInfo(ctx context.Context, spaceId string) (info *filepr
 	return
 }
 
-func (fn *fileNode) AccountInfo(ctx context.Context) (info *fileproto.AccountInfoResponse, err error) {
-	info = &fileproto.AccountInfoResponse{}
+func (fn *fileNode) AccountInfoToJSON(ctx context.Context, identity string) (string, error) {
+	accountInfo, err := fn.accountInfo(ctx, identity)
+	if err != nil {
+		return "", err
+	}
+	marshaler := jsonpb.Marshaler{Indent: " "}
+	accountInfoJson, err := marshaler.MarshalToString(accountInfo)
+	if err != nil {
+		return "", err
+	}
+	return accountInfoJson, nil
+}
 
+func (fn *fileNode) AccountInfoCtx(ctx context.Context) (info *fileproto.AccountInfoResponse, err error) {
 	identity, err := peer.CtxPubKey(ctx)
 	if err != nil {
 		return nil, fileprotoerr.ErrForbidden
 	}
-
 	groupId := identity.Account()
+	return fn.accountInfo(ctx, groupId)
+}
 
-	groupInfo, err := fn.index.GroupInfo(ctx, groupId)
+func (fn *fileNode) accountInfo(ctx context.Context, identity string) (info *fileproto.AccountInfoResponse, err error) {
+	info = &fileproto.AccountInfoResponse{}
+	groupInfo, err := fn.index.GroupInfo(ctx, identity)
 	if err != nil {
 		return nil, err
 	}
@@ -250,7 +265,7 @@ func (fn *fileNode) AccountInfo(ctx context.Context) (info *fileproto.AccountInf
 	info.LimitBytes = groupInfo.Limit
 	info.AccountLimitBytes = groupInfo.AccountLimit
 	for _, spaceId := range groupInfo.SpaceIds {
-		spaceInfo, err := fn.spaceInfo(ctx, index.Key{GroupId: groupId, SpaceId: spaceId}, groupInfo)
+		spaceInfo, err := fn.spaceInfo(ctx, index.Key{GroupId: identity, SpaceId: spaceId}, groupInfo)
 		if err != nil {
 			return nil, err
 		}
