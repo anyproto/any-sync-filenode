@@ -18,8 +18,8 @@ func (ri *redisIndex) FileBind(ctx context.Context, key Key, fileId string, cids
 }
 
 func (ri *redisIndex) fileBind(ctx context.Context, key Key, fileId string, cids *CidEntries, entry groupSpaceEntry) (err error) {
-	var gk = groupKey(key)
-	var sk = spaceKey(key)
+	var gk = GroupKey(key)
+	var sk = SpaceKey(key)
 
 	// get file entry
 	fileInfo, isNewFile, err := ri.getFileEntry(ctx, key, fileId)
@@ -53,7 +53,7 @@ func (ri *redisIndex) fileBind(ctx context.Context, key Key, fileId string, cids
 	)
 	_, err = ri.cl.Pipelined(ctx, func(pipe redis.Pipeliner) error {
 		for i, idx := range newFileCidIdx {
-			ck := cidKey(cids.entries[idx].Cid)
+			ck := CidKey(cids.entries[idx].Cid)
 			cidExistSpaceCmds[i] = pipe.HExists(ctx, sk, ck)
 			if !isolatedSpace {
 				cidExistGroupCmds[i] = pipe.HExists(ctx, gk, ck)
@@ -96,7 +96,7 @@ func (ri *redisIndex) fileBind(ctx context.Context, key Key, fileId string, cids
 	_, err = ri.cl.TxPipelined(ctx, func(tx redis.Pipeliner) error {
 		// increment cid refs
 		for _, idx := range newFileCidIdx {
-			ck := cidKey(cids.entries[idx].Cid)
+			ck := CidKey(cids.entries[idx].Cid)
 			if !isolatedSpace {
 				tx.HIncrBy(ctx, gk, ck, 1)
 			}

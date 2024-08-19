@@ -23,8 +23,8 @@ func (ri *redisIndex) FileUnbind(ctx context.Context, key Key, fileIds ...string
 
 func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, entry groupSpaceEntry, fileId string) (err error) {
 	var (
-		sk = spaceKey(key)
-		gk = groupKey(key)
+		sk = SpaceKey(key)
+		gk = GroupKey(key)
 	)
 	// get file entry
 	fileInfo, isNewFile, err := ri.getFileEntry(ctx, key, fileId)
@@ -53,9 +53,9 @@ func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, entry groupSpaceE
 	_, err = ri.cl.Pipelined(ctx, func(pipe redis.Pipeliner) error {
 		for i, c := range cids.entries {
 			if !isolatedSpace {
-				groupCidRefs[i] = pipe.HGet(ctx, gk, cidKey(c.Cid))
+				groupCidRefs[i] = pipe.HGet(ctx, gk, CidKey(c.Cid))
 			}
-			spaceCidRefs[i] = pipe.HGet(ctx, sk, cidKey(c.Cid))
+			spaceCidRefs[i] = pipe.HGet(ctx, sk, CidKey(c.Cid))
 		}
 		return nil
 	})
@@ -74,7 +74,7 @@ func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, entry groupSpaceE
 
 	entry.space.FileCount--
 	for i, c := range cids.entries {
-		ck := cidKey(c.Cid)
+		ck := CidKey(c.Cid)
 		if !isolatedSpace {
 			res, err := groupCidRefs[i].Result()
 			if err != nil {
@@ -104,7 +104,7 @@ func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, entry groupSpaceE
 
 	// do updates in one tx
 	_, err = ri.cl.TxPipelined(ctx, func(tx redis.Pipeliner) error {
-		tx.HDel(ctx, sk, fileKey(fileId))
+		tx.HDel(ctx, sk, FileKey(fileId))
 		if len(spaceRemoveKeys) != 0 {
 			tx.HDel(ctx, sk, spaceRemoveKeys...)
 		}

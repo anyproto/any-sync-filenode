@@ -58,7 +58,7 @@ type spaceLimitOp struct {
 }
 
 func (op *spaceLimitOp) SetGroupLimit(ctx context.Context, groupId string, limit uint64) (err error) {
-	_, release, err := op.AcquireKey(ctx, groupKey(Key{GroupId: groupId}))
+	_, release, err := op.AcquireKey(ctx, GroupKey(Key{GroupId: groupId}))
 	if err != nil {
 		return
 	}
@@ -106,7 +106,7 @@ func (op *spaceLimitOp) decreaseIsolatedLimit(ctx context.Context, k float64) (n
 
 func (op *spaceLimitOp) decreaseIsolatedLimitForSpace(ctx context.Context, spaceId string, k float64) (newIsolatedLimit uint64, err error) {
 	key := Key{GroupId: op.groupEntry.GroupId, SpaceId: spaceId}
-	_, release, err := op.AcquireKey(ctx, spaceKey(key))
+	_, release, err := op.AcquireKey(ctx, SpaceKey(key))
 	if err != nil {
 		return
 	}
@@ -176,8 +176,8 @@ func (op *spaceLimitOp) SetSpaceLimit(ctx context.Context, key Key, limit uint64
 
 func (op *spaceLimitOp) isolateSpace(ctx context.Context, entry groupSpaceEntry) (err error) {
 	key := Key{GroupId: entry.group.GroupId, SpaceId: entry.space.Id}
-	sk := spaceKey(key)
-	gk := groupKey(key)
+	sk := SpaceKey(key)
+	gk := GroupKey(key)
 
 	keys, err := op.cl.HGetAll(ctx, sk).Result()
 	if err != nil {
@@ -212,7 +212,7 @@ func (op *spaceLimitOp) isolateSpace(ctx context.Context, entry groupSpaceEntry)
 	var groupDecrResults = make([]*redis.IntCmd, len(cids))
 	if _, err = op.cl.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
 		for i, c := range cids {
-			groupDecrResults[i] = pipe.HIncrBy(ctx, gk, cidKey(c), -cidRefs[i])
+			groupDecrResults[i] = pipe.HIncrBy(ctx, gk, CidKey(c), -cidRefs[i])
 		}
 		return nil
 	}); err != nil {
@@ -231,7 +231,7 @@ func (op *spaceLimitOp) isolateSpace(ctx context.Context, entry groupSpaceEntry)
 	if len(toDeleteIdx) > 0 {
 		if _, err = op.cl.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
 			for _, idx := range toDeleteIdx {
-				pipe.HDel(ctx, gk, cidKey(cids[idx]))
+				pipe.HDel(ctx, gk, CidKey(cids[idx]))
 				op.groupEntry.Size_ -= cidEntries.entries[idx].Size_
 				op.groupEntry.CidCount--
 			}
@@ -245,8 +245,8 @@ func (op *spaceLimitOp) isolateSpace(ctx context.Context, entry groupSpaceEntry)
 
 func (op *spaceLimitOp) uniteSpace(ctx context.Context, entry groupSpaceEntry) (err error) {
 	key := Key{GroupId: entry.group.GroupId, SpaceId: entry.space.Id}
-	sk := spaceKey(key)
-	gk := groupKey(key)
+	sk := SpaceKey(key)
+	gk := GroupKey(key)
 
 	keys, err := op.cl.HKeys(ctx, sk).Result()
 	if err != nil {
@@ -278,7 +278,7 @@ func (op *spaceLimitOp) uniteSpace(ctx context.Context, entry groupSpaceEntry) (
 	var groupDecrResults = make([]*redis.IntCmd, len(cids))
 	if _, err = op.cl.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
 		for i, c := range cids {
-			groupDecrResults[i] = pipe.HIncrBy(ctx, gk, cidKey(c), 1)
+			groupDecrResults[i] = pipe.HIncrBy(ctx, gk, CidKey(c), 1)
 		}
 		return nil
 	}); err != nil {

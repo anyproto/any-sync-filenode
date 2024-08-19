@@ -49,6 +49,10 @@ func (i *identityStat) Run(ctx context.Context) (err error) {
 			http.Error(writer, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		if accountInfo == nil {
+			http.Error(writer, "not found", http.StatusNotFound)
+			return
+		}
 		writer.Header().Set("Content-Type", "application/json")
 		writer.WriteHeader(http.StatusOK)
 		err = json.NewEncoder(writer).Encode(accountInfo)

@@ -25,11 +25,11 @@ func (f *fileEntry) Save(ctx context.Context, k Key, fileId string, cl redis.Pip
 	if err != nil {
 		return
 	}
-	cl.HSet(ctx, spaceKey(k), fileKey(fileId), data)
+	cl.HSet(ctx, SpaceKey(k), FileKey(fileId), data)
 }
 
 func (ri *redisIndex) getFileEntry(ctx context.Context, k Key, fileId string) (entry *fileEntry, isCreated bool, err error) {
-	result, err := ri.cl.HGet(ctx, spaceKey(k), fileKey(fileId)).Result()
+	result, err := ri.cl.HGet(ctx, SpaceKey(k), FileKey(fileId)).Result()
 	if err != nil && !errors.Is(err, redis.Nil) {
 		return
 	}
@@ -58,11 +58,11 @@ func (f *spaceEntry) Save(ctx context.Context, k Key, cl redis.Pipeliner) {
 	if err != nil {
 		return
 	}
-	cl.HSet(ctx, spaceKey(k), infoKey, data)
+	cl.HSet(ctx, SpaceKey(k), infoKey, data)
 }
 
 func (ri *redisIndex) getSpaceEntry(ctx context.Context, key Key) (entry *spaceEntry, err error) {
-	result, err := ri.cl.HGet(ctx, spaceKey(key), infoKey).Result()
+	result, err := ri.cl.HGet(ctx, SpaceKey(key), infoKey).Result()
 	if err != nil && !errors.Is(err, redis.Nil) {
 		return
 	}
@@ -94,7 +94,7 @@ func (f *groupEntry) Save(ctx context.Context, cl redis.Cmdable) {
 	if err != nil {
 		return
 	}
-	cl.HSet(ctx, groupKey(Key{GroupId: f.GroupId}), infoKey, data)
+	cl.HSet(ctx, GroupKey(Key{GroupId: f.GroupId}), infoKey, data)
 }
 
 func (f *groupEntry) AddSpaceId(spaceId string) {
@@ -104,7 +104,7 @@ func (f *groupEntry) AddSpaceId(spaceId string) {
 }
 
 func (ri *redisIndex) getGroupEntry(ctx context.Context, key Key) (entry *groupEntry, err error) {
-	result, err := ri.cl.HGet(ctx, groupKey(key), infoKey).Result()
+	result, err := ri.cl.HGet(ctx, GroupKey(key), infoKey).Result()
 	if err != nil && !errors.Is(err, redis.Nil) {
 		return
 	}

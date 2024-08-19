@@ -38,6 +38,8 @@ type Index interface {
 	FileInfo(ctx context.Context, key Key, fileIds ...string) (fileInfo []FileInfo, err error)
 	FilesList(ctx context.Context, key Key) (fileIds []string, err error)
 
+	CheckKey(ctx context.Context, key string) (exists bool, err error)
+
 	GroupInfo(ctx context.Context, groupId string) (info GroupInfo, err error)
 	SpaceInfo(ctx context.Context, key Key) (info SpaceInfo, err error)
 
@@ -157,7 +159,7 @@ func (ri *redisIndex) Run(ctx context.Context) (err error) {
 }
 
 func (ri *redisIndex) FileInfo(ctx context.Context, key Key, fileIds ...string) (fileInfos []FileInfo, err error) {
-	_, release, err := ri.AcquireKey(ctx, spaceKey(key))
+	_, release, err := ri.AcquireKey(ctx, SpaceKey(key))
 	if err != nil {
 		return
 	}
@@ -177,7 +179,7 @@ func (ri *redisIndex) FileInfo(ctx context.Context, key Key, fileIds ...string) 
 }
 
 func (ri *redisIndex) FilesList(ctx context.Context, key Key) (fileIds []string, err error) {
-	sk := spaceKey(key)
+	sk := SpaceKey(key)
 	_, release, err := ri.AcquireKey(ctx, sk)
 	if err != nil {
 		return
@@ -197,7 +199,7 @@ func (ri *redisIndex) FilesList(ctx context.Context, key Key) (fileIds []string,
 
 func (ri *redisIndex) BlocksGetNonExistent(ctx context.Context, bs []blocks.Block) (nonExistent []blocks.Block, err error) {
 	for _, b := range bs {
-		ex, err := ri.CheckKey(ctx, cidKey(b.Cid()))
+		ex, err := ri.CheckKey(ctx, CidKey(b.Cid()))
 		if err != nil {
 			return nil, err
 		}
@@ -229,7 +231,7 @@ func (ri *redisIndex) BlocksLock(ctx context.Context, bs []blocks.Block) (unlock
 }
 
 func (ri *redisIndex) GroupInfo(ctx context.Context, groupId string) (info GroupInfo, err error) {
-	_, release, err := ri.AcquireKey(ctx, groupKey(Key{GroupId: groupId}))
+	_, release, err := ri.AcquireKey(ctx, GroupKey(Key{GroupId: groupId}))
 	if err != nil {
 		return
 	}
@@ -248,7 +250,7 @@ func (ri *redisIndex) GroupInfo(ctx context.Context, groupId string) (info Group
 }
 
 func (ri *redisIndex) SpaceInfo(ctx context.Context, key Key) (info SpaceInfo, err error) {
-	_, release, err := ri.AcquireKey(ctx, spaceKey(key))
+	_, release, err := ri.AcquireKey(ctx, SpaceKey(key))
 	if err != nil {
 		return
 	}
@@ -275,21 +277,21 @@ func (ri *redisIndex) Close(ctx context.Context) error {
 	return nil
 }
 
-func cidKey(c cid.Cid) string {
+func CidKey(c cid.Cid) string {
 	return "c:" + c.String()
 }
 
-func spaceKey(k Key) string {
+func SpaceKey(k Key) string {
 	hash := strconv.FormatUint(uint64(xxhash.ChecksumString32(k.GroupId)), 36)
 	return "s:" + k.SpaceId + ".{" + hash + "}"
 }
 
-func groupKey(k Key) string {
+func GroupKey(k Key) string {
 	hash := strconv.FormatUint(uint64(xxhash.ChecksumString32(k.GroupId)), 36)
 	return "g:" + k.GroupId + ".{" + hash + "}"
 }
 
-func fileKey(fileId string) string {
+func FileKey(fileId string) string {
 	return "f:" + fileId
 }
 

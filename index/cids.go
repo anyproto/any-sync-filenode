@@ -19,7 +19,7 @@ const (
 )
 
 func (ri *redisIndex) CidExists(ctx context.Context, c cid.Cid) (ok bool, err error) {
-	return ri.CheckKey(ctx, cidKey(c))
+	return ri.CheckKey(ctx, CidKey(c))
 }
 
 func (ri *redisIndex) CidEntries(ctx context.Context, cids []cid.Cid) (entries *CidEntries, err error) {
@@ -66,7 +66,7 @@ func (ri *redisIndex) CidEntriesByBlocks(ctx context.Context, bs []blocks.Block)
 }
 
 func (ri *redisIndex) getAndAddToEntries(ctx context.Context, entries *CidEntries, c cid.Cid) (err error) {
-	_, release, err := ri.AcquireKey(ctx, cidKey(c))
+	_, release, err := ri.AcquireKey(ctx, CidKey(c))
 	if err != nil {
 		return
 	}
@@ -87,7 +87,7 @@ func (ri *redisIndex) getAndAddToEntries(ctx context.Context, entries *CidEntrie
 
 func (ri *redisIndex) BlocksAdd(ctx context.Context, bs []blocks.Block) (err error) {
 	for _, b := range bs {
-		exists, release, err := ri.AcquireKey(ctx, cidKey(b.Cid()))
+		exists, release, err := ri.AcquireKey(ctx, CidKey(b.Cid()))
 		if err != nil {
 			return err
 		}
@@ -105,7 +105,7 @@ func (ri *redisIndex) BlocksAdd(ctx context.Context, bs []blocks.Block) (err err
 }
 
 func (ri *redisIndex) CidExistsInSpace(ctx context.Context, k Key, cids []cid.Cid) (exists []cid.Cid, err error) {
-	_, release, err := ri.AcquireKey(ctx, spaceKey(k))
+	_, release, err := ri.AcquireKey(ctx, SpaceKey(k))
 	if err != nil {
 		return
 	}
@@ -113,7 +113,7 @@ func (ri *redisIndex) CidExistsInSpace(ctx context.Context, k Key, cids []cid.Ci
 	var existsRes = make([]*redis.BoolCmd, len(cids))
 	_, err = ri.cl.Pipelined(ctx, func(pipe redis.Pipeliner) error {
 		for i, c := range cids {
-			existsRes[i] = pipe.HExists(ctx, spaceKey(k), cidKey(c))
+			existsRes[i] = pipe.HExists(ctx, SpaceKey(k), CidKey(c))
 		}
 		return nil
 	})
@@ -130,7 +130,7 @@ func (ri *redisIndex) CidExistsInSpace(ctx context.Context, k Key, cids []cid.Ci
 }
 
 func (ri *redisIndex) getCidEntry(ctx context.Context, c cid.Cid) (entry *cidEntry, err error) {
-	ck := cidKey(c)
+	ck := CidKey(c)
 	cidData, err := ri.cl.Get(ctx, ck).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {

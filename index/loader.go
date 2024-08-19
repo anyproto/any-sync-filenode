@@ -76,11 +76,11 @@ func (ri *redisIndex) AcquireKey(ctx context.Context, key string) (exists bool, 
 }
 
 func (ri *redisIndex) AcquireSpace(ctx context.Context, key Key) (entry groupSpaceEntry, release func(), err error) {
-	gExists, gRelease, err := ri.AcquireKey(ctx, groupKey(key))
+	gExists, gRelease, err := ri.AcquireKey(ctx, GroupKey(key))
 	if err != nil {
 		return
 	}
-	sExists, sRelease, err := ri.AcquireKey(ctx, spaceKey(key))
+	sExists, sRelease, err := ri.AcquireKey(ctx, SpaceKey(key))
 	if err != nil {
 		gRelease()
 		return
