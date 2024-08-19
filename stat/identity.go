@@ -3,15 +3,16 @@ package stat
 import (
 	"context"
 	"encoding/json"
-	"github.com/anyproto/any-sync/app"
 	"net/http"
+
+	"github.com/anyproto/any-sync/app"
 )
 
 const CName = "stat.identity"
 
 type accountInfoProvider interface {
 	AccountInfoToJSON(ctx context.Context, identity string) (string, error)
-	BatchAccountInfo(ctx context.Context, identities []string) (string, error)
+	BatchAccountInfoToJSON(ctx context.Context, identities []string) (string, error)
 }
 
 type Stat interface {
@@ -63,7 +64,7 @@ func (i *identityStat) Run(ctx context.Context) (err error) {
 			http.Error(writer, "invalid JSON", http.StatusBadRequest)
 			return
 		}
-		accountInfos, err := i.accountInfoProvider.BatchAccountInfo(request.Context(), data.Ids)
+		accountInfos, err := i.accountInfoProvider.BatchAccountInfoToJSON(request.Context(), data.Ids)
 		if err != nil {
 			http.Error(writer, err.Error(), http.StatusInternalServerError)
 			return
