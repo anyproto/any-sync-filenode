@@ -231,17 +231,34 @@ func (fn *fileNode) SpaceInfo(ctx context.Context, spaceId string) (info *filepr
 	return
 }
 
-func (fn *fileNode) AccountInfo(ctx context.Context) (info *fileproto.AccountInfoResponse, err error) {
-	info = &fileproto.AccountInfoResponse{}
+func (fn *fileNode) BatchAccountInfo(ctx context.Context, identities []string) ([]*fileproto.AccountInfoResponse, error) {
+	accountInfos := make([]*fileproto.AccountInfoResponse, 0, len(identities))
+	for _, identity := range identities {
+		accountInfo, err := fn.accountInfo(ctx, identity)
+		if err != nil {
+			return nil, err
+		}
+		accountInfos = append(accountInfos, accountInfo)
+	}
+	return accountInfos, nil
+}
 
+func (fn *fileNode) AccountInfo(ctx context.Context, identity string) (*fileproto.AccountInfoResponse, error) {
+	return fn.accountInfo(ctx, identity)
+}
+
+func (fn *fileNode) AccountInfoCtx(ctx context.Context) (info *fileproto.AccountInfoResponse, err error) {
 	identity, err := peer.CtxPubKey(ctx)
 	if err != nil {
 		return nil, fileprotoerr.ErrForbidden
 	}
-
 	groupId := identity.Account()
+	return fn.accountInfo(ctx, groupId)
+}
 
-	groupInfo, err := fn.index.GroupInfo(ctx, groupId)
+func (fn *fileNode) accountInfo(ctx context.Context, identity string) (info *fileproto.AccountInfoResponse, err error) {
+	info = &fileproto.AccountInfoResponse{}
+	groupInfo, err := fn.index.GroupInfo(ctx, identity)
 	if err != nil {
 		return nil, err
 	}
@@ -250,7 +267,7 @@ func (fn *fileNode) AccountInfo(ctx context.Context) (info *fileproto.AccountInf
 	info.LimitBytes = groupInfo.Limit
 	info.AccountLimitBytes = groupInfo.AccountLimit
 	for _, spaceId := range groupInfo.SpaceIds {
-		spaceInfo, err := fn.spaceInfo(ctx, index.Key{GroupId: groupId, SpaceId: spaceId}, groupInfo)
+		spaceInfo, err := fn.spaceInfo(ctx, index.Key{GroupId: identity, SpaceId: spaceId}, groupInfo)
 		if err != nil {
 			return nil, err
 		}

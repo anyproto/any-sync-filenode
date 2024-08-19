@@ -239,7 +239,7 @@ func (r rpcHandler) AccountInfo(ctx context.Context, req *fileproto.AccountInfoR
 			zap.Error(err),
 		)
 	}()
-	if resp, err = r.f.AccountInfo(ctx); err != nil {
+	if resp, err = r.f.AccountInfoCtx(ctx); err != nil {
 		return
 	}
 	return

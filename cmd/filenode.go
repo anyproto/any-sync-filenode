@@ -34,6 +34,7 @@ import (
 	"github.com/anyproto/any-sync-filenode/filenode"
 	"github.com/anyproto/any-sync-filenode/index"
 	"github.com/anyproto/any-sync-filenode/redisprovider"
+	"github.com/anyproto/any-sync-filenode/stat"
 
 	// import this to keep govvv in go.mod on mod tidy
 	_ "github.com/ahmetb/govvv/integration-test/app-different-package/mypkg"
@@ -106,6 +107,7 @@ func main() {
 
 func Bootstrap(a *app.App) {
 	a.Register(account.New()).
+		Register(stat.New()).
 		Register(metric.New()).
 		Register(nodeconfsource.New()).
 		Register(nodeconfstore.New()).
