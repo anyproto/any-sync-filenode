@@ -2,8 +2,8 @@ package filenode
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
-	"github.com/gogo/protobuf/jsonpb"
 	"slices"
 
 	"github.com/anyproto/any-sync/acl"
@@ -232,17 +232,33 @@ func (fn *fileNode) SpaceInfo(ctx context.Context, spaceId string) (info *filepr
 	return
 }
 
+func (fn *fileNode) BatchAccountInfo(ctx context.Context, identities []string) (string, error) {
+	accountInfos := make([]*fileproto.AccountInfoResponse, 0, len(identities))
+	for _, identity := range identities {
+		accountInfo, err := fn.accountInfo(ctx, identity)
+		if err != nil {
+			return "", err
+		}
+		accountInfos = append(accountInfos, accountInfo)
+	}
+
+	accountInfosJson, err := json.MarshalIndent(accountInfos, "", "  ")
+	if err != nil {
+		return "", err
+	}
+	return string(accountInfosJson), nil
+}
+
 func (fn *fileNode) AccountInfoToJSON(ctx context.Context, identity string) (string, error) {
 	accountInfo, err := fn.accountInfo(ctx, identity)
 	if err != nil {
 		return "", err
 	}
-	marshaler := jsonpb.Marshaler{Indent: " "}
-	accountInfoJson, err := marshaler.MarshalToString(accountInfo)
+	accountInfoJson, err := json.MarshalIndent(accountInfo, "", "  ")
 	if err != nil {
 		return "", err
 	}
-	return accountInfoJson, nil
+	return string(accountInfoJson), nil
 }
 
 func (fn *fileNode) AccountInfoCtx(ctx context.Context) (info *fileproto.AccountInfoResponse, err error) {

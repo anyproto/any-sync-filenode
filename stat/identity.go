@@ -11,6 +11,7 @@ const CName = "stat.identity"
 
 type accountInfoProvider interface {
 	AccountInfoToJSON(ctx context.Context, identity string) (string, error)
+	BatchAccountInfo(ctx context.Context, identities []string) (string, error)
 }
 
 type Stat interface {
@@ -49,6 +50,27 @@ func (i *identityStat) Run(ctx context.Context) (err error) {
 		writer.Header().Set("Content-Type", "application/json")
 		writer.WriteHeader(http.StatusOK)
 		err = json.NewEncoder(writer).Encode(accountInfo)
+		if err != nil {
+			http.Error(writer, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	})
+	http.HandleFunc("/stat/identities", func(writer http.ResponseWriter, request *http.Request) {
+		data := struct {
+			Ids []string `json:"ids"`
+		}{}
+		if err := json.NewDecoder(request.Body).Decode(&data); err != nil {
+			http.Error(writer, "invalid JSON", http.StatusBadRequest)
+			return
+		}
+		accountInfos, err := i.accountInfoProvider.BatchAccountInfo(request.Context(), data.Ids)
+		if err != nil {
+			http.Error(writer, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writer.Header().Set("Content-Type", "application/json")
+		writer.WriteHeader(http.StatusOK)
+		err = json.NewEncoder(writer).Encode(accountInfos)
 		if err != nil {
 			http.Error(writer, err.Error(), http.StatusInternalServerError)
 			return
