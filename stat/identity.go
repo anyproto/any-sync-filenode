@@ -6,13 +6,14 @@ import (
 	"net/http"
 
 	"github.com/anyproto/any-sync/app"
+	"github.com/anyproto/any-sync/commonfile/fileproto"
 )
 
 const CName = "stat.identity"
 
 type accountInfoProvider interface {
-	AccountInfoToJSON(ctx context.Context, identity string) (string, error)
-	BatchAccountInfoToJSON(ctx context.Context, identities []string) (string, error)
+	AccountInfo(ctx context.Context, identity string) (*fileproto.AccountInfoResponse, error)
+	BatchAccountInfo(ctx context.Context, identities []string) ([]*fileproto.AccountInfoResponse, error)
 }
 
 type Stat interface {
@@ -43,7 +44,7 @@ func (i *identityStat) Run(ctx context.Context) (err error) {
 			http.Error(writer, "identity is empty", http.StatusBadRequest)
 			return
 		}
-		accountInfo, err := i.accountInfoProvider.AccountInfoToJSON(request.Context(), identity)
+		accountInfo, err := i.accountInfoProvider.AccountInfo(request.Context(), identity)
 		if err != nil {
 			http.Error(writer, err.Error(), http.StatusInternalServerError)
 			return
@@ -64,7 +65,7 @@ func (i *identityStat) Run(ctx context.Context) (err error) {
 			http.Error(writer, "invalid JSON", http.StatusBadRequest)
 			return
 		}
-		accountInfos, err := i.accountInfoProvider.BatchAccountInfoToJSON(request.Context(), data.Ids)
+		accountInfos, err := i.accountInfoProvider.BatchAccountInfo(request.Context(), data.Ids)
 		if err != nil {
 			http.Error(writer, err.Error(), http.StatusInternalServerError)
 			return
