@@ -22,7 +22,7 @@ func (ri *redisIndex) spaceDelete(ctx context.Context, key Key, entry groupSpace
 	if !entry.spaceExists {
 		return false, nil
 	}
-	sk := spaceKey(key)
+	sk := SpaceKey(key)
 
 	keys, err := ri.cl.HKeys(ctx, sk).Result()
 	if err != nil {

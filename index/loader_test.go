@@ -27,7 +27,7 @@ func TestRedisIndex_PersistKeys(t *testing.T) {
 		bs := testutil.NewRandBlocks(5)
 		require.NoError(t, fx.BlocksAdd(ctx, bs))
 		for _, b := range bs {
-			fx.persistStore.EXPECT().IndexPut(ctx, cidKey(b.Cid()), gomock.Any())
+			fx.persistStore.EXPECT().IndexPut(ctx, CidKey(b.Cid()), gomock.Any())
 		}
 
 		time.Sleep(time.Second * 3)
@@ -37,7 +37,7 @@ func TestRedisIndex_PersistKeys(t *testing.T) {
 		fx.PersistKeys(ctx)
 
 		for _, b := range bs {
-			res, err := fx.cl.BFExists(ctx, bloomFilterKey(cidKey(b.Cid())), cidKey(b.Cid())).Result()
+			res, err := fx.cl.BFExists(ctx, bloomFilterKey(CidKey(b.Cid())), CidKey(b.Cid())).Result()
 			require.NoError(t, err)
 			assert.True(t, res)
 		}
@@ -51,8 +51,8 @@ func TestRedisIndex_AcquireKey(t *testing.T) {
 	bs := testutil.NewRandBlocks(5)
 	require.NoError(t, fx.BlocksAdd(ctx, bs))
 	for _, b := range bs {
-		fx.persistStore.EXPECT().IndexPut(ctx, cidKey(b.Cid()), gomock.Any()).Do(func(_ context.Context, key string, value []byte) {
-			if key == cidKey(bs[0].Cid()) {
+		fx.persistStore.EXPECT().IndexPut(ctx, CidKey(b.Cid()), gomock.Any()).Do(func(_ context.Context, key string, value []byte) {
+			if key == CidKey(bs[0].Cid()) {
 				fx.persistStore.EXPECT().IndexGet(ctx, key).Return(nil, nil)
 			} else {
 				fx.persistStore.EXPECT().IndexGet(ctx, key).Return(value, nil)
@@ -63,7 +63,7 @@ func TestRedisIndex_AcquireKey(t *testing.T) {
 	fx.PersistKeys(ctx)
 
 	for i, b := range bs {
-		ex, release, err := fx.AcquireKey(ctx, cidKey(b.Cid()))
+		ex, release, err := fx.AcquireKey(ctx, CidKey(b.Cid()))
 		require.NoError(t, err)
 		if i == 0 {
 			require.False(t, ex)

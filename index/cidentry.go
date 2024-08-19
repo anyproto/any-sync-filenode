@@ -35,5 +35,5 @@ func (ce *cidEntry) Save(ctx context.Context, cl redis.Cmdable) error {
 	if err != nil {
 		return err
 	}
-	return cl.Set(ctx, cidKey(ce.Cid), data, 0).Err()
+	return cl.Set(ctx, CidKey(ce.Cid), data, 0).Err()
 }

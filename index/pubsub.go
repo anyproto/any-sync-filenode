@@ -12,7 +12,7 @@ import (
 const cidsChannel = "cidsChan"
 
 func (ri *redisIndex) WaitCidExists(ctx context.Context, k cid.Cid) (err error) {
-	ck := cidKey(k)
+	ck := CidKey(k)
 	exists, release, err := ri.acquireKey(ctx, ck)
 	if err != nil {
 		return err
@@ -57,7 +57,7 @@ func (ri *redisIndex) WaitCidExists(ctx context.Context, k cid.Cid) (err error) 
 func (ri *redisIndex) OnBlockUploaded(ctx context.Context, bs ...blocks.Block) {
 	if _, err := ri.cl.Pipelined(ctx, func(pipe redis.Pipeliner) error {
 		for _, b := range bs {
-			_ = pipe.Publish(ctx, cidsChannel, cidKey(b.Cid()))
+			_ = pipe.Publish(ctx, cidsChannel, CidKey(b.Cid()))
 		}
 		return nil
 	}); err != nil {

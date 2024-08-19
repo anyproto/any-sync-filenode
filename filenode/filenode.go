@@ -234,9 +234,12 @@ func (fn *fileNode) SpaceInfo(ctx context.Context, spaceId string) (info *filepr
 func (fn *fileNode) BatchAccountInfo(ctx context.Context, identities []string) ([]*fileproto.AccountInfoResponse, error) {
 	accountInfos := make([]*fileproto.AccountInfoResponse, 0, len(identities))
 	for _, identity := range identities {
-		accountInfo, err := fn.accountInfo(ctx, identity)
+		accountInfo, err := fn.AccountInfo(ctx, identity)
 		if err != nil {
 			return nil, err
+		}
+		if accountInfo == nil {
+			continue
 		}
 		accountInfos = append(accountInfos, accountInfo)
 	}
@@ -244,6 +247,13 @@ func (fn *fileNode) BatchAccountInfo(ctx context.Context, identities []string) (
 }
 
 func (fn *fileNode) AccountInfo(ctx context.Context, identity string) (*fileproto.AccountInfoResponse, error) {
+	exists, err := fn.index.CheckKey(ctx, index.GroupKey(index.Key{GroupId: identity}))
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, nil
+	}
 	return fn.accountInfo(ctx, identity)
 }
 
