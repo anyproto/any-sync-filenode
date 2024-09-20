@@ -1,12 +1,13 @@
 package testutil
 
 import (
-	"github.com/anyproto/any-sync/util/cidutil"
-	blocks "github.com/ipfs/go-block-format"
-	"github.com/ipfs/go-cid"
 	"io"
 	"math/rand"
 	"time"
+
+	"github.com/anyproto/any-sync/util/cidutil"
+	blocks "github.com/ipfs/go-block-format"
+	"github.com/ipfs/go-cid"
 )
 
 func NewRandSpaceId() string {

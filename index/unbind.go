@@ -71,8 +71,11 @@ func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, entry groupSpaceE
 		spaceDecrKeys   = make([]string, 0, len(cids.entries))
 		affectedCidIdx  = make([]int, 0, len(cids.entries))
 	)
-
-	entry.space.FileCount--
+	if entry.space.FileCount != 0 {
+		entry.space.FileCount--
+	} else {
+		log.WarnCtx(ctx, "file: unable to decrement 0-ref", zap.String("spaceId", key.SpaceId))
+	}
 	for i, c := range cids.entries {
 		ck := CidKey(c.Cid)
 		if !isolatedSpace {
@@ -82,8 +85,16 @@ func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, entry groupSpaceE
 			}
 			if res == "1" {
 				groupRemoveKeys = append(groupRemoveKeys, ck)
-				entry.group.Size_ -= c.Size_
-				entry.group.CidCount--
+				if entry.group.Size_-c.Size_ > entry.group.Size_ {
+					log.WarnCtx(ctx, "group: unable to decrement size", zap.Uint64("before", entry.group.Size_), zap.Uint64("size", c.Size_), zap.String("spaceId", key.SpaceId))
+				} else {
+					entry.group.Size_ -= c.Size_
+				}
+				if entry.group.CidCount != 0 {
+					entry.group.CidCount--
+				} else {
+					log.WarnCtx(ctx, "group: unable to decrement 0-ref", zap.String("spaceId", key.SpaceId))
+				}
 			} else {
 				groupDecrKeys = append(groupDecrKeys, ck)
 			}
@@ -94,8 +105,16 @@ func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, entry groupSpaceE
 		}
 		if res == "1" {
 			spaceRemoveKeys = append(spaceRemoveKeys, ck)
-			entry.space.Size_ -= c.Size_
-			entry.space.CidCount--
+			if entry.space.Size_-c.Size_ > entry.space.Size_ {
+				log.WarnCtx(ctx, "space: unable to decrement size", zap.Uint64("before", entry.space.Size_), zap.Uint64("size", c.Size_), zap.String("spaceId", key.SpaceId))
+			} else {
+				entry.space.Size_ -= c.Size_
+			}
+			if entry.space.CidCount != 0 {
+				entry.space.CidCount--
+			} else {
+				log.WarnCtx(ctx, "space: unable to decrement 0-ref", zap.String("spaceId", key.SpaceId))
+			}
 			affectedCidIdx = append(affectedCidIdx, i)
 		} else {
 			spaceDecrKeys = append(spaceDecrKeys, ck)
@@ -128,9 +147,14 @@ func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, entry groupSpaceE
 
 	// update cids
 	for _, idx := range affectedCidIdx {
-		cids.entries[idx].Refs--
+		if cids.entries[idx].Refs != 0 {
+			cids.entries[idx].Refs--
+		} else {
+			log.WarnCtx(ctx, "cid: unable to decrement 0-ref", zap.String("cid", cids.entries[idx].Cid.String()), zap.String("spaceId", key.SpaceId))
+			continue
+		}
 		if saveErr := cids.entries[idx].Save(ctx, ri.cl); saveErr != nil {
-			log.WarnCtx(ctx, "unable to save cid info", zap.Error(saveErr), zap.String("cid", cids.entries[idx].Cid.String()))
+			log.WarnCtx(ctx, "unable to save cid info", zap.Error(saveErr), zap.String("cid", cids.entries[idx].Cid.String()), zap.String("spaceId", key.SpaceId))
 		}
 	}
 	return
