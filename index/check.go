@@ -357,6 +357,7 @@ func (gc *groupContent) Check(cidRefs map[string]uint64, sumSize uint64) (checkR
 			Description: fmt.Sprintf("group size mismatch: %d -> %d", gc.entry.Size_, sumSize),
 		}
 		fix.GroupEntry.Size_ = sumSize
+		fix.GroupEntry.CidCount = uint64(len(cidRefs))
 		checkResults = append(checkResults, fix)
 	}
 	return
