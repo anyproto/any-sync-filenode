@@ -4,12 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/anyproto/any-sync/app"
 	"github.com/anyproto/any-sync/commonfile/fileproto"
+
+	"github.com/anyproto/any-sync-filenode/index"
 )
 
-const CName = "stat.identity"
+const CName = "filenode.stat"
 
 type accountInfoProvider interface {
 	AccountInfo(ctx context.Context, identity string) (*fileproto.AccountInfoResponse, error)
@@ -21,23 +24,25 @@ type Stat interface {
 }
 
 func New() Stat {
-	return &identityStat{}
+	return &statService{}
 }
 
-type identityStat struct {
+type statService struct {
 	accountInfoProvider accountInfoProvider
+	index               index.Index
 }
 
-func (i *identityStat) Init(a *app.App) (err error) {
+func (i *statService) Init(a *app.App) (err error) {
 	i.accountInfoProvider = app.MustComponent[accountInfoProvider](a)
+	i.index = app.MustComponent[index.Index](a)
 	return
 }
 
-func (i *identityStat) Name() (name string) {
+func (i *statService) Name() (name string) {
 	return CName
 }
 
-func (i *identityStat) Run(ctx context.Context) (err error) {
+func (i *statService) Run(ctx context.Context) (err error) {
 	http.HandleFunc("/stat/identity/{identity}", func(writer http.ResponseWriter, request *http.Request) {
 		identity := request.PathValue("identity")
 		if identity == "" {
@@ -82,9 +87,40 @@ func (i *identityStat) Run(ctx context.Context) (err error) {
 			return
 		}
 	})
+	http.HandleFunc("/stat/check/{identity}", func(writer http.ResponseWriter, request *http.Request) {
+		identity := request.PathValue("identity")
+		if identity == "" {
+			http.Error(writer, "identity is empty", http.StatusBadRequest)
+			return
+		}
+		isDoFix := request.URL.Query().Get("fix") != ""
+
+		st := time.Now()
+		res, err := i.index.Check(request.Context(), index.Key{GroupId: identity}, isDoFix)
+		if err != nil {
+			http.Error(writer, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		resp := struct {
+			Results  []index.CheckResult `json:"results"`
+			Duration string              `json:"duration"`
+		}{
+			Results:  res,
+			Duration: time.Since(st).String(),
+		}
+
+		writer.Header().Set("Content-Type", "application/json")
+		writer.WriteHeader(http.StatusOK)
+		err = json.NewEncoder(writer).Encode(resp)
+		if err != nil {
+			http.Error(writer, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	})
 	return nil
 }
 
-func (i *identityStat) Close(ctx context.Context) (err error) {
+func (i *statService) Close(ctx context.Context) (err error) {
 	return
 }
