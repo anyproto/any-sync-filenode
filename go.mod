@@ -7,7 +7,7 @@ toolchain go1.22.1
 require (
 	github.com/OneOfOne/xxhash v1.2.8
 	github.com/ahmetb/govvv v0.3.0
-	github.com/anyproto/any-sync v0.5.1
+	github.com/anyproto/any-sync v0.4.30
 	github.com/aws/aws-sdk-go v1.55.5
 	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/go-redsync/redsync/v4 v4.13.0
@@ -27,7 +27,6 @@ require (
 	github.com/anyproto/go-chash v0.1.0 // indirect
 	github.com/anyproto/go-slip10 v1.0.0 // indirect
 	github.com/anyproto/go-slip21 v1.0.0 // indirect
-	github.com/anyproto/protobuf v1.3.3-0.20240814124528-72b8c7e0e0f5 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/btcsuite/btcd v0.22.1 // indirect
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.0.1 // indirect
