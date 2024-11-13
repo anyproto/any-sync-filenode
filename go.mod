@@ -1,6 +1,7 @@
 module github.com/anyproto/any-sync-filenode
 
 go 1.22
+toolchain go1.22.5
 
 require (
 	github.com/OneOfOne/xxhash v1.2.8
@@ -13,7 +14,7 @@ require (
 	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb
 	github.com/ipfs/go-block-format v0.2.0
 	github.com/ipfs/go-cid v0.4.1
-	github.com/redis/go-redis/v9 v9.6.1
+	github.com/redis/go-redis/v9 v9.7.0
 	github.com/stretchr/testify v1.9.0
 	go.uber.org/mock v0.5.0
 	go.uber.org/zap v1.27.0
