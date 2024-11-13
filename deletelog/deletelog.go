@@ -61,7 +61,7 @@ func (d *deleteLog) Run(ctx context.Context) (err error) {
 }
 
 func (d *deleteLog) checkLog(ctx context.Context) (err error) {
-	mu := d.redsync.NewMutex("_lock:deletion", redsync.WithExpiry(time.Minute*10))
+	mu := d.redsync.NewMutex("_lock:deletion", redsync.WithExpiry(time.Hour))
 	if err = mu.LockContext(ctx); err != nil {
 		return
 	}
