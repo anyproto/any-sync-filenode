@@ -86,7 +86,7 @@ func (d *deleteLog) checkLog(ctx context.Context) (err error) {
 				GroupId: rec.FileGroup,
 				SpaceId: rec.SpaceId,
 			})
-			if err != nil {
+			if err != nil && !errors.Is(err, redis.Nil) {
 				return
 			}
 			handledCount++
