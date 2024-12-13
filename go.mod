@@ -2,8 +2,6 @@ module github.com/anyproto/any-sync-filenode
 
 go 1.22.0
 
-toolchain go1.22.2
-
 require (
 	github.com/OneOfOne/xxhash v1.2.8
 	github.com/ahmetb/govvv v0.3.0
