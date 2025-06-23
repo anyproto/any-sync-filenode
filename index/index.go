@@ -29,7 +29,8 @@ const CName = "filenode.index"
 var log = logger.NewNamed(CName)
 
 var (
-	ErrCidsNotExist = errors.New("cids not exist")
+	ErrCidsNotExist   = errors.New("cids not exist")
+	ErrSpaceIsDeleted = errors.New("space is deleted")
 )
 
 type Index interface {
@@ -63,6 +64,7 @@ type Index interface {
 	Check(ctx context.Context, key Key, doFix bool) (checkResults []CheckResult, err error)
 
 	SpaceDelete(ctx context.Context, key Key) (ok bool, err error)
+	MarkSpaceAsDeleted(ctx context.Context, key Key) (ok bool, err error)
 	app.ComponentRunnable
 }
 
@@ -295,6 +297,11 @@ func GroupKey(k Key) string {
 
 func FileKey(fileId string) string {
 	return "f:" + fileId
+}
+
+func DelKey(k Key) string {
+	hash := strconv.FormatUint(uint64(xxhash.ChecksumString32(k.GroupId)), 36)
+	return "d:" + k.SpaceId + ".{" + hash + "}"
 }
 
 const infoKey = "info"

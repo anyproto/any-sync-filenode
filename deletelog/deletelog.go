@@ -82,14 +82,18 @@ func (d *deleteLog) checkLog(ctx context.Context) (err error) {
 	var ok bool
 	for _, rec := range recs {
 		if rec.Status == coordinatorproto.DeletionLogRecordStatus_Remove && rec.FileGroup != "" {
-			ok, err = d.index.SpaceDelete(ctx, index.Key{
+			key := index.Key{
 				GroupId: rec.FileGroup,
 				SpaceId: rec.SpaceId,
-			})
-			if err != nil && !errors.Is(err, redis.Nil) {
+			}
+			ok, err = d.index.SpaceDelete(ctx, key)
+			if err != nil && !errors.Is(err, redis.Nil) && !errors.Is(err, index.ErrSpaceIsDeleted) {
 				return
 			}
 			handledCount++
+			if _, err = d.index.MarkSpaceAsDeleted(ctx, key); err != nil {
+				return
+			}
 			if ok {
 				deletedCount++
 			}

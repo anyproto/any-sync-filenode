@@ -302,6 +302,21 @@ func (mr *MockIndexMockRecorder) Init(arg0 any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Init", reflect.TypeOf((*MockIndex)(nil).Init), arg0)
 }
 
+// MarkSpaceAsDeleted mocks base method.
+func (m *MockIndex) MarkSpaceAsDeleted(arg0 context.Context, arg1 index.Key) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MarkSpaceAsDeleted", arg0, arg1)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// MarkSpaceAsDeleted indicates an expected call of MarkSpaceAsDeleted.
+func (mr *MockIndexMockRecorder) MarkSpaceAsDeleted(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkSpaceAsDeleted", reflect.TypeOf((*MockIndex)(nil).MarkSpaceAsDeleted), arg0, arg1)
+}
+
 // Migrate mocks base method.
 func (m *MockIndex) Migrate(arg0 context.Context, arg1 index.Key) error {
 	m.ctrl.T.Helper()

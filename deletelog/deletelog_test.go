@@ -47,10 +47,12 @@ func TestDeleteLog_checkLog(t *testing.T) {
 				FileGroup: "f2",
 			},
 		}, nil)
-		fx.index.EXPECT().SpaceDelete(ctx, index.Key{
+		key := index.Key{
 			GroupId: "f2",
 			SpaceId: "s2",
-		})
+		}
+		fx.index.EXPECT().SpaceDelete(ctx, key)
+		fx.index.EXPECT().MarkSpaceAsDeleted(ctx, key)
 		require.NoError(t, fx.checkLog(ctx))
 		lastId, err := fx.redis.Get(ctx, lastKey).Result()
 		require.NoError(t, err)

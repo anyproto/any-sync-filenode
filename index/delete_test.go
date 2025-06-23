@@ -64,3 +64,15 @@ func TestRedisIndex_SpaceDelete(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, ok)
 }
+
+func TestRedisIndex_MarkSpaceAsDeleted(t *testing.T) {
+	fx := newFixture(t)
+	defer fx.Finish(t)
+	key := newRandKey()
+	ok, err := fx.MarkSpaceAsDeleted(ctx, key)
+	require.NoError(t, err)
+	assert.True(t, ok)
+
+	err = fx.FileBind(ctx, key, "file", &CidEntries{})
+	assert.ErrorIs(t, err, ErrSpaceIsDeleted)
+}
