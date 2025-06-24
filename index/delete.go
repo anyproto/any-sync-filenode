@@ -58,3 +58,18 @@ func (ri *redisIndex) spaceDelete(ctx context.Context, key Key, entry groupSpace
 	}
 	return true, nil
 }
+
+func (ri *redisIndex) MarkSpaceAsDeleted(ctx context.Context, key Key) (ok bool, err error) {
+	exists, release, err := ri.AcquireKey(ctx, DelKey(key))
+	if err != nil {
+		return
+	}
+	defer release()
+	if !exists {
+		if err = ri.cl.Set(ctx, DelKey(key), 1, 0).Err(); err != nil {
+			return
+		}
+		return true, nil
+	}
+	return false, nil
+}

@@ -86,6 +86,29 @@ func (ri *redisIndex) AcquireSpace(ctx context.Context, key Key) (entry groupSpa
 		return
 	}
 
+	if !sExists {
+		// check if space marked as deleted
+		var (
+			delKey     = DelKey(key)
+			delRelease func()
+			delExists  bool
+		)
+		if delExists, delRelease, err = ri.AcquireKey(ctx, delKey); err != nil {
+			gRelease()
+			sRelease()
+			return
+		}
+		if delExists {
+			gRelease()
+			sRelease()
+			delRelease()
+			err = ErrSpaceIsDeleted
+			return
+		} else {
+			delRelease()
+		}
+	}
+
 	if entry.space, err = ri.getSpaceEntry(ctx, key); err != nil {
 		gRelease()
 		sRelease()
