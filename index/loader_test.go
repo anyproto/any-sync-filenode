@@ -21,6 +21,18 @@ func TestRedisIndex_PersistKeys(t *testing.T) {
 		require.NoError(t, fx.BlocksAdd(ctx, bs))
 		fx.PersistKeys(ctx)
 	})
+	t.Run("delete", func(t *testing.T) {
+		fx := newFixtureConfig(t, &config.Config{PersistTtl: 1})
+		defer fx.Finish(t)
+		bs := testutil.NewRandBlocks(5)
+		for _, b := range bs {
+			_, release, _ := fx.AcquireKey(ctx, CidKey(b.Cid()))
+			release()
+			fx.persistStore.EXPECT().IndexDelete(ctx, CidKey(b.Cid()))
+		}
+		time.Sleep(time.Second * 3)
+		fx.PersistKeys(ctx)
+	})
 	t.Run("persist", func(t *testing.T) {
 		fx := newFixtureConfig(t, &config.Config{PersistTtl: 1})
 		defer fx.Finish(t)

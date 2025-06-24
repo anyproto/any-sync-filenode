@@ -35,6 +35,7 @@ func init() {
 type persistentStore interface {
 	IndexGet(ctx context.Context, key string) (value []byte, err error)
 	IndexPut(ctx context.Context, key string, value []byte) (err error)
+	IndexDelete(ctx context.Context, key string) (err error)
 
 	Get(ctx context.Context, k cid.Cid) (blocks.Block, error)
 }
@@ -271,9 +272,12 @@ func (ri *redisIndex) persistKey(ctx context.Context, storeKey, key string, dead
 		stat.errors.Add(1)
 		return
 	}
-	// key was removed - just remove it from store queue
+	// the key was removed - remove it from the persistent store and the queue
 	if errors.Is(err, redis.Nil) {
 		stat.deleted.Add(1)
+		if err = ri.persistStore.IndexDelete(ctx, key); err != nil {
+			stat.errors.Add(1)
+		}
 		return ri.cl.ZRem(ctx, storeKey, key).Err()
 	}
 

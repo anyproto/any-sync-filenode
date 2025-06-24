@@ -15,5 +15,6 @@ type Store interface {
 
 	IndexGet(ctx context.Context, key string) (value []byte, err error)
 	IndexPut(ctx context.Context, key string, value []byte) (err error)
+	IndexDelete(ctx context.Context, key string) (err error)
 	app.Component
 }

@@ -113,6 +113,20 @@ func (mr *MockStoreMockRecorder) GetMany(arg0, arg1 any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMany", reflect.TypeOf((*MockStore)(nil).GetMany), arg0, arg1)
 }
 
+// IndexDelete mocks base method.
+func (m *MockStore) IndexDelete(arg0 context.Context, arg1 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IndexDelete", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// IndexDelete indicates an expected call of IndexDelete.
+func (mr *MockStoreMockRecorder) IndexDelete(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IndexDelete", reflect.TypeOf((*MockStore)(nil).IndexDelete), arg0, arg1)
+}
+
 // IndexGet mocks base method.
 func (m *MockStore) IndexGet(arg0 context.Context, arg1 string) ([]byte, error) {
 	m.ctrl.T.Helper()
