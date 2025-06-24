@@ -106,3 +106,7 @@ func (s *fsstore) IndexGet(ctx context.Context, key string) (value []byte, err e
 func (s *fsstore) IndexPut(ctx context.Context, key string, value []byte) (err error) {
 	return os.WriteFile(filepath.Join(s.path, key), value, 0644)
 }
+
+func (s *fsstore) IndexDelete(ctx context.Context, key string) (err error) {
+	return os.Remove(filepath.Join(s.path, key))
+}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -66,7 +67,7 @@ func (ri *redisIndex) MarkSpaceAsDeleted(ctx context.Context, key Key) (ok bool,
 	}
 	defer release()
 	if !exists {
-		if err = ri.cl.Set(ctx, DelKey(key), 1, 0).Err(); err != nil {
+		if err = ri.cl.Set(ctx, DelKey(key), time.Now().Unix(), 0).Err(); err != nil {
 			return
 		}
 		return true, nil

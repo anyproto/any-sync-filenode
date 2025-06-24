@@ -239,6 +239,14 @@ func (s *s3store) IndexPut(ctx context.Context, key string, data []byte) (err er
 	return
 }
 
+func (s *s3store) IndexDelete(ctx context.Context, key string) (err error) {
+	_, err = s.client.DeleteObjectWithContext(ctx, &s3.DeleteObjectInput{
+		Key:    aws.String(key),
+		Bucket: s.indexBucket,
+	})
+	return
+}
+
 func (s *s3store) Close(ctx context.Context) (err error) {
 	return nil
 }
