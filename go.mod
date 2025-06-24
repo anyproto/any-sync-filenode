@@ -12,7 +12,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/go-redsync/redsync/v4 v4.13.0
 	github.com/gogo/protobuf v1.3.2
-	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb
+	github.com/golang/snappy v1.0.0
 	github.com/ipfs/go-block-format v0.2.0
 	github.com/ipfs/go-cid v0.5.0
 	github.com/redis/go-redis/v9 v9.6.1
