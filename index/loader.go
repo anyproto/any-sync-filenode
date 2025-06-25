@@ -195,6 +195,8 @@ func (ri *redisIndex) updateKeyUsage(ctx context.Context, key string) (err error
 }
 
 func (ri *redisIndex) PersistKeys(ctx context.Context) {
+	ri.persistMu.Lock()
+	defer ri.persistMu.Unlock()
 	st := time.Now()
 	rand.Shuffle(len(partitions), func(i, j int) {
 		partitions[i], partitions[j] = partitions[j], partitions[i]

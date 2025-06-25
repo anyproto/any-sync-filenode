@@ -9,6 +9,7 @@ import (
 	"github.com/ipfs/go-cid"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/anyproto/any-sync-filenode/index/indexproto"
 )
@@ -33,18 +34,43 @@ func (ri *redisIndex) CidEntries(ctx context.Context, cids []cid.Cid) (entries *
 	return entries, nil
 }
 
-func (ri *redisIndex) CidEntriesByString(ctx context.Context, cids []string) (entries *CidEntries, err error) {
-	entries = &CidEntries{}
-	var c cid.Cid
-	for _, cs := range cids {
-		c, err = cid.Decode(cs)
-		if err != nil {
-			return
+func (ri *redisIndex) CidEntriesByString(ctx context.Context, cids []string) (*CidEntries, error) {
+	g, ctx := errgroup.WithContext(ctx)
+	g.SetLimit(10)
+
+	results := make([]*cidEntry, len(cids))
+
+	for i, cs := range cids {
+		i, cs := i, cs
+		g.Go(func() error {
+			// decode
+			c, err := cid.Decode(cs)
+			if err != nil {
+				return err
+			}
+			// fetch entry
+			entry, err := ri.acquireCidEntry(ctx, c)
+			if err != nil {
+				return err
+			}
+			// store in the correct slot
+			results[i] = entry
+			return nil
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		for _, result := range results {
+			if result != nil {
+				result.release()
+			}
 		}
-		if err = ri.getAndAddToEntries(ctx, entries, c); err != nil {
-			entries.Release()
-			return nil, err
-		}
+		return nil, err
+	}
+
+	entries := &CidEntries{}
+	for _, e := range results {
+		entries.Add(e)
 	}
 	return entries, nil
 }
@@ -66,22 +92,29 @@ func (ri *redisIndex) CidEntriesByBlocks(ctx context.Context, bs []blocks.Block)
 }
 
 func (ri *redisIndex) getAndAddToEntries(ctx context.Context, entries *CidEntries, c cid.Cid) (err error) {
-	_, release, err := ri.AcquireKey(ctx, CidKey(c))
+	entry, err := ri.acquireCidEntry(ctx, c)
+	if err != nil {
+		return err
+	}
+	entries.Add(entry)
+	return
+}
+
+func (ri *redisIndex) acquireCidEntry(ctx context.Context, c cid.Cid) (entry *cidEntry, err error) {
+	ok, release, err := ri.AcquireKey(ctx, CidKey(c))
 	if err != nil {
 		return
 	}
-	//temporarily ignore the exists check to make a deep check
-	/*if !ok {
+	if !ok {
 		release()
-		return ErrCidsNotExist
-	}*/
-	entry, err := ri.getCidEntry(ctx, c)
+		return nil, ErrCidsNotExist
+	}
+	entry, err = ri.getCidEntry(ctx, c)
 	if err != nil {
 		release()
-		return err
+		return nil, err
 	}
 	entry.release = release
-	entries.entries = append(entries.entries, entry)
 	return
 }
 
@@ -134,15 +167,7 @@ func (ri *redisIndex) getCidEntry(ctx context.Context, c cid.Cid) (entry *cidEnt
 	cidData, err := ri.cl.Get(ctx, ck).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
-			// temporary additional check: try to load data from store and restore cid
-			var b blocks.Block
-			if b, err = ri.persistStore.Get(ctx, c); err != nil {
-				log.WarnCtx(ctx, "restore cid entry error", zap.String("cid", c.String()), zap.Error(err))
-				err = ErrCidsNotExist
-				return
-			}
-			log.InfoCtx(ctx, "restore cid entry", zap.String("cid", c.String()))
-			return ri.createCidEntry(ctx, b)
+			return nil, ErrCidsNotExist
 		}
 		return
 	}
