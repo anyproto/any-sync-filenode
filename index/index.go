@@ -119,6 +119,7 @@ type redisIndex struct {
 	redsync      *redsync.Redsync
 	persistStore persistentStore
 	persistTtl   time.Duration
+	persistMu    sync.Mutex
 	ticker       periodicsync.PeriodicSync
 	defaultLimit uint64
 
@@ -301,7 +302,7 @@ func FileKey(fileId string) string {
 
 func DelKey(k Key) string {
 	hash := strconv.FormatUint(uint64(xxhash.ChecksumString32(k.GroupId)), 36)
-	return "d:" + k.SpaceId + ".{" + hash + "}"
+	return "del:" + k.SpaceId + ".{" + hash + "}"
 }
 
 const infoKey = "info"

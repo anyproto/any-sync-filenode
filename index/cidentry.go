@@ -2,6 +2,7 @@ package index
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/ipfs/go-cid"
@@ -12,6 +13,7 @@ import (
 
 type CidEntries struct {
 	entries []*cidEntry
+	mu      sync.Mutex
 }
 
 func (ce *CidEntries) Release() {
@@ -21,6 +23,12 @@ func (ce *CidEntries) Release() {
 		}
 	}
 	return
+}
+
+func (ce *CidEntries) Add(entry *cidEntry) {
+	ce.mu.Lock()
+	defer ce.mu.Unlock()
+	ce.entries = append(ce.entries, entry)
 }
 
 type cidEntry struct {
