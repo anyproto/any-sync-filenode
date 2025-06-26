@@ -101,14 +101,11 @@ func (ri *redisIndex) getAndAddToEntries(ctx context.Context, entries *CidEntrie
 }
 
 func (ri *redisIndex) acquireCidEntry(ctx context.Context, c cid.Cid) (entry *cidEntry, err error) {
-	ok, release, err := ri.AcquireKey(ctx, CidKey(c))
+	_, release, err := ri.AcquireKey(ctx, CidKey(c))
 	if err != nil {
 		return
 	}
-	if !ok {
-		release()
-		return nil, ErrCidsNotExist
-	}
+
 	entry, err = ri.getCidEntry(ctx, c)
 	if err != nil {
 		release()
@@ -167,7 +164,14 @@ func (ri *redisIndex) getCidEntry(ctx context.Context, c cid.Cid) (entry *cidEnt
 	cidData, err := ri.cl.Get(ctx, ck).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
-			return nil, ErrCidsNotExist
+			var b blocks.Block
+			if b, err = ri.persistStore.Get(ctx, c); err != nil {
+				log.WarnCtx(ctx, "restore cid entry error", zap.String("cid", c.String()), zap.Error(err))
+				err = ErrCidsNotExist
+				return
+			}
+			log.InfoCtx(ctx, "restore cid entry", zap.String("cid", c.String()))
+			return ri.createCidEntry(ctx, b)
 		}
 		return
 	}
