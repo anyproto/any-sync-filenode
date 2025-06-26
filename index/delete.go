@@ -2,6 +2,7 @@ package index
 
 import (
 	"context"
+	"errors"
 	"slices"
 	"strings"
 	"time"
@@ -12,6 +13,9 @@ import (
 func (ri *redisIndex) SpaceDelete(ctx context.Context, key Key) (ok bool, err error) {
 	entry, release, err := ri.AcquireSpace(ctx, key)
 	if err != nil {
+		if errors.Is(err, ErrSpaceIsDeleted) {
+			return ri.removeSpaceFromGroup(ctx, key)
+		}
 		return
 	}
 	defer release()
@@ -73,4 +77,39 @@ func (ri *redisIndex) MarkSpaceAsDeleted(ctx context.Context, key Key) (ok bool,
 		return true, nil
 	}
 	return false, nil
+}
+
+func (ri *redisIndex) removeSpaceFromGroup(ctx context.Context, key Key) (ok bool, err error) {
+	gExists, gRelease, err := ri.AcquireKey(ctx, GroupKey(key))
+	if err != nil {
+		return
+	}
+	defer gRelease()
+	if !gExists {
+		return false, nil
+	}
+
+	gEntry, err := ri.getGroupEntry(ctx, key)
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return false, nil
+		}
+		return
+	}
+	if !slices.Contains(gEntry.SpaceIds, key.SpaceId) {
+		return false, nil
+	}
+	gEntry.SpaceIds = slices.DeleteFunc(gEntry.SpaceIds, func(spaceId string) bool {
+		return spaceId == key.SpaceId
+	})
+	_, err = ri.cl.Pipelined(ctx, func(pipe redis.Pipeliner) error {
+		gEntry.Save(ctx, pipe)
+		return nil
+	})
+	if err != nil {
+		return
+	}
+	// add spaces broken spaces to the debug list
+	_ = ri.cl.LPush(ctx, "debug:spaceIdsToRecheck", key.SpaceId).Err()
+	return true, nil
 }

@@ -105,7 +105,7 @@ func (ri *redisIndex) acquireCidEntry(ctx context.Context, c cid.Cid) (entry *ci
 	if err != nil {
 		return
 	}
-	
+
 	entry, err = ri.getCidEntry(ctx, c)
 	if err != nil {
 		release()
