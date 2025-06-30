@@ -102,6 +102,21 @@ func (mr *MockIndexMockRecorder) Check(arg0, arg1, arg2 any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Check", reflect.TypeOf((*MockIndex)(nil).Check), arg0, arg1, arg2)
 }
 
+// CheckDeletedSpaces mocks base method.
+func (m *MockIndex) CheckDeletedSpaces(arg0 context.Context, arg1 index.Key, arg2 func([]string) ([]string, error), arg3 bool) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CheckDeletedSpaces", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CheckDeletedSpaces indicates an expected call of CheckDeletedSpaces.
+func (mr *MockIndexMockRecorder) CheckDeletedSpaces(arg0, arg1, arg2, arg3 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckDeletedSpaces", reflect.TypeOf((*MockIndex)(nil).CheckDeletedSpaces), arg0, arg1, arg2, arg3)
+}
+
 // CheckKey mocks base method.
 func (m *MockIndex) CheckKey(arg0 context.Context, arg1 string) (bool, error) {
 	m.ctrl.T.Helper()

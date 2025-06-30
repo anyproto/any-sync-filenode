@@ -89,3 +89,28 @@ func TestRedisIndex_Check(t *testing.T) {
 	})
 
 }
+
+func TestRedisIndex_CheckDeletedSpaces(t *testing.T) {
+	fx := newFixture(t)
+	defer fx.Finish(t)
+	bs := testutil.NewRandBlocks(3)
+	fileId1 := testutil.NewRandCid().String()
+
+	require.NoError(t, fx.BlocksAdd(ctx, bs))
+	key := newRandKey()
+	cids, err := fx.CidEntriesByBlocks(ctx, bs[:2])
+	require.NoError(t, err)
+	require.NoError(t, fx.FileBind(ctx, key, fileId1, cids))
+	cids.Release()
+
+	result, err := fx.CheckDeletedSpaces(ctx, key, func(spaceIds []string) (deletedIds []string, err error) {
+		return spaceIds, nil
+	}, true)
+	require.NoError(t, err)
+	require.Len(t, result, 1)
+	assert.Equal(t, key.SpaceId, result[0])
+
+	info, err := fx.GroupInfo(ctx, key.GroupId)
+	require.NoError(t, err)
+	assert.Len(t, info.SpaceIds, 0)
+}

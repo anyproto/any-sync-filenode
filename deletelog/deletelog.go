@@ -54,14 +54,14 @@ func (d *deleteLog) Name() (name string) {
 
 func (d *deleteLog) Run(ctx context.Context) (err error) {
 	if !d.disableTicker {
-		d.ticker = periodicsync.NewPeriodicSync(60, time.Hour, d.checkLog, log)
+		d.ticker = periodicsync.NewPeriodicSync(30, time.Hour*2, d.checkLog, log)
 		d.ticker.Run()
 	}
 	return
 }
 
 func (d *deleteLog) checkLog(ctx context.Context) (err error) {
-	mu := d.redsync.NewMutex("_lock:deletion", redsync.WithExpiry(time.Hour))
+	mu := d.redsync.NewMutex("_lock:deletion", redsync.WithExpiry(time.Hour*2))
 	if err = mu.LockContext(ctx); err != nil {
 		return
 	}
