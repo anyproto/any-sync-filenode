@@ -87,7 +87,8 @@ func (ri *redisIndex) AcquireSpace(ctx context.Context, key Key) (entry groupSpa
 		return
 	}
 
-	if !sExists {
+	isForceLoad, _ := ctx.Value(ctxForceSpaceGet).(bool)
+	if !isForceLoad {
 		// check if space marked as deleted
 		var (
 			delKey     = DelKey(key)

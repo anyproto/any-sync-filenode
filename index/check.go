@@ -362,3 +362,44 @@ func (gc *groupContent) Check(cidRefs map[string]uint64, sumSize uint64) (checkR
 	}
 	return
 }
+
+func (ri *redisIndex) CheckDeletedSpaces(
+	ctx context.Context,
+	key Key,
+	resolve func(spaceIds []string) (deletedIds []string, err error),
+	doFix bool,
+) (toBeDeleted []string, err error) {
+	gExists, gRelease, err := ri.AcquireKey(ctx, GroupKey(key))
+	if err != nil {
+		return
+	}
+	if !gExists {
+		gRelease()
+		return
+	}
+	gEntry, err := ri.getGroupEntry(ctx, key)
+	if err != nil {
+		gRelease()
+		return
+	}
+
+	deletedIds, err := resolve(gEntry.GetSpaceIds())
+	if err != nil {
+		gRelease()
+		return
+	}
+
+	gRelease()
+
+	if doFix {
+		ctx = context.WithValue(ctx, ctxForceSpaceGet, true)
+		for _, toDeleteSpaceId := range deletedIds {
+			key := Key{GroupId: key.GroupId, SpaceId: toDeleteSpaceId}
+			if _, err = ri.SpaceDelete(ctx, key); err != nil {
+				return nil, err
+			}
+			_, _ = ri.MarkSpaceAsDeleted(ctx, key)
+		}
+	}
+	return deletedIds, nil
+}

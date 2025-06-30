@@ -33,6 +33,12 @@ var (
 	ErrSpaceIsDeleted = errors.New("space is deleted")
 )
 
+type ctxKey int
+
+const (
+	ctxForceSpaceGet ctxKey = iota
+)
+
 type Index interface {
 	FileBind(ctx context.Context, key Key, fileId string, cidEntries *CidEntries) (err error)
 	FileUnbind(ctx context.Context, kye Key, fileIds ...string) (err error)
@@ -62,6 +68,7 @@ type Index interface {
 	Migrate(ctx context.Context, key Key) error
 
 	Check(ctx context.Context, key Key, doFix bool) (checkResults []CheckResult, err error)
+	CheckDeletedSpaces(ctx context.Context, key Key, resolve func(spaceIds []string) (deletedIds []string, err error), doFix bool) (toBeDeleted []string, err error)
 
 	SpaceDelete(ctx context.Context, key Key) (ok bool, err error)
 	MarkSpaceAsDeleted(ctx context.Context, key Key) (ok bool, err error)
