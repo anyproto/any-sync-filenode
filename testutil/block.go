@@ -1,9 +1,7 @@
 package testutil
 
 import (
-	"io"
-	"math/rand"
-	"time"
+	"crypto/rand"
 
 	"github.com/anyproto/any-sync/util/cidutil"
 	blocks "github.com/ipfs/go-block-format"
@@ -17,7 +15,7 @@ func NewRandSpaceId() string {
 
 func NewRandBlock(size int) blocks.Block {
 	var p = make([]byte, size)
-	_, err := io.ReadFull(rand.New(rand.NewSource(time.Now().UnixNano())), p)
+	_, err := rand.Read(p)
 	if err != nil {
 		panic("can't fill testdata from rand")
 	}
