@@ -19,7 +19,6 @@ import (
 	"github.com/ipfs/go-cid"
 	"go.uber.org/zap"
 
-	"github.com/anyproto/any-sync-filenode/config"
 	"github.com/anyproto/any-sync-filenode/index"
 	"github.com/anyproto/any-sync-filenode/store"
 )
@@ -41,13 +40,12 @@ type Service interface {
 }
 
 type fileNode struct {
-	acl        acl.AclService
-	index      index.Index
-	store      store.Store
-	metric     metric.Metric
-	nodeConf   nodeconf.Service
-	migrateKey string
-	handler    *rpcHandler
+	acl      acl.AclService
+	index    index.Index
+	store    store.Store
+	metric   metric.Metric
+	nodeConf nodeconf.Service
+	handler  *rpcHandler
 }
 
 func (fn *fileNode) Init(a *app.App) (err error) {
@@ -56,7 +54,6 @@ func (fn *fileNode) Init(a *app.App) (err error) {
 	fn.index = a.MustComponent(index.CName).(index.Index)
 	fn.handler = &rpcHandler{f: fn}
 	fn.metric = a.MustComponent(metric.CName).(metric.Metric)
-	fn.migrateKey = a.MustComponent(config.CName).(*config.Config).CafeMigrateKey
 	fn.nodeConf = a.MustComponent(nodeconf.CName).(nodeconf.Service)
 	return fileproto.DRPCRegisterFile(a.MustComponent(server.CName).(server.DRPCServer), fn.handler)
 }
@@ -83,8 +80,12 @@ func (fn *fileNode) Get(ctx context.Context, k cid.Cid, wait bool) (blocks.Block
 }
 
 func (fn *fileNode) Add(ctx context.Context, spaceId string, fileId string, bs []blocks.Block) error {
-	if fileId != "" && fileId == fn.migrateKey {
-		return fn.MigrateCafe(ctx, bs)
+	if spaceId == "" && fileId == "" {
+		peerId, _ := peer.CtxPeerId(ctx)
+		if len(fn.nodeConf.NodeTypes(peerId)) > 0 {
+			// network members can upload cids without binding
+			return fn.AddNoBind(ctx, bs)
+		}
 	}
 	storeKey, err := fn.StoreKey(ctx, spaceId, true)
 	if err != nil {
@@ -334,7 +335,7 @@ func (fn *fileNode) FileInfo(ctx context.Context, spaceId string, fileIds ...str
 	return
 }
 
-func (fn *fileNode) MigrateCafe(ctx context.Context, bs []blocks.Block) error {
+func (fn *fileNode) AddNoBind(ctx context.Context, bs []blocks.Block) error {
 	unlock, err := fn.index.BlocksLock(ctx, bs)
 	if err != nil {
 		return err

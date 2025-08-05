@@ -120,7 +120,26 @@ func TestFileNode_Add(t *testing.T) {
 		require.EqualError(t, err, fileprotoerr.ErrQuerySizeExceeded.Error())
 		assert.Nil(t, resp)
 	})
+	t.Run("no bind", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
+		var (
+			networkPeerId = "networkPeerId"
+			ctx           = peer.CtxWithPeerId(context.Background(), networkPeerId)
+			b             = testutil.NewRandBlock(1024)
+		)
 
+		fx.nodeConf.EXPECT().NodeTypes(networkPeerId).Return([]nodeconf.NodeType{nodeconf.NodeTypeCoordinator})
+		fx.index.EXPECT().BlocksLock(ctx, []blocks.Block{b}).Return(func() {}, nil)
+		fx.store.EXPECT().Add(ctx, []blocks.Block{b})
+		fx.index.EXPECT().BlocksAdd(ctx, []blocks.Block{b})
+		resp, err := fx.handler.BlockPush(ctx, &fileproto.BlockPushRequest{
+			Cid:  b.Cid().Bytes(),
+			Data: b.RawData(),
+		})
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+	})
 }
 
 func TestFileNode_Get(t *testing.T) {
