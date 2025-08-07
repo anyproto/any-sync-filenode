@@ -42,7 +42,6 @@ type Config struct {
 	Network                  nodeconf.Configuration `yaml:"network"`
 	NetworkStorePath         string                 `yaml:"networkStorePath"`
 	NetworkUpdateIntervalSec int                    `yaml:"networkUpdateIntervalSec"`
-	CafeMigrateKey           string                 `yaml:"cafeMigrateKey"`
 	DefaultLimit             uint64                 `yaml:"defaultLimit"`
 	PersistTtl               uint                   `yaml:"persistTtl"`
 }
