@@ -2,10 +2,13 @@ package filedevstore
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
+	"slices"
 
+	anystore "github.com/anyproto/any-store"
+	"github.com/anyproto/any-store/anyenc"
 	"github.com/anyproto/any-sync/app"
 	"github.com/anyproto/any-sync/app/logger"
 	"github.com/anyproto/any-sync/commonfile/fileblockstore"
@@ -24,18 +27,38 @@ func New() store.Store {
 	return &fsstore{}
 }
 
+var (
+	parserPool = &anyenc.ParserPool{}
+	arenaPool  = &anyenc.ArenaPool{}
+)
+
 type configSource interface {
 	GetDevStore() config.FileDevStore
 }
 
 type fsstore struct {
 	path string
+	db   anystore.DB
+	data anystore.Collection
 }
 
 func (s *fsstore) Init(a *app.App) (err error) {
 	s.path = a.MustComponent("config").(configSource).GetDevStore().Path
 	if s.path == "" {
 		return fmt.Errorf("you must specify path for local fsstore")
+	}
+	s.db, err = anystore.Open(context.Background(), filepath.Join(s.path, "data.db"), &anystore.Config{
+		ReadConnections: 20,
+		SQLiteConnectionOptions: map[string]string{
+			"synchronous": "off",
+		},
+	})
+	if err != nil {
+		return err
+	}
+	s.data, err = s.db.Collection(context.Background(), "data")
+	if err != nil {
+		return err
 	}
 	return
 }
@@ -49,11 +72,14 @@ func (s *fsstore) Run(ctx context.Context) (err error) {
 }
 
 func (s *fsstore) Get(ctx context.Context, k cid.Cid) (blocks.Block, error) {
-	val, err := os.ReadFile(filepath.Join(s.path, k.String()))
+	data, err := s.IndexGet(ctx, k.String())
 	if err != nil {
 		return nil, err
 	}
-	return blocks.NewBlockWithCid(val, k)
+	if data == nil {
+		return nil, fileblockstore.ErrCIDNotFound
+	}
+	return blocks.NewBlockWithCid(data, k)
 }
 
 func (s *fsstore) GetMany(ctx context.Context, ks []cid.Cid) <-chan blocks.Block {
@@ -76,19 +102,31 @@ func (s *fsstore) GetMany(ctx context.Context, ks []cid.Cid) <-chan blocks.Block
 }
 
 func (s *fsstore) Add(ctx context.Context, bs []blocks.Block) error {
+	tx, err := s.db.WriteTx(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
+	ctx = tx.Context()
+
 	for _, b := range bs {
-		if err := os.WriteFile(filepath.Join(s.path, b.Cid().String()), b.RawData(), 0644); err != nil {
+		if err = s.IndexPut(ctx, b.Cid().String(), b.RawData()); err != nil {
 			return err
 		}
 	}
-	return nil
+	return tx.Commit()
 }
 
 func (s *fsstore) Delete(ctx context.Context, c cid.Cid) error {
-	return os.Remove(filepath.Join(s.path, c.String()))
+	return s.IndexDelete(ctx, c.String())
 }
 
 func (s *fsstore) Close(ctx context.Context) (err error) {
+	if s.db != nil {
+		err = s.db.Close()
+	}
 	return
 }
 
@@ -100,13 +138,26 @@ func (s *fsstore) DeleteMany(ctx context.Context, toDelete []cid.Cid) error {
 }
 
 func (s *fsstore) IndexGet(ctx context.Context, key string) (value []byte, err error) {
-	return os.ReadFile(filepath.Join(s.path, key))
+	p := parserPool.Get()
+	defer parserPool.Put(p)
+	doc, err := s.data.FindIdWithParser(ctx, p, key)
+	if err != nil {
+		if errors.Is(err, anystore.ErrDocNotFound) {
+			return nil, nil
+		}
+	}
+	return slices.Clone(doc.Value().GetBytes("d")), nil
 }
 
 func (s *fsstore) IndexPut(ctx context.Context, key string, value []byte) (err error) {
-	return os.WriteFile(filepath.Join(s.path, key), value, 0644)
+	a := arenaPool.Get()
+	defer arenaPool.Put(a)
+	doc := a.NewObject()
+	doc.Set("id", a.NewString(key))
+	doc.Set("d", a.NewBinary(value))
+	return s.data.UpsertOne(ctx, doc)
 }
 
 func (s *fsstore) IndexDelete(ctx context.Context, key string) (err error) {
-	return os.Remove(filepath.Join(s.path, key))
+	return s.data.DeleteId(ctx, key)
 }
