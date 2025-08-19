@@ -95,3 +95,5 @@ require (
 	modernc.org/sqlite v1.38.0 // indirect
 	storj.io/drpc v0.0.34 // indirect
 )
+
+replace github.com/anyproto/any-sync => ../any-sync

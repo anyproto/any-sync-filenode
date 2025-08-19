@@ -233,11 +233,19 @@ func (ri *redisIndex) BlocksLock(ctx context.Context, bs []blocks.Block) (unlock
 
 	for _, b := range bs {
 		l := ri.redsync.NewMutex("_lock:b:"+b.Cid().String(), redsync.WithExpiry(time.Minute))
-		if err = l.LockContext(ctx); err != nil {
-			unlock()
-			return nil, err
+		for {
+			err = l.LockContext(ctx)
+			var errTaken *redsync.ErrTaken
+			if errors.As(err, &errTaken) {
+				continue
+			}
+			if err != nil {
+				unlock()
+				return nil, err
+			}
+			lockers = append(lockers, l)
+			break
 		}
-		lockers = append(lockers, l)
 	}
 	return
 }
