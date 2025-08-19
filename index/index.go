@@ -210,20 +210,27 @@ func (ri *redisIndex) FilesList(ctx context.Context, key Key) (fileIds []string,
 }
 
 func (ri *redisIndex) BlocksGetNonExistent(ctx context.Context, bs []blocks.Block) (nonExistent []blocks.Block, err error) {
+	var checked = make(map[string]struct{}, len(bs))
 	for _, b := range bs {
-		ex, err := ri.CheckKey(ctx, CidKey(b.Cid()))
+		cidKey := CidKey(b.Cid())
+		if _, ok := checked[cidKey]; ok {
+			continue
+		}
+		ex, err := ri.CheckKey(ctx, cidKey)
 		if err != nil {
 			return nil, err
 		}
 		if !ex {
 			nonExistent = append(nonExistent, b)
 		}
+		checked[cidKey] = struct{}{}
 	}
 	return
 }
 
 func (ri *redisIndex) BlocksLock(ctx context.Context, bs []blocks.Block) (unlock func(), err error) {
 	var lockers = make([]*redsync.Mutex, 0, len(bs))
+	var blocked = make(map[string]struct{}, len(bs))
 
 	unlock = func() {
 		for _, l := range lockers {
@@ -232,17 +239,23 @@ func (ri *redisIndex) BlocksLock(ctx context.Context, bs []blocks.Block) (unlock
 	}
 
 	for _, b := range bs {
-		l := ri.redsync.NewMutex("_lock:b:"+b.Cid().String(), redsync.WithExpiry(time.Minute))
+		cidString := b.Cid().String()
+		if _, ok := blocked[cidString]; ok {
+			continue
+		}
+		l := ri.redsync.NewMutex("_lock:b:"+cidString, redsync.WithExpiry(time.Minute))
 		for {
 			err = l.LockContext(ctx)
 			var errTaken *redsync.ErrTaken
 			if errors.As(err, &errTaken) {
+				time.Sleep(time.Millisecond * 10)
 				continue
 			}
 			if err != nil {
 				unlock()
 				return nil, err
 			}
+			blocked[cidString] = struct{}{}
 			lockers = append(lockers, l)
 			break
 		}
