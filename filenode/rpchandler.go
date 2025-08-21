@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	cidSizeLimit     = 2 << 20 // 2 Mb
+	cidSizeLimit     = 4 << 20 // 4 Mb
 	fileInfoReqLimit = 1000
 )
 
@@ -91,6 +91,58 @@ func (r rpcHandler) BlockPush(ctx context.Context, req *fileproto.BlockPushReque
 
 	if err = r.f.Add(ctx, req.SpaceId, req.FileId, []blocks.Block{b}); err != nil {
 		return nil, err
+	}
+	return &fileproto.Ok{}, nil
+}
+
+func (r rpcHandler) BlockPushMany(ctx context.Context, req *fileproto.BlockPushManyRequest) (resp *fileproto.Ok, err error) {
+	var (
+		st        = time.Now()
+		dataSum   int
+		cidCount  int
+		fileCount int
+	)
+	defer func() {
+		r.f.metric.RequestLog(ctx,
+			"file.blockPushMany",
+			metric.TotalDur(time.Since(st)),
+			metric.Size(dataSum),
+			zap.Int("cidCount", cidCount),
+			zap.Int("fileCount", fileCount),
+			zap.Error(err),
+		)
+	}()
+
+	for _, fileBlock := range req.FileBlocks {
+		bs := make([]blocks.Block, 0, len(fileBlock.Blocks))
+		for _, block := range fileBlock.Blocks {
+			var c cid.Cid
+			c, err = cid.Cast(block.Cid)
+			if err != nil {
+				return nil, err
+			}
+			b, err := blocks.NewBlockWithCid(block.Data, c)
+			if err != nil {
+				return nil, err
+			}
+			chkc, err := c.Prefix().Sum(block.Data)
+			if err != nil {
+				return nil, err
+			}
+			if !chkc.Equals(c) {
+				return nil, ErrWrongHash
+			}
+			dataSum += len(b.RawData())
+			if dataSum > fileInfoReqLimit {
+				return nil, fileprotoerr.ErrQuerySizeExceeded
+			}
+			bs = append(bs, b)
+			cidCount++
+		}
+		if err = r.f.Add(ctx, fileBlock.SpaceId, fileBlock.FileId, bs); err != nil {
+			return nil, err
+		}
+		fileCount++
 	}
 	return &fileproto.Ok{}, nil
 }

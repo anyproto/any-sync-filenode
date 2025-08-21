@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/anyproto/any-sync/app"
+	blocks "github.com/ipfs/go-block-format"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -39,6 +40,18 @@ func TestRedisIndex_FilesList(t *testing.T) {
 	fileIds, err := fx.FilesList(ctx, k)
 	require.NoError(t, err)
 	assert.Equal(t, []string{fileId}, fileIds)
+}
+
+func TestRedisIndex_BlocksLock(t *testing.T) {
+	fx := newFixture(t)
+	defer fx.Finish(t)
+	bs := testutil.NewRandBlocks(3)
+	bs = append([]blocks.Block{bs[0]}, bs...)
+	for range 3 {
+		unlock, err := fx.BlocksLock(ctx, bs)
+		require.NoError(t, err)
+		unlock()
+	}
 }
 
 func newRandKey() Key {
