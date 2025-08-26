@@ -7,6 +7,7 @@ toolchain go1.24.0
 require (
 	github.com/OneOfOne/xxhash v1.2.8
 	github.com/ahmetb/govvv v0.3.0
+	github.com/anyproto/any-store v0.3.3
 	github.com/anyproto/any-sync v0.9.6
 	github.com/aws/aws-sdk-go v1.55.8
 	github.com/cespare/xxhash/v2 v2.3.0
@@ -17,7 +18,7 @@ require (
 	github.com/ipfs/go-cid v0.5.0
 	github.com/redis/go-redis/v9 v9.12.0
 	github.com/stretchr/testify v1.10.0
-	go.uber.org/mock v0.5.2
+	go.uber.org/mock v0.6.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/sync v0.16.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -25,7 +26,6 @@ require (
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
-	github.com/anyproto/any-store v0.3.3 // indirect
 	github.com/anyproto/go-chash v0.1.0 // indirect
 	github.com/anyproto/go-slip10 v1.0.0 // indirect
 	github.com/anyproto/go-slip21 v1.0.0 // indirect
@@ -80,13 +80,13 @@ require (
 	github.com/zeebo/errs v1.3.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.40.0 // indirect
+	golang.org/x/crypto v0.41.0 // indirect
 	golang.org/x/exp v0.0.0-20250718183923-645b1fa84792 // indirect
-	golang.org/x/mod v0.26.0 // indirect
-	golang.org/x/net v0.42.0 // indirect
-	golang.org/x/sys v0.34.0 // indirect
+	golang.org/x/mod v0.27.0 // indirect
+	golang.org/x/net v0.43.0 // indirect
+	golang.org/x/sys v0.35.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
-	golang.org/x/tools v0.35.0 // indirect
+	golang.org/x/tools v0.36.0 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 	lukechampine.com/blake3 v1.4.1 // indirect
 	modernc.org/libc v1.66.3 // indirect
