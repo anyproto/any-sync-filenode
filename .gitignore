@@ -24,6 +24,7 @@ vendor
 
 # database
 # db
+N*.yml
 
 # artefacts for Intelli-J fleet
 .fleet
