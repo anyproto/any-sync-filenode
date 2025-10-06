@@ -5,7 +5,7 @@ go 1.24.0
 require (
 	github.com/OneOfOne/xxhash v1.2.8
 	github.com/ahmetb/govvv v0.3.0
-	github.com/anyproto/any-store v0.3.5
+	github.com/anyproto/any-store v0.4.0
 	github.com/anyproto/any-sync v0.10.0
 	github.com/aws/aws-sdk-go v1.55.8
 	github.com/cespare/xxhash/v2 v2.3.0

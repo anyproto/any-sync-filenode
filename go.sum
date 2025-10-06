@@ -6,8 +6,8 @@ github.com/OneOfOne/xxhash v1.2.8/go.mod h1:eZbhyaAYD41SGSSsnmcpxVoRiQ/MPUTjUdII
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=
 github.com/ahmetb/govvv v0.3.0 h1:YGLGwEyiUwHFy5eh/RUhdupbuaCGBYn5T5GWXp+WJB0=
 github.com/ahmetb/govvv v0.3.0/go.mod h1:4WRFpdWtc/YtKgPFwa1dr5+9hiRY5uKAL08bOlxOR6s=
-github.com/anyproto/any-store v0.3.5 h1:a/IQx6sATqmZ0Gqa5+nNDeSHYfInjWSsCN17BbPDV0w=
-github.com/anyproto/any-store v0.3.5/go.mod h1:P9CnoL9Q06eh051DwtcvCiiWCwdXO7AbEILcnD6yrss=
+github.com/anyproto/any-store v0.4.0 h1:WleCW55YMXS+E3nHn/pPS3c9N9MDCVlcY8OD7vwvaJI=
+github.com/anyproto/any-store v0.4.0/go.mod h1:P9CnoL9Q06eh051DwtcvCiiWCwdXO7AbEILcnD6yrss=
 github.com/anyproto/any-sync v0.10.0 h1:aC9KzQWJF2NQ/Zt4BRo5Ay8e0INHkInvetkwx9SmbeY=
 github.com/anyproto/any-sync v0.10.0/go.mod h1:Gm/eRMSo5iXU/M9pzcdo6i+TGHdGfx4NUjiMhBJ0cd8=
 github.com/anyproto/go-chash v0.1.0 h1:I9meTPjXFRfXZHRJzjOHC/XF7Q5vzysKkiT/grsogXY=
