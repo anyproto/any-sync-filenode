@@ -1,8 +1,10 @@
 package filenode
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"slices"
 
 	"github.com/anyproto/any-sync/acl"
@@ -11,6 +13,7 @@ import (
 	"github.com/anyproto/any-sync/commonfile/fileblockstore"
 	"github.com/anyproto/any-sync/commonfile/fileproto"
 	"github.com/anyproto/any-sync/commonfile/fileproto/fileprotoerr"
+	"github.com/anyproto/any-sync/commonspace/object/acl/list"
 	"github.com/anyproto/any-sync/metric"
 	"github.com/anyproto/any-sync/net/peer"
 	"github.com/anyproto/any-sync/net/rpc/server"
@@ -168,6 +171,29 @@ func (fn *fileNode) BlocksBind(ctx context.Context, spaceId, fileId string, cids
 	return fn.index.FileBind(ctx, storeKey, fileId, cidEntries)
 }
 
+func oneToOneSpaceSuffix(myKey []byte, accounts []list.AccountState) string {
+	writerPubKeys := make([][]byte, 2)
+	i := 0
+	for _, a := range accounts {
+		if a.Permissions.IsOwner() {
+			continue
+		}
+		writerPubKeys[i] = a.PubKey.Storage()
+	}
+
+	if bytes.Compare(writerPubKeys[0], writerPubKeys[1]) > 0 {
+		tmp := writerPubKeys[0]
+		writerPubKeys[0] = writerPubKeys[1]
+		writerPubKeys[1] = tmp
+	}
+
+	if bytes.Equal(myKey, writerPubKeys[0]) {
+		return ".0"
+	}
+
+	return ".1"
+}
+
 func (fn *fileNode) StoreKey(ctx context.Context, spaceId string, checkLimit bool) (storageKey index.Key, err error) {
 	if spaceId == "" {
 		return storageKey, fileprotoerr.ErrForbidden
@@ -183,9 +209,28 @@ func (fn *fileNode) StoreKey(ctx context.Context, spaceId string, checkLimit boo
 		log.WarnCtx(ctx, "acl ownerPubKey error", zap.Error(err))
 		return storageKey, fileprotoerr.ErrForbidden
 	}
-	storageKey = index.Key{
-		GroupId: ownerPubKey.Account(),
-		SpaceId: spaceId,
+
+	err = fn.acl.ReadState(ctx, spaceId, func(state *list.AclState) error {
+		if state.IsOneToOne() {
+			if !state.Permissions(identity).CanWrite() {
+				return fileprotoerr.ErrForbidden
+			}
+			oneToOneSuffix := oneToOneSpaceSuffix(identity.Storage(), state.CurrentAccounts())
+			oneToOneSpaceId := fmt.Sprintf("%s%s", spaceId, oneToOneSuffix)
+			storageKey = index.Key{
+				GroupId: identity.Account(),
+				SpaceId: oneToOneSpaceId,
+			}
+		} else {
+			storageKey = index.Key{
+				GroupId: ownerPubKey.Account(),
+				SpaceId: spaceId,
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return
 	}
 
 	// if it not owner
@@ -284,6 +329,7 @@ func (fn *fileNode) accountInfo(ctx context.Context, identity string) (info *fil
 		}
 		info.Spaces = append(info.Spaces, spaceInfo)
 	}
+	// take onetoone prefix into account here on output
 	return
 }
 
