@@ -335,6 +335,26 @@ func TestFileNode_SpaceInfo(t *testing.T) {
 	assert.Equal(t, uint64(100), info.TotalUsageBytes)
 }
 
+func TestFileNode_StoreKey(t *testing.T) {
+
+	// identity
+	// fn.acl.ReadState to call cb with prebaked acl
+	t.Run("oneToOne space limits go to writers, not to space owner", func(t *testing.T) {
+
+	})
+	t.Run("check limit", func(t *testing.T) {
+
+	})
+	t.Run("identity not an owner", func(t *testing.T) {
+
+	})
+
+	t.Run("spaceId is empty", func(t *testing.T) {
+
+	})
+
+}
+
 func TestFileNode_AccountLimitSet(t *testing.T) {
 	fx := newFixture(t)
 	defer fx.Finish(t)

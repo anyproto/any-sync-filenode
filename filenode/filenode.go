@@ -212,7 +212,7 @@ func (fn *fileNode) StoreKey(ctx context.Context, spaceId string, checkLimit boo
 
 	err = fn.acl.ReadState(ctx, spaceId, func(state *list.AclState) error {
 		if state.IsOneToOne() {
-			if !state.Permissions(identity).CanWrite() {
+			if state.Permissions(identity).NoPermissions() {
 				return fileprotoerr.ErrForbidden
 			}
 			oneToOneSuffix := oneToOneSpaceSuffix(identity.Storage(), state.CurrentAccounts())
