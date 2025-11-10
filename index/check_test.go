@@ -37,14 +37,14 @@ func TestRedisIndex_Check(t *testing.T) {
 	t.Run("fix space+group size", func(t *testing.T) {
 		se, err := fx.getSpaceEntry(ctx, key)
 		require.NoError(t, err)
-		se.Size_ += 100
-		seData, _ := se.Marshal()
+		se.Size += 100
+		seData, _ := se.MarshalVT()
 		require.NoError(t, fx.cl.HSet(ctx, SpaceKey(key), infoKey, seData).Err())
 
 		ge, err := fx.getGroupEntry(ctx, key)
 		require.NoError(t, err)
-		ge.Size_ += 100
-		geData, _ := ge.Marshal()
+		ge.Size += 100
+		geData, _ := ge.MarshalVT()
 		require.NoError(t, fx.cl.HSet(ctx, GroupKey(key), infoKey, geData).Err())
 
 		fixRes, err := fx.Check(ctx, key, true)

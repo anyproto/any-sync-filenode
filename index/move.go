@@ -79,7 +79,7 @@ func (ri *redisIndex) Move(ctx context.Context, dest, src Key) (err error) {
 		res, _ := cmd.Result()
 		if res == 1 {
 			destGroup.CidCount++
-			destGroup.Size_ += cidEntries.entries[i].Size_
+			destGroup.Size += cidEntries.entries[i].Size
 		}
 	}
 
@@ -102,7 +102,7 @@ func (ri *redisIndex) Move(ctx context.Context, dest, src Key) (err error) {
 			res, _ := cmd.Result()
 			if res == 0 {
 				srcEntry.group.CidCount--
-				srcEntry.group.Size_ -= cidEntries.entries[i].Size_
+				srcEntry.group.Size -= cidEntries.entries[i].Size
 				pipe.HDel(ctx, sGK, CidKey(cidEntries.entries[i].Cid))
 			}
 		}
