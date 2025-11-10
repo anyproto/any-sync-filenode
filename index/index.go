@@ -72,6 +72,8 @@ type Index interface {
 
 	SpaceDelete(ctx context.Context, key Key) (ok bool, err error)
 	MarkSpaceAsDeleted(ctx context.Context, key Key) (ok bool, err error)
+
+	Move(ctx context.Context, src, dest Key) (err error)
 	app.ComponentRunnable
 }
 

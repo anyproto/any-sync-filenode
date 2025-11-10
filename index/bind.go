@@ -118,3 +118,12 @@ func (ri *redisIndex) fileBind(ctx context.Context, key Key, fileId string, cids
 	}
 	return
 }
+
+func (ri *redisIndex) fileBindCidStrings(ctx context.Context, key Key, fileId string, cidStrings []string, entry groupSpaceEntry) (err error) {
+	cidEntries, err := ri.CidEntriesByString(ctx, cidStrings)
+	if err != nil {
+		return
+	}
+	defer cidEntries.Release()
+	return ri.fileBind(ctx, key, fileId, cidEntries, entry)
+}
