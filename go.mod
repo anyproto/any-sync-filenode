@@ -5,20 +5,21 @@ go 1.24.6
 require (
 	github.com/OneOfOne/xxhash v1.2.8
 	github.com/ahmetb/govvv v0.3.0
-	github.com/anyproto/any-store v0.4.2
+	github.com/anyproto/any-store v0.4.3
 	github.com/anyproto/any-sync v0.11.1
 	github.com/aws/aws-sdk-go v1.55.8
 	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/go-redsync/redsync/v4 v4.14.0
-	github.com/gogo/protobuf v1.3.2
 	github.com/golang/snappy v1.0.0
 	github.com/ipfs/go-block-format v0.2.3
 	github.com/ipfs/go-cid v0.5.0
+	github.com/planetscale/vtprotobuf v0.6.0
 	github.com/redis/go-redis/v9 v9.16.0
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/mock v0.6.0
 	go.uber.org/zap v1.27.0
-	golang.org/x/sync v0.17.0
+	golang.org/x/sync v0.18.0
+	google.golang.org/protobuf v1.36.10
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -63,7 +64,6 @@ require (
 	github.com/multiformats/go-varint v0.0.7 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
-	github.com/planetscale/vtprotobuf v0.6.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.23.2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
@@ -85,7 +85,6 @@ require (
 	golang.org/x/sys v0.37.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 	golang.org/x/tools v0.38.0 // indirect
-	google.golang.org/protobuf v1.36.10 // indirect
 	lukechampine.com/blake3 v1.4.1 // indirect
 	modernc.org/libc v1.66.8 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
