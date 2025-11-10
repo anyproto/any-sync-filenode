@@ -92,7 +92,7 @@ func (ri *redisIndex) migrateFile(ctx context.Context, key Key, migrateKey, file
 		return
 	}
 	oldList := &indexproto.CidList{}
-	if err = oldList.Unmarshal(encodedData); err != nil {
+	if err = oldList.UnmarshalVT(encodedData); err != nil {
 		return
 	}
 

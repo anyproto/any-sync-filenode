@@ -21,7 +21,7 @@ func (f *fileEntry) Exists(c string) (ok bool) {
 
 func (f *fileEntry) Save(ctx context.Context, k Key, fileId string, cl redis.Pipeliner) {
 	f.UpdateTime = time.Now().Unix()
-	data, err := f.Marshal()
+	data, err := f.MarshalVT()
 	if err != nil {
 		return
 	}
@@ -41,7 +41,7 @@ func (ri *redisIndex) getFileEntry(ctx context.Context, k Key, fileId string) (e
 		}, true, nil
 	}
 	fileEntryProto := &indexproto.FileEntry{}
-	if err = fileEntryProto.Unmarshal([]byte(result)); err != nil {
+	if err = fileEntryProto.UnmarshalVT([]byte(result)); err != nil {
 		return
 	}
 	return &fileEntry{FileEntry: fileEntryProto}, false, nil
@@ -54,7 +54,7 @@ type spaceEntry struct {
 
 func (f *spaceEntry) Save(ctx context.Context, k Key, cl redis.Pipeliner) {
 	f.UpdateTime = time.Now().Unix()
-	data, err := f.Marshal()
+	data, err := f.MarshalVT()
 	if err != nil {
 		return
 	}
@@ -78,7 +78,7 @@ func (ri *redisIndex) getSpaceEntry(ctx context.Context, key Key) (entry *spaceE
 		}, nil
 	}
 	spaceEntryProto := &indexproto.SpaceEntry{}
-	if err = spaceEntryProto.Unmarshal([]byte(result)); err != nil {
+	if err = spaceEntryProto.UnmarshalVT([]byte(result)); err != nil {
 		return
 	}
 	return &spaceEntry{SpaceEntry: spaceEntryProto, Id: key.SpaceId}, nil
@@ -90,7 +90,7 @@ type groupEntry struct {
 
 func (f *groupEntry) Save(ctx context.Context, cl redis.Cmdable) {
 	f.UpdateTime = time.Now().Unix()
-	data, err := f.Marshal()
+	data, err := f.MarshalVT()
 	if err != nil {
 		return
 	}
@@ -115,14 +115,14 @@ func (ri *redisIndex) getGroupEntry(ctx context.Context, key Key) (entry *groupE
 				GroupId:      key.GroupId,
 				CreateTime:   now,
 				UpdateTime:   now,
-				Size_:        0,
+				Size:         0,
 				Limit:        ri.defaultLimit,
 				AccountLimit: ri.defaultLimit,
 			},
 		}, nil
 	}
 	groupEntryProto := &indexproto.GroupEntry{}
-	if err = groupEntryProto.Unmarshal([]byte(result)); err != nil {
+	if err = groupEntryProto.UnmarshalVT([]byte(result)); err != nil {
 		return
 	}
 	groupEntryProto.GroupId = key.GroupId

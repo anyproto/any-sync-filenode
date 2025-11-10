@@ -25,7 +25,7 @@ func TestRedisIndex_BlocksAdd(t *testing.T) {
 
 	require.Len(t, result.entries, len(bs))
 	for _, e := range result.entries {
-		assert.NotEmpty(t, e.Size_)
+		assert.NotEmpty(t, e.Size)
 		assert.NotEmpty(t, e.CreateTime)
 		assert.NotEmpty(t, e.UpdateTime)
 		assert.NotEmpty(t, e.Version)
@@ -69,7 +69,7 @@ func TestRedisIndex_CidEntries(t *testing.T) {
 			entry := &cidEntry{
 				Cid: b.Cid(),
 				CidEntry: &indexproto.CidEntry{
-					Size_:      uint64(len(b.RawData())),
+					Size:       uint64(len(b.RawData())),
 					CreateTime: 1,
 					UpdateTime: 2,
 				},
@@ -84,7 +84,7 @@ func TestRedisIndex_CidEntries(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, result.entries, len(bs))
 		for _, e := range result.entries {
-			assert.NotEmpty(t, e.Size_)
+			assert.NotEmpty(t, e.Size)
 			assert.NotEmpty(t, e.CreateTime)
 			assert.NotEmpty(t, e.UpdateTime)
 			assert.NotEmpty(t, e.Version)
