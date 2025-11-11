@@ -188,10 +188,10 @@ func oneToOneSpaceSuffix(myKey []byte, accounts []list.AccountState) string {
 	}
 
 	if bytes.Equal(myKey, writerPubKeys[0]) {
-		return ".0"
+		return "#0"
 	}
 
-	return ".1"
+	return "#1"
 }
 
 func (fn *fileNode) StoreKey(ctx context.Context, spaceId string, checkLimit bool) (storageKey index.Key, err error) {
