@@ -43,7 +43,7 @@ func TestFileNode_Add(t *testing.T) {
 		fx.aclService.EXPECT().OwnerPubKey(ctx, storeKey.SpaceId).Return(mustPubKey(ctx), nil)
 		fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
-				state := newAclState(t, spaceId)
+				state := defaultAclState(t, spaceId)
 				// call the callback with prebaked state
 				return fn(state)
 			})
@@ -80,7 +80,7 @@ func TestFileNode_Add(t *testing.T) {
 		fx.aclService.EXPECT().OwnerPubKey(ctx, storeKey.SpaceId).Return(mustPubKey(ctx), nil)
 		fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
-				state := newAclState(t, spaceId)
+				state := defaultAclState(t, spaceId)
 				// call the callback with prebaked state
 				return fn(state)
 			})
@@ -201,7 +201,7 @@ func TestFileNode_Check(t *testing.T) {
 	fx.aclService.EXPECT().OwnerPubKey(ctx, storeKey.SpaceId).Return(mustPubKey(ctx), nil)
 	fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
-			state := newAclState(t, spaceId)
+			state := defaultAclState(t, spaceId)
 			// call the callback with prebaked state
 			return fn(state)
 		})
@@ -240,7 +240,7 @@ func TestFileNode_BlocksBind(t *testing.T) {
 	fx.aclService.EXPECT().OwnerPubKey(ctx, storeKey.SpaceId).Return(mustPubKey(ctx), nil)
 	fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
-			state := newAclState(t, spaceId)
+			state := defaultAclState(t, spaceId)
 			// call the callback with prebaked state
 			return fn(state)
 		})
@@ -272,7 +272,7 @@ func TestFileNode_FileInfo(t *testing.T) {
 	fx.aclService.EXPECT().OwnerPubKey(ctx, storeKey.SpaceId).Return(mustPubKey(ctx), nil)
 	fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
-			state := newAclState(t, spaceId)
+			state := defaultAclState(t, spaceId)
 			// call the callback with prebaked state
 			return fn(state)
 		})
@@ -348,7 +348,7 @@ func TestFileNode_SpaceInfo(t *testing.T) {
 	fx.aclService.EXPECT().OwnerPubKey(ctx, storeKey.SpaceId).Return(mustPubKey(ctx), nil)
 	fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
-			state := newAclState(t, spaceId)
+			state := defaultAclState(t, spaceId)
 			// call the callback with prebaked state
 			return fn(state)
 		})
@@ -379,13 +379,41 @@ func TestFileNode_SpaceInfo(t *testing.T) {
 }
 
 func TestFileNode_StoreKey(t *testing.T) {
-
-	// identity
-	// fn.acl.ReadState to call cb with prebaked acl
 	t.Run("oneToOne space limits go to writers, not to space owner", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
 
+		// make 1-1 aclState and pass identity with ctx.
+		// we can't do the other way around because acl state
+		// checks permissions using Storage() fn, and acl test suit executor can't parse
+		// such commands with stringified binaries instead of names
+		spaceId := "spaceId"
+		aclState := oneToOneAclState(t, spaceId)
+		idRaw, _ := aclState.Identity().Marshall()
+		ctx := peer.CtxWithIdentity(context.Background(), idRaw)
+
+		fx.aclService.EXPECT().OwnerPubKey(ctx, "spaceId").Return(aclState.OwnerPubKey())
+		fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
+				return fn(aclState)
+			})
+		expectedStoreKey := index.Key{
+			GroupId: aclState.Identity().Account(),
+			SpaceId: "spaceId#1",
+		}
+		fx.index.EXPECT().Migrate(ctx, expectedStoreKey)
+		fx.index.EXPECT().CheckLimits(ctx, expectedStoreKey)
+		actualStoreKey, err := fx.StoreKey(ctx, "spaceId", true)
+		require.NoError(t, err)
+		assert.Equal(t, expectedStoreKey.GroupId, actualStoreKey.GroupId)
+		assert.Equal(t, expectedStoreKey.SpaceId, actualStoreKey.SpaceId)
 	})
+
 	t.Run("check limit", func(t *testing.T) {
+		// var peerId = "peerId"
+		// might need it when checking limits:
+		// fx.nodeConf.EXPECT().NodeTypes(peerId).Return([]nodeconf.NodeType{nodeconf.NodeTypeCoordinator})
+		// ctx := peer.CtxWithPeerId(context.Background(), peerId)
 
 	})
 	t.Run("identity not an owner", func(t *testing.T) {
@@ -424,7 +452,7 @@ func TestFileNode_SpaceLimitSet(t *testing.T) {
 	fx.aclService.EXPECT().OwnerPubKey(ctx, storeKey.SpaceId).Return(mustPubKey(ctx), nil)
 	fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
-			state := newAclState(t, spaceId)
+			state := defaultAclState(t, spaceId)
 			// call the callback with prebaked state
 			return fn(state)
 		})
@@ -433,10 +461,11 @@ func TestFileNode_SpaceLimitSet(t *testing.T) {
 	fx.index.EXPECT().SetSpaceLimit(ctx, storeKey, uint64(12345))
 	require.NoError(t, fx.SpaceLimitSet(ctx, storeKey.SpaceId, 12345))
 }
-func newAclState(t *testing.T, spaceId string) *list.AclState {
+
+func newAclState(t *testing.T, spaceId string, initCmd string) *list.AclState {
 	a := list.NewAclExecutor(spaceId)
 	cmds := []string{
-		"a.init::a;b",
+		initCmd,
 	}
 	for _, cmd := range cmds {
 		err := a.Execute(cmd)
@@ -444,6 +473,14 @@ func newAclState(t *testing.T, spaceId string) *list.AclState {
 	}
 	return a.ActualAccounts()["a"].Acl.AclState()
 }
+
+func oneToOneAclState(t *testing.T, spaceId string) *list.AclState {
+	return newAclState(t, spaceId, "a;b.init-onetoone::a;b")
+}
+func defaultAclState(t *testing.T, spaceId string) *list.AclState {
+	return newAclState(t, spaceId, "a.init::a")
+}
+
 func newFixture(t *testing.T) *fixture {
 	ctrl := gomock.NewController(t)
 	fx := &fixture{
