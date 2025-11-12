@@ -10,6 +10,7 @@ import (
 	"github.com/anyproto/any-sync/commonfile/fileblockstore"
 	"github.com/anyproto/any-sync/commonfile/fileproto"
 	"github.com/anyproto/any-sync/commonfile/fileproto/fileprotoerr"
+	"github.com/anyproto/any-sync/commonspace/object/acl/list"
 	"github.com/anyproto/any-sync/metric"
 	"github.com/anyproto/any-sync/net/peer"
 	"github.com/anyproto/any-sync/net/rpc/server"
@@ -40,6 +41,13 @@ func TestFileNode_Add(t *testing.T) {
 		)
 
 		fx.aclService.EXPECT().OwnerPubKey(ctx, storeKey.SpaceId).Return(mustPubKey(ctx), nil)
+		fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
+				state := newAclState(t, spaceId)
+				// call the callback with prebaked state
+				return fn(state)
+			})
+
 		fx.index.EXPECT().CheckLimits(ctx, storeKey)
 		fx.index.EXPECT().Migrate(ctx, storeKey)
 		fx.index.EXPECT().BlocksLock(ctx, []blocks.Block{b}).Return(func() {}, nil)
@@ -70,6 +78,13 @@ func TestFileNode_Add(t *testing.T) {
 		)
 
 		fx.aclService.EXPECT().OwnerPubKey(ctx, storeKey.SpaceId).Return(mustPubKey(ctx), nil)
+		fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
+				state := newAclState(t, spaceId)
+				// call the callback with prebaked state
+				return fn(state)
+			})
+
 		fx.index.EXPECT().Migrate(ctx, storeKey)
 		fx.index.EXPECT().CheckLimits(ctx, storeKey).Return(index.ErrLimitExceed)
 
@@ -184,6 +199,13 @@ func TestFileNode_Check(t *testing.T) {
 		cids = append(cids, b.Cid().Bytes())
 	}
 	fx.aclService.EXPECT().OwnerPubKey(ctx, storeKey.SpaceId).Return(mustPubKey(ctx), nil)
+	fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
+			state := newAclState(t, spaceId)
+			// call the callback with prebaked state
+			return fn(state)
+		})
+
 	fx.index.EXPECT().Migrate(ctx, storeKey)
 	fx.index.EXPECT().CidExistsInSpace(ctx, storeKey, testutil.BlocksToKeys(bs)).Return(testutil.BlocksToKeys(bs[:1]), nil)
 	fx.index.EXPECT().CidExists(ctx, bs[1].Cid()).Return(true, nil)
@@ -216,6 +238,13 @@ func TestFileNode_BlocksBind(t *testing.T) {
 	}
 
 	fx.aclService.EXPECT().OwnerPubKey(ctx, storeKey.SpaceId).Return(mustPubKey(ctx), nil)
+	fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
+			state := newAclState(t, spaceId)
+			// call the callback with prebaked state
+			return fn(state)
+		})
+
 	fx.index.EXPECT().CheckLimits(ctx, storeKey)
 	fx.index.EXPECT().Migrate(ctx, storeKey)
 	fx.index.EXPECT().CidEntries(ctx, cids).Return(cidEntries, nil)
@@ -241,6 +270,13 @@ func TestFileNode_FileInfo(t *testing.T) {
 		fileId2       = testutil.NewRandCid().String()
 	)
 	fx.aclService.EXPECT().OwnerPubKey(ctx, storeKey.SpaceId).Return(mustPubKey(ctx), nil)
+	fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
+			state := newAclState(t, spaceId)
+			// call the callback with prebaked state
+			return fn(state)
+		})
+
 	fx.index.EXPECT().Migrate(ctx, storeKey)
 	fx.index.EXPECT().FileInfo(ctx, storeKey, fileId1, fileId2).Return([]index.FileInfo{{1, 1}, {2, 2}}, nil)
 
@@ -310,6 +346,13 @@ func TestFileNode_SpaceInfo(t *testing.T) {
 		ctx, storeKey = newRandKey()
 	)
 	fx.aclService.EXPECT().OwnerPubKey(ctx, storeKey.SpaceId).Return(mustPubKey(ctx), nil)
+	fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
+			state := newAclState(t, spaceId)
+			// call the callback with prebaked state
+			return fn(state)
+		})
+
 	fx.index.EXPECT().Migrate(ctx, storeKey)
 
 	fx.index.EXPECT().GroupInfo(ctx, storeKey.GroupId).Return(index.GroupInfo{
@@ -378,13 +421,29 @@ func TestFileNode_SpaceLimitSet(t *testing.T) {
 	defer fx.Finish(t)
 
 	ctx, storeKey := newRandKey()
-
 	fx.aclService.EXPECT().OwnerPubKey(ctx, storeKey.SpaceId).Return(mustPubKey(ctx), nil)
+	fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
+			state := newAclState(t, spaceId)
+			// call the callback with prebaked state
+			return fn(state)
+		})
+
 	fx.index.EXPECT().Migrate(ctx, storeKey)
 	fx.index.EXPECT().SetSpaceLimit(ctx, storeKey, uint64(12345))
 	require.NoError(t, fx.SpaceLimitSet(ctx, storeKey.SpaceId, 12345))
 }
-
+func newAclState(t *testing.T, spaceId string) *list.AclState {
+	a := list.NewAclExecutor(spaceId)
+	cmds := []string{
+		"a.init::a;b",
+	}
+	for _, cmd := range cmds {
+		err := a.Execute(cmd)
+		require.NoError(t, err)
+	}
+	return a.ActualAccounts()["a"].Acl.AclState()
+}
 func newFixture(t *testing.T) *fixture {
 	ctrl := gomock.NewController(t)
 	fx := &fixture{
