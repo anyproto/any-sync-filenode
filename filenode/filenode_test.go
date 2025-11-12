@@ -44,7 +44,6 @@ func TestFileNode_Add(t *testing.T) {
 		fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
 				state := defaultAclState(t, spaceId)
-				// call the callback with prebaked state
 				return fn(state)
 			})
 
@@ -81,7 +80,6 @@ func TestFileNode_Add(t *testing.T) {
 		fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
 				state := defaultAclState(t, spaceId)
-				// call the callback with prebaked state
 				return fn(state)
 			})
 
@@ -202,7 +200,6 @@ func TestFileNode_Check(t *testing.T) {
 	fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
 			state := defaultAclState(t, spaceId)
-			// call the callback with prebaked state
 			return fn(state)
 		})
 
@@ -241,7 +238,6 @@ func TestFileNode_BlocksBind(t *testing.T) {
 	fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
 			state := defaultAclState(t, spaceId)
-			// call the callback with prebaked state
 			return fn(state)
 		})
 
@@ -273,7 +269,6 @@ func TestFileNode_FileInfo(t *testing.T) {
 	fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
 			state := defaultAclState(t, spaceId)
-			// call the callback with prebaked state
 			return fn(state)
 		})
 
@@ -349,7 +344,6 @@ func TestFileNode_SpaceInfo(t *testing.T) {
 	fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
 			state := defaultAclState(t, spaceId)
-			// call the callback with prebaked state
 			return fn(state)
 		})
 
@@ -503,7 +497,6 @@ func TestFileNode_SpaceLimitSet(t *testing.T) {
 	fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
 			state := defaultAclState(t, spaceId)
-			// call the callback with prebaked state
 			return fn(state)
 		})
 
