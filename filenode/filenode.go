@@ -1,10 +1,8 @@
 package filenode
 
 import (
-	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"slices"
 
 	"github.com/anyproto/any-sync/acl"
@@ -171,29 +169,6 @@ func (fn *fileNode) BlocksBind(ctx context.Context, spaceId, fileId string, cids
 	return fn.index.FileBind(ctx, storeKey, fileId, cidEntries)
 }
 
-func oneToOneSpaceSuffix(myKey []byte, accounts []list.AccountState) string {
-	writerPubKeys := make([][]byte, 2)
-	i := 0
-	for _, a := range accounts {
-		if a.Permissions.IsOwner() {
-			continue
-		}
-		writerPubKeys[i] = a.PubKey.Storage()
-	}
-
-	if bytes.Compare(writerPubKeys[0], writerPubKeys[1]) > 0 {
-		tmp := writerPubKeys[0]
-		writerPubKeys[0] = writerPubKeys[1]
-		writerPubKeys[1] = tmp
-	}
-
-	if bytes.Equal(myKey, writerPubKeys[0]) {
-		return "#0"
-	}
-
-	return "#1"
-}
-
 func (fn *fileNode) StoreKey(ctx context.Context, spaceId string, checkLimit bool) (storageKey index.Key, err error) {
 	if spaceId == "" {
 		return storageKey, fileprotoerr.ErrForbidden
@@ -210,16 +185,26 @@ func (fn *fileNode) StoreKey(ctx context.Context, spaceId string, checkLimit boo
 		return storageKey, fileprotoerr.ErrForbidden
 	}
 
-	err = fn.acl.ReadState(ctx, spaceId, func(state *list.AclState) error {
-		if state.IsOneToOne() {
-			if state.Permissions(identity).NoPermissions() {
+	err = fn.acl.ReadState(ctx, spaceId, func(aclState *list.AclState) error {
+		if aclState.IsOneToOne() {
+			if aclState.Permissions(identity).NoPermissions() {
 				return fileprotoerr.ErrForbidden
 			}
-			oneToOneSuffix := oneToOneSpaceSuffix(identity.Storage(), state.CurrentAccounts())
-			oneToOneSpaceId := fmt.Sprintf("%s%s", spaceId, oneToOneSuffix)
+			pubKeys, serr := oneToOneParticipantPubKeys(aclState.CurrentAccounts())
+			if serr != nil {
+				log.WarnCtx(ctx, "oneToOne acl error: ", zap.Error(err))
+				return fileprotoerr.ErrForbidden
+			}
+
+			newSpaceId, serr := oneToOneSpaceId(identity.Storage(), pubKeys, spaceId)
+			if serr != nil {
+				log.WarnCtx(ctx, "oneToOne acl error: ", zap.Error(err))
+				return fileprotoerr.ErrForbidden
+			}
+
 			storageKey = index.Key{
 				GroupId: identity.Account(),
-				SpaceId: oneToOneSpaceId,
+				SpaceId: newSpaceId,
 			}
 		} else {
 			storageKey = index.Key{

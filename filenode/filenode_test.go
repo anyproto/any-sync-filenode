@@ -379,7 +379,36 @@ func TestFileNode_SpaceInfo(t *testing.T) {
 }
 
 func TestFileNode_StoreKey(t *testing.T) {
-	t.Run("oneToOne space limits go to writers, not to space owner", func(t *testing.T) {
+	t.Run("basic test", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
+
+		spaceId := "spaceId"
+		aclState := defaultAclState(t, spaceId)
+		idRaw, _ := aclState.Identity().Marshall()
+		ctx := peer.CtxWithIdentity(context.Background(), idRaw)
+
+		expectedStoreKey := index.Key{
+			GroupId: aclState.Identity().Account(),
+			SpaceId: "spaceId",
+		}
+
+		fx.index.EXPECT().Migrate(ctx, expectedStoreKey)
+		fx.index.EXPECT().CheckLimits(ctx, expectedStoreKey)
+		fx.aclService.EXPECT().OwnerPubKey(ctx, "spaceId").Return(aclState.OwnerPubKey())
+		fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
+				return fn(aclState)
+			})
+
+		actualStoreKey, err := fx.StoreKey(ctx, "spaceId", true)
+		require.NoError(t, err)
+		assert.Equal(t, expectedStoreKey.GroupId, actualStoreKey.GroupId)
+		assert.Equal(t, expectedStoreKey.SpaceId, actualStoreKey.SpaceId)
+
+	})
+
+	t.Run("oneToOne storeKey has suffixed spaceId", func(t *testing.T) {
 		fx := newFixture(t)
 		defer fx.Finish(t)
 
@@ -392,38 +421,59 @@ func TestFileNode_StoreKey(t *testing.T) {
 		idRaw, _ := aclState.Identity().Marshall()
 		ctx := peer.CtxWithIdentity(context.Background(), idRaw)
 
+		// make suffix via oneToOneSpaceId to avoid test flakiness:
+		// acltestsuite uses random to generate accounts.
+		// oneToOneSpaceId is tested separately.
+		statePubKeys, err := oneToOneParticipantPubKeys(aclState.CurrentAccounts())
+		require.NoError(t, err)
+		expectedSuffix, err := oneToOneSpaceId(aclState.Identity().Storage(), statePubKeys, spaceId)
+		require.NoError(t, err)
+
+		expectedStoreKey := index.Key{
+			GroupId: aclState.Identity().Account(),
+			SpaceId: expectedSuffix,
+		}
+
+		fx.index.EXPECT().Migrate(ctx, expectedStoreKey)
+		fx.index.EXPECT().CheckLimits(ctx, expectedStoreKey)
 		fx.aclService.EXPECT().OwnerPubKey(ctx, "spaceId").Return(aclState.OwnerPubKey())
 		fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
 				return fn(aclState)
 			})
-		expectedStoreKey := index.Key{
-			GroupId: aclState.Identity().Account(),
-			SpaceId: "spaceId#1",
-		}
-		fx.index.EXPECT().Migrate(ctx, expectedStoreKey)
-		fx.index.EXPECT().CheckLimits(ctx, expectedStoreKey)
+
 		actualStoreKey, err := fx.StoreKey(ctx, "spaceId", true)
 		require.NoError(t, err)
 		assert.Equal(t, expectedStoreKey.GroupId, actualStoreKey.GroupId)
 		assert.Equal(t, expectedStoreKey.SpaceId, actualStoreKey.SpaceId)
 	})
 
-	t.Run("check limit", func(t *testing.T) {
-		// var peerId = "peerId"
-		// might need it when checking limits:
-		// fx.nodeConf.EXPECT().NodeTypes(peerId).Return([]nodeconf.NodeType{nodeconf.NodeTypeCoordinator})
-		// ctx := peer.CtxWithPeerId(context.Background(), peerId)
+	t.Run("identity not a 1-1 participant but space is 1-1", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
 
-	})
-	t.Run("identity not an owner", func(t *testing.T) {
+		spaceId := "spaceId"
+		aclState := oneToOneAclState(t, spaceId)
+		ctx, _ := newRandKey()
+
+		fx.aclService.EXPECT().OwnerPubKey(ctx, "spaceId").Return(aclState.OwnerPubKey())
+		fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
+				return fn(aclState)
+			})
+
+		_, err := fx.StoreKey(ctx, "spaceId", true)
+		require.Error(t, err)
 
 	})
 
 	t.Run("spaceId is empty", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
 
+		_, err := fx.StoreKey(context.Background(), "", true)
+		require.Error(t, err)
 	})
-
 }
 
 func TestFileNode_AccountLimitSet(t *testing.T) {
