@@ -315,7 +315,6 @@ func (fn *fileNode) accountInfo(ctx context.Context, identity string) (info *fil
 		}
 		info.Spaces = append(info.Spaces, spaceInfo)
 	}
-	// take onetoone prefix into account here on output
 	return
 }
 
