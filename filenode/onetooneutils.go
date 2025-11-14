@@ -19,7 +19,12 @@ func oneToOneParticipantPubKeys(accounts []list.AccountState) ([][]byte, error) 
 		if a.Permissions.IsOwner() {
 			continue
 		}
+		if i == 2 {
+			return nil, fmt.Errorf("getOneToOnePaticipantPubKeys: invalid onetoone acl")
+		}
+
 		writerPubKeys[i] = a.PubKey.Storage()
+		i++
 	}
 	return writerPubKeys, nil
 }
@@ -37,9 +42,7 @@ func oneToOneSpaceId(myKey []byte, pubKeys [][]byte, spaceId string) (string, er
 	}
 
 	if bytes.Compare(pubKeys[0], pubKeys[1]) > 0 {
-		tmp := pubKeys[0]
-		pubKeys[0] = pubKeys[1]
-		pubKeys[1] = tmp
+		pubKeys[0], pubKeys[1] = pubKeys[1], pubKeys[0]
 	}
 	var suffix string
 	if bytes.Equal(myKey, pubKeys[0]) {

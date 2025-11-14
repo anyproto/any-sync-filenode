@@ -3,6 +3,9 @@ package filenode
 import (
 	"bytes"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestOneToOneSpaceId(t *testing.T) {
@@ -166,4 +169,32 @@ func TestOneToOneSpaceId_OrderInvariance(t *testing.T) {
 	if got1 != "s#1" || got2 != "s#1" {
 		t.Fatalf("order invariance violated: got %q and %q, want 's#1' both", got1, got2)
 	}
+}
+
+func Test_oneToOneParticipantPubKeys(t *testing.T) {
+	fx := newFixture(t)
+	defer fx.Finish(t)
+	spaceId := "spaceId"
+	aclState := oneToOneAclState(t, spaceId)
+	accounts := aclState.CurrentAccounts()
+
+	t.Run("basic test", func(t *testing.T) {
+		writersPubKeys, err := oneToOneParticipantPubKeys(accounts)
+
+		require.NoError(t, err)
+		assert.False(t, bytes.Equal(writersPubKeys[0], writersPubKeys[1]))
+
+		ownerPubKey, _ := aclState.OwnerPubKey()
+		ownerBytes := ownerPubKey.Storage()
+		assert.False(t, bytes.Equal(writersPubKeys[0], ownerBytes))
+		assert.False(t, bytes.Equal(writersPubKeys[1], ownerBytes))
+
+	})
+
+	t.Run("basic test", func(t *testing.T) {
+		accounts = append(accounts, accounts[1])
+		_, err := oneToOneParticipantPubKeys(accounts)
+		require.Error(t, err)
+
+	})
 }
