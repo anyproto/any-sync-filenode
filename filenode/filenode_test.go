@@ -2,6 +2,7 @@ package filenode
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/anyproto/any-sync/acl"
@@ -334,42 +335,86 @@ func TestFileNode_AccountInfo(t *testing.T) {
 }
 
 func TestFileNode_SpaceInfo(t *testing.T) {
-	fx := newFixture(t)
-	defer fx.Finish(t)
+	t.Run("basic test", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
 
-	var (
-		ctx, storeKey = newRandKey()
-	)
-	fx.aclService.EXPECT().OwnerPubKey(ctx, storeKey.SpaceId).Return(mustPubKey(ctx), nil)
-	fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
-			state := defaultAclState(t, spaceId)
-			return fn(state)
-		})
+		var (
+			ctx, storeKey = newRandKey()
+		)
+		fx.aclService.EXPECT().OwnerPubKey(ctx, storeKey.SpaceId).Return(mustPubKey(ctx), nil)
+		fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
+				state := defaultAclState(t, spaceId)
+				return fn(state)
+			})
 
-	fx.index.EXPECT().Migrate(ctx, storeKey)
+		fx.index.EXPECT().Migrate(ctx, storeKey)
 
-	fx.index.EXPECT().GroupInfo(ctx, storeKey.GroupId).Return(index.GroupInfo{
-		BytesUsage:   100,
-		CidsCount:    10,
-		SpaceIds:     []string{storeKey.SpaceId},
-		Limit:        90000,
-		AccountLimit: 100000,
-	}, nil)
-	fx.index.EXPECT().SpaceInfo(ctx, storeKey).Return(index.SpaceInfo{
-		BytesUsage: 90,
-		CidsCount:  9,
-		FileCount:  1,
-	}, nil)
+		fx.index.EXPECT().GroupInfo(ctx, storeKey.GroupId).Return(index.GroupInfo{
+			BytesUsage:   100,
+			CidsCount:    10,
+			SpaceIds:     []string{storeKey.SpaceId},
+			Limit:        90000,
+			AccountLimit: 100000,
+		}, nil)
+		fx.index.EXPECT().SpaceInfo(ctx, storeKey).Return(index.SpaceInfo{
+			BytesUsage: 90,
+			CidsCount:  9,
+			FileCount:  1,
+		}, nil)
 
-	info, err := fx.SpaceInfo(ctx, storeKey.SpaceId)
-	require.NoError(t, err)
-	require.NotNil(t, info)
-	assert.Equal(t, uint64(90), info.SpaceUsageBytes)
-	assert.Equal(t, uint64(9), info.CidsCount)
-	assert.Equal(t, uint64(1), info.FilesCount)
-	assert.Equal(t, uint64(90000), info.LimitBytes)
-	assert.Equal(t, uint64(100), info.TotalUsageBytes)
+		info, err := fx.SpaceInfo(ctx, storeKey.SpaceId)
+		require.NoError(t, err)
+		require.NotNil(t, info)
+		assert.Equal(t, uint64(90), info.SpaceUsageBytes)
+		assert.Equal(t, uint64(9), info.CidsCount)
+		assert.Equal(t, uint64(1), info.FilesCount)
+		assert.Equal(t, uint64(90000), info.LimitBytes)
+		assert.Equal(t, uint64(100), info.TotalUsageBytes)
+
+	})
+
+	t.Run("onetoone space info removes #1, #0", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
+
+		var (
+			ctx, storeKey = newRandKey()
+		)
+		storeKey.SpaceId = fmt.Sprintf("%s#1", storeKey.SpaceId)
+
+		fx.aclService.EXPECT().OwnerPubKey(ctx, storeKey.SpaceId).Return(mustPubKey(ctx), nil)
+		fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
+				state := defaultAclState(t, spaceId)
+				return fn(state)
+			})
+
+		fx.index.EXPECT().Migrate(ctx, storeKey)
+
+		fx.index.EXPECT().GroupInfo(ctx, storeKey.GroupId).Return(index.GroupInfo{
+			BytesUsage:   100,
+			CidsCount:    10,
+			SpaceIds:     []string{storeKey.SpaceId},
+			Limit:        90000,
+			AccountLimit: 100000,
+		}, nil)
+		fx.index.EXPECT().SpaceInfo(ctx, storeKey).Return(index.SpaceInfo{
+			BytesUsage: 90,
+			CidsCount:  9,
+			FileCount:  1,
+		}, nil)
+
+		info, err := fx.SpaceInfo(ctx, storeKey.SpaceId)
+		require.NoError(t, err)
+		require.NotNil(t, info)
+		assert.Equal(t, uint64(90), info.SpaceUsageBytes)
+		assert.Equal(t, uint64(9), info.CidsCount)
+		assert.Equal(t, uint64(1), info.FilesCount)
+		assert.Equal(t, uint64(90000), info.LimitBytes)
+		assert.Equal(t, uint64(100), info.TotalUsageBytes)
+	})
 }
 
 func TestFileNode_StoreKey(t *testing.T) {

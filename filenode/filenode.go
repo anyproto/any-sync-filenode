@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"slices"
+	"strings"
 
 	"github.com/anyproto/any-sync/acl"
 	"github.com/anyproto/any-sync/app"
@@ -318,9 +319,15 @@ func (fn *fileNode) accountInfo(ctx context.Context, identity string) (info *fil
 	return
 }
 
+func removeOneToOneSuffix(spaceId string) string {
+	spaceId = strings.TrimSuffix(spaceId, "#0")
+	spaceId = strings.TrimSuffix(spaceId, "#1")
+	return spaceId
+}
+
 func (fn *fileNode) spaceInfo(ctx context.Context, key index.Key, groupInfo index.GroupInfo) (info *fileproto.SpaceInfoResponse, err error) {
 	info = &fileproto.SpaceInfoResponse{}
-	info.SpaceId = key.SpaceId
+	info.SpaceId = removeOneToOneSuffix(key.SpaceId)
 	spaceInfo, err := fn.index.SpaceInfo(ctx, key)
 	if err != nil {
 		return nil, err
