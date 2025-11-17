@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"slices"
+	"strings"
 
 	"github.com/anyproto/any-sync/acl"
 	"github.com/anyproto/any-sync/app"
@@ -11,6 +12,7 @@ import (
 	"github.com/anyproto/any-sync/commonfile/fileblockstore"
 	"github.com/anyproto/any-sync/commonfile/fileproto"
 	"github.com/anyproto/any-sync/commonfile/fileproto/fileprotoerr"
+	"github.com/anyproto/any-sync/commonspace/object/acl/list"
 	"github.com/anyproto/any-sync/metric"
 	"github.com/anyproto/any-sync/net/peer"
 	"github.com/anyproto/any-sync/net/rpc/server"
@@ -183,9 +185,38 @@ func (fn *fileNode) StoreKey(ctx context.Context, spaceId string, checkLimit boo
 		log.WarnCtx(ctx, "acl ownerPubKey error", zap.Error(err))
 		return storageKey, fileprotoerr.ErrForbidden
 	}
-	storageKey = index.Key{
-		GroupId: ownerPubKey.Account(),
-		SpaceId: spaceId,
+
+	err = fn.acl.ReadState(ctx, spaceId, func(aclState *list.AclState) error {
+		if aclState.IsOneToOne() {
+			if aclState.Permissions(identity).NoPermissions() {
+				return fileprotoerr.ErrForbidden
+			}
+			pubKeys, serr := oneToOneParticipantPubKeys(aclState.CurrentAccounts())
+			if serr != nil {
+				log.WarnCtx(ctx, "oneToOne acl error: ", zap.Error(err))
+				return fileprotoerr.ErrForbidden
+			}
+
+			newSpaceId, serr := oneToOneSpaceId(identity.Storage(), pubKeys, spaceId)
+			if serr != nil {
+				log.WarnCtx(ctx, "oneToOne acl error: ", zap.Error(err))
+				return fileprotoerr.ErrForbidden
+			}
+
+			storageKey = index.Key{
+				GroupId: identity.Account(),
+				SpaceId: newSpaceId,
+			}
+		} else {
+			storageKey = index.Key{
+				GroupId: ownerPubKey.Account(),
+				SpaceId: spaceId,
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return
 	}
 
 	// if it not owner
@@ -287,9 +318,15 @@ func (fn *fileNode) accountInfo(ctx context.Context, identity string) (info *fil
 	return
 }
 
+func removeOneToOneSuffix(spaceId string) string {
+	spaceId = strings.TrimSuffix(spaceId, "#0")
+	spaceId = strings.TrimSuffix(spaceId, "#1")
+	return spaceId
+}
+
 func (fn *fileNode) spaceInfo(ctx context.Context, key index.Key, groupInfo index.GroupInfo) (info *fileproto.SpaceInfoResponse, err error) {
 	info = &fileproto.SpaceInfoResponse{}
-	info.SpaceId = key.SpaceId
+	info.SpaceId = removeOneToOneSuffix(key.SpaceId)
 	spaceInfo, err := fn.index.SpaceInfo(ctx, key)
 	if err != nil {
 		return nil, err
