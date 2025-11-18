@@ -39,7 +39,7 @@ type cidEntry struct {
 
 func (ce *cidEntry) Save(ctx context.Context, cl redis.Cmdable) error {
 	ce.UpdateTime = time.Now().Unix()
-	data, err := ce.Marshal()
+	data, err := ce.MarshalVT()
 	if err != nil {
 		return err
 	}

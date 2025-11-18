@@ -176,7 +176,7 @@ func (ri *redisIndex) getCidEntry(ctx context.Context, c cid.Cid) (entry *cidEnt
 		return
 	}
 	protoEntry := &indexproto.CidEntry{}
-	err = protoEntry.Unmarshal([]byte(cidData))
+	err = protoEntry.UnmarshalVT([]byte(cidData))
 	if err != nil {
 		return
 	}
@@ -195,7 +195,7 @@ func (ri *redisIndex) createCidEntry(ctx context.Context, b blocks.Block) (entry
 	entry = &cidEntry{
 		Cid: b.Cid(),
 		CidEntry: &indexproto.CidEntry{
-			Size_:      uint64(len(b.RawData())),
+			Size:       uint64(len(b.RawData())),
 			CreateTime: now,
 			UpdateTime: now,
 		},
@@ -216,7 +216,7 @@ func (ri *redisIndex) initCidEntry(ctx context.Context, entry *cidEntry) (err er
 			return
 		}
 		_, err = ri.cl.Pipelined(ctx, func(pipe redis.Pipeliner) error {
-			if e := pipe.IncrBy(ctx, cidSizeSumKey, int64(entry.Size_)).Err(); e != nil {
+			if e := pipe.IncrBy(ctx, cidSizeSumKey, int64(entry.Size)).Err(); e != nil {
 				return e
 			}
 			if e := pipe.Incr(ctx, cidCount).Err(); e != nil {

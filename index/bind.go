@@ -35,7 +35,7 @@ func (ri *redisIndex) fileBind(ctx context.Context, key Key, fileId string, cids
 		if !fileInfo.Exists(c.Cid.String()) {
 			newFileCidIdx = append(newFileCidIdx, i)
 			fileInfo.Cids = append(fileInfo.Cids, c.Cid.String())
-			fileInfo.Size_ += c.Size_
+			fileInfo.Size += c.Size
 		}
 	}
 
@@ -74,7 +74,7 @@ func (ri *redisIndex) fileBind(ctx context.Context, key Key, fileId string, cids
 			}
 			if !ex {
 				entry.group.CidCount++
-				entry.group.Size_ += cids.entries[idx].Size_
+				entry.group.Size += cids.entries[idx].Size
 			}
 		}
 		ex, err := cidExistSpaceCmds[i].Result()
@@ -83,7 +83,7 @@ func (ri *redisIndex) fileBind(ctx context.Context, key Key, fileId string, cids
 		}
 		if !ex {
 			entry.space.CidCount++
-			entry.space.Size_ += cids.entries[idx].Size_
+			entry.space.Size += cids.entries[idx].Size
 			affectedCidIdx = append(affectedCidIdx, idx)
 		}
 	}
@@ -117,4 +117,13 @@ func (ri *redisIndex) fileBind(ctx context.Context, key Key, fileId string, cids
 		}
 	}
 	return
+}
+
+func (ri *redisIndex) fileBindCidStrings(ctx context.Context, key Key, fileId string, cidStrings []string, entry groupSpaceEntry) (err error) {
+	cidEntries, err := ri.CidEntriesByString(ctx, cidStrings)
+	if err != nil {
+		return
+	}
+	defer cidEntries.Release()
+	return ri.fileBind(ctx, key, fileId, cidEntries, entry)
 }

@@ -42,3 +42,8 @@ message FileEntry {
     int64 createTime = 3;
     int64 updateTime = 4;
 }
+
+message OwnershipRecord {
+    string ownerId = 1;
+    int64 aclRecordIndex = 2;
+}

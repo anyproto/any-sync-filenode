@@ -70,7 +70,7 @@ func (ri *redisIndex) Check(ctx context.Context, key Key, doFix bool) (checkResu
 		checkResults = append(checkResults, results...)
 		for k, ref := range check.actualRefs {
 			sumRefs[k] += ref
-			sumSize += check.cidEntries[k].Size_
+			sumSize += check.cidEntries[k].Size
 		}
 	}
 
@@ -121,7 +121,7 @@ func (ri *redisIndex) fix(ctx context.Context, key Key, checkResults []CheckResu
 func (ri *redisIndex) fixSpaceEntry(ctx context.Context, key Key, check CheckResult) (err error) {
 	se := check.SpaceEntry
 	se.UpdateTime = time.Now().Unix()
-	data, err := se.Marshal()
+	data, err := se.MarshalVT()
 	if err != nil {
 		return
 	}
@@ -155,7 +155,7 @@ func (ri *redisIndex) fixGroupCid(ctx context.Context, key Key, check CheckResul
 func (ri *redisIndex) fixCid(ctx context.Context, v CheckResult) (err error) {
 	ce := v.CidEntry
 	ce.UpdateTime = time.Now().Unix()
-	data, err := ce.Marshal()
+	data, err := ce.MarshalVT()
 	if err != nil {
 		return err
 	}
@@ -178,7 +178,7 @@ func (ri *redisIndex) loadSpaceContent(ctx context.Context, key Key, se *spaceEn
 			sc.cids[k[2:]], _ = strconv.ParseUint(v, 10, 64)
 		} else if strings.HasPrefix(k, "f:") {
 			fileEntryProto := &indexproto.FileEntry{}
-			if err = fileEntryProto.Unmarshal([]byte(v)); err != nil {
+			if err = fileEntryProto.UnmarshalVT([]byte(v)); err != nil {
 				return
 			}
 			sc.files[k[2:]] = fileEntryProto
@@ -233,15 +233,15 @@ func (sc *spaceContent) Check(ctx context.Context, ri *redisIndex) (checkResults
 	for fileId, file := range sc.files {
 		var fileSize uint64
 		for _, fCid := range file.Cids {
-			fileSize += sc.cidEntries[fCid].Size_
+			fileSize += sc.cidEntries[fCid].Size
 		}
-		if file.Size_ != fileSize {
+		if file.Size != fileSize {
 			fix := CheckResult{
 				Key:         "f:" + fileId,
-				Description: fmt.Sprintf("file size mismatch: %d -> %d", file.Size_, fileSize),
+				Description: fmt.Sprintf("file size mismatch: %d -> %d", file.Size, fileSize),
 				SpaceId:     sc.entry.Id,
 			}
-			file.Size_ = fileSize
+			file.Size = fileSize
 			fix.FileEntry = file
 			checkResults = append(checkResults, fix)
 		}
@@ -269,21 +269,21 @@ func (sc *spaceContent) Check(ctx context.Context, ri *redisIndex) (checkResults
 			}
 			checkResults = append(checkResults, fix)
 		}
-		sumSize += cEntry.Size_
+		sumSize += cEntry.Size
 	}
 
 	// check space entry
-	if sc.entry.Size_ != sumSize || sc.entry.FileCount != uint32(len(sc.files)) || sc.entry.CidCount != uint64(len(sc.actualRefs)) {
+	if sc.entry.Size != sumSize || sc.entry.FileCount != uint32(len(sc.files)) || sc.entry.CidCount != uint64(len(sc.actualRefs)) {
 		fix := CheckResult{
 			Key: "info",
 			Description: fmt.Sprintf("space entry; size: %d -> %d; cidsCount: %d -> %d; filesCount: %d -> %d",
-				sc.entry.Size_, sumSize,
+				sc.entry.Size, sumSize,
 				sc.entry.CidCount, len(sc.actualRefs),
 				sc.entry.FileCount, len(sc.files),
 			),
 			SpaceId: sc.entry.Id,
 		}
-		sc.entry.Size_ = sumSize
+		sc.entry.Size = sumSize
 		sc.entry.FileCount = uint32(len(sc.files))
 		sc.entry.CidCount = uint64(len(sc.actualRefs))
 		fix.SpaceEntry = sc.entry.SpaceEntry
@@ -350,13 +350,13 @@ func (gc *groupContent) Check(cidRefs map[string]uint64, sumSize uint64) (checkR
 			checkResults = append(checkResults, fix)
 		}
 	}
-	if gc.entry.Size_ != sumSize {
+	if gc.entry.Size != sumSize {
 		fix := CheckResult{
 			Key:         "info",
 			GroupEntry:  gc.entry.GroupEntry,
-			Description: fmt.Sprintf("group size mismatch: %d -> %d", gc.entry.Size_, sumSize),
+			Description: fmt.Sprintf("group size mismatch: %d -> %d", gc.entry.Size, sumSize),
 		}
-		fix.GroupEntry.Size_ = sumSize
+		fix.GroupEntry.Size = sumSize
 		fix.GroupEntry.CidCount = uint64(len(cidRefs))
 		checkResults = append(checkResults, fix)
 	}
