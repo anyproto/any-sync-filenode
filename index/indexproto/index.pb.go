@@ -401,6 +401,58 @@ func (x *FileEntry) GetUpdateTime() int64 {
 	return 0
 }
 
+type OwnershipRecord struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	OwnerId        string                 `protobuf:"bytes,1,opt,name=ownerId,proto3" json:"ownerId,omitempty"`
+	AclRecordIndex int64                  `protobuf:"varint,2,opt,name=aclRecordIndex,proto3" json:"aclRecordIndex,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *OwnershipRecord) Reset() {
+	*x = OwnershipRecord{}
+	mi := &file_index_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OwnershipRecord) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OwnershipRecord) ProtoMessage() {}
+
+func (x *OwnershipRecord) ProtoReflect() protoreflect.Message {
+	mi := &file_index_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OwnershipRecord.ProtoReflect.Descriptor instead.
+func (*OwnershipRecord) Descriptor() ([]byte, []int) {
+	return file_index_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *OwnershipRecord) GetOwnerId() string {
+	if x != nil {
+		return x.OwnerId
+	}
+	return ""
+}
+
+func (x *OwnershipRecord) GetAclRecordIndex() int64 {
+	if x != nil {
+		return x.AclRecordIndex
+	}
+	return 0
+}
+
 var File_index_proto protoreflect.FileDescriptor
 
 const file_index_proto_rawDesc = "" +
@@ -453,7 +505,10 @@ const file_index_proto_rawDesc = "" +
 	"createTime\x12\x1e\n" +
 	"\n" +
 	"updateTime\x18\x04 \x01(\x03R\n" +
-	"updateTimeB\x12Z\x10index/indexprotob\x06proto3"
+	"updateTime\"S\n" +
+	"\x0fOwnershipRecord\x12\x18\n" +
+	"\aownerId\x18\x01 \x01(\tR\aownerId\x12&\n" +
+	"\x0eaclRecordIndex\x18\x02 \x01(\x03R\x0eaclRecordIndexB\x12Z\x10index/indexprotob\x06proto3"
 
 var (
 	file_index_proto_rawDescOnce sync.Once
@@ -467,13 +522,14 @@ func file_index_proto_rawDescGZIP() []byte {
 	return file_index_proto_rawDescData
 }
 
-var file_index_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_index_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_index_proto_goTypes = []any{
-	(*CidEntry)(nil),   // 0: fileIndexProto.CidEntry
-	(*CidList)(nil),    // 1: fileIndexProto.CidList
-	(*GroupEntry)(nil), // 2: fileIndexProto.GroupEntry
-	(*SpaceEntry)(nil), // 3: fileIndexProto.SpaceEntry
-	(*FileEntry)(nil),  // 4: fileIndexProto.FileEntry
+	(*CidEntry)(nil),        // 0: fileIndexProto.CidEntry
+	(*CidList)(nil),         // 1: fileIndexProto.CidList
+	(*GroupEntry)(nil),      // 2: fileIndexProto.GroupEntry
+	(*SpaceEntry)(nil),      // 3: fileIndexProto.SpaceEntry
+	(*FileEntry)(nil),       // 4: fileIndexProto.FileEntry
+	(*OwnershipRecord)(nil), // 5: fileIndexProto.OwnershipRecord
 }
 var file_index_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -494,7 +550,7 @@ func file_index_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_index_proto_rawDesc), len(file_index_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

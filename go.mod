@@ -8,7 +8,7 @@ require (
 	github.com/OneOfOne/xxhash v1.2.8
 	github.com/ahmetb/govvv v0.3.0
 	github.com/anyproto/any-store v0.4.3
-	github.com/anyproto/any-sync v0.11.2
+	github.com/anyproto/any-sync v0.11.3-0.20251118153235-d8e253650621
 	github.com/aws/aws-sdk-go v1.55.8
 	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/go-redsync/redsync/v4 v4.14.0

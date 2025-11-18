@@ -41,18 +41,19 @@ func TestFileNode_Add(t *testing.T) {
 			b           = testutil.NewRandBlock(1024)
 		)
 
-		aclState := defaultAclState(t, storeKey.SpaceId)
-		idRaw, _ := aclState.Identity().Marshall()
-		storeKey.GroupId = aclState.Identity().Account()
+		aclList := defaultAclList(t, storeKey.SpaceId)
+		idRaw, _ := aclList.AclState().Identity().Marshall()
+		storeKey.GroupId = aclList.AclState().Identity().Account()
 		ctx := peer.CtxWithIdentity(context.Background(), idRaw)
 
-		fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
-				return fn(aclState)
+		fx.aclService.EXPECT().ReadList(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, spaceId string, fn func(aclList list.AclList) error) error {
+				return fn(aclList)
 			})
 
 		fx.index.EXPECT().CheckLimits(ctx, storeKey)
 		fx.index.EXPECT().Migrate(ctx, storeKey)
+		fx.index.EXPECT().CheckOwnership(ctx, storeKey, gomock.Any()).Return(nil)
 		fx.index.EXPECT().BlocksLock(ctx, []blocks.Block{b}).Return(func() {}, nil)
 		fx.index.EXPECT().BlocksGetNonExistent(ctx, []blocks.Block{b}).Return([]blocks.Block{b}, nil)
 		fx.store.EXPECT().Add(ctx, []blocks.Block{b})
@@ -80,17 +81,18 @@ func TestFileNode_Add(t *testing.T) {
 			b           = testutil.NewRandBlock(1024)
 		)
 
-		aclState := defaultAclState(t, storeKey.SpaceId)
-		idRaw, _ := aclState.Identity().Marshall()
-		storeKey.GroupId = aclState.Identity().Account()
+		aclList := defaultAclList(t, storeKey.SpaceId)
+		idRaw, _ := aclList.AclState().Identity().Marshall()
+		storeKey.GroupId = aclList.AclState().Identity().Account()
 		ctx := peer.CtxWithIdentity(context.Background(), idRaw)
 
-		fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
-				return fn(aclState)
+		fx.aclService.EXPECT().ReadList(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, spaceId string, fn func(list.AclList) error) error {
+				return fn(aclList)
 			})
 
 		fx.index.EXPECT().Migrate(ctx, storeKey)
+		fx.index.EXPECT().CheckOwnership(ctx, storeKey, gomock.Any()).Return(nil)
 		fx.index.EXPECT().CheckLimits(ctx, storeKey).Return(index.ErrLimitExceed)
 
 		resp, err := fx.handler.BlockPush(ctx, &fileproto.BlockPushRequest{
@@ -204,17 +206,18 @@ func TestFileNode_Check(t *testing.T) {
 		cids = append(cids, b.Cid().Bytes())
 	}
 
-	aclState := defaultAclState(t, storeKey.SpaceId)
-	idRaw, _ := aclState.Identity().Marshall()
-	storeKey.GroupId = aclState.Identity().Account()
+	aclList := defaultAclList(t, storeKey.SpaceId)
+	idRaw, _ := aclList.AclState().Identity().Marshall()
+	storeKey.GroupId = aclList.AclState().Identity().Account()
 	ctx := peer.CtxWithIdentity(context.Background(), idRaw)
 
-	fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
-			return fn(aclState)
+	fx.aclService.EXPECT().ReadList(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, spaceId string, fn func(list.AclList) error) error {
+			return fn(aclList)
 		})
 
 	fx.index.EXPECT().Migrate(ctx, storeKey)
+	fx.index.EXPECT().CheckOwnership(ctx, storeKey, gomock.Any()).Return(nil)
 	fx.index.EXPECT().CidExistsInSpace(ctx, storeKey, testutil.BlocksToKeys(bs)).Return(testutil.BlocksToKeys(bs[:1]), nil)
 	fx.index.EXPECT().CidExists(ctx, bs[1].Cid()).Return(true, nil)
 	fx.index.EXPECT().CidExists(ctx, bs[2].Cid()).Return(false, nil)
@@ -245,18 +248,19 @@ func TestFileNode_BlocksBind(t *testing.T) {
 		cidsB[i] = b.Cid().Bytes()
 	}
 
-	aclState := defaultAclState(t, storeKey.SpaceId)
-	idRaw, _ := aclState.Identity().Marshall()
-	storeKey.GroupId = aclState.Identity().Account()
+	aclList := defaultAclList(t, storeKey.SpaceId)
+	idRaw, _ := aclList.AclState().Identity().Marshall()
+	storeKey.GroupId = aclList.AclState().Identity().Account()
 	ctx := peer.CtxWithIdentity(context.Background(), idRaw)
 
-	fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
-			return fn(aclState)
+	fx.aclService.EXPECT().ReadList(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, spaceId string, fn func(list.AclList) error) error {
+			return fn(aclList)
 		})
 
 	fx.index.EXPECT().CheckLimits(ctx, storeKey)
 	fx.index.EXPECT().Migrate(ctx, storeKey)
+	fx.index.EXPECT().CheckOwnership(ctx, storeKey, gomock.Any()).Return(nil)
 	fx.index.EXPECT().CidEntries(ctx, cids).Return(cidEntries, nil)
 	fx.index.EXPECT().FileBind(ctx, storeKey, fileId, cidEntries)
 
@@ -280,17 +284,18 @@ func TestFileNode_FileInfo(t *testing.T) {
 		fileId2     = testutil.NewRandCid().String()
 	)
 
-	aclState := defaultAclState(t, storeKey.SpaceId)
-	idRaw, _ := aclState.Identity().Marshall()
-	storeKey.GroupId = aclState.Identity().Account()
+	aclList := defaultAclList(t, storeKey.SpaceId)
+	idRaw, _ := aclList.AclState().Identity().Marshall()
+	storeKey.GroupId = aclList.AclState().Identity().Account()
 	ctx := peer.CtxWithIdentity(context.Background(), idRaw)
 
-	fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
-			return fn(aclState)
+	fx.aclService.EXPECT().ReadList(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, spaceId string, fn func(list.AclList) error) error {
+			return fn(aclList)
 		})
 
 	fx.index.EXPECT().Migrate(ctx, storeKey)
+	fx.index.EXPECT().CheckOwnership(ctx, storeKey, gomock.Any()).Return(nil)
 	fx.index.EXPECT().FileInfo(ctx, storeKey, fileId1, fileId2).Return([]index.FileInfo{{1, 1}, {2, 2}}, nil)
 
 	resp, err := fx.handler.FilesInfo(ctx, &fileproto.FilesInfoRequest{
@@ -360,17 +365,18 @@ func TestFileNode_SpaceInfo(t *testing.T) {
 			_, storeKey = newRandKey()
 		)
 
-		aclState := defaultAclState(t, storeKey.SpaceId)
-		idRaw, _ := aclState.Identity().Marshall()
-		storeKey.GroupId = aclState.Identity().Account()
+		aclList := defaultAclList(t, storeKey.SpaceId)
+		idRaw, _ := aclList.AclState().Identity().Marshall()
+		storeKey.GroupId = aclList.AclState().Identity().Account()
 		ctx := peer.CtxWithIdentity(context.Background(), idRaw)
 
-		fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
-				return fn(aclState)
+		fx.aclService.EXPECT().ReadList(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, spaceId string, fn func(list.AclList) error) error {
+				return fn(aclList)
 			})
 
 		fx.index.EXPECT().Migrate(ctx, storeKey)
+		fx.index.EXPECT().CheckOwnership(ctx, storeKey, gomock.Any()).Return(nil)
 
 		fx.index.EXPECT().GroupInfo(ctx, storeKey.GroupId).Return(index.GroupInfo{
 			BytesUsage:   100,
@@ -404,17 +410,18 @@ func TestFileNode_SpaceInfo(t *testing.T) {
 			_, storeKey = newRandKey()
 		)
 		storeKey.SpaceId = fmt.Sprintf("%s#1", storeKey.SpaceId)
-		aclState := defaultAclState(t, storeKey.SpaceId)
-		idRaw, _ := aclState.Identity().Marshall()
-		storeKey.GroupId = aclState.Identity().Account()
+		aclList := defaultAclList(t, storeKey.SpaceId)
+		idRaw, _ := aclList.AclState().Identity().Marshall()
+		storeKey.GroupId = aclList.AclState().Identity().Account()
 		ctx := peer.CtxWithIdentity(context.Background(), idRaw)
 
-		fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
-				return fn(aclState)
+		fx.aclService.EXPECT().ReadList(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, spaceId string, fn func(list.AclList) error) error {
+				return fn(aclList)
 			})
 
 		fx.index.EXPECT().Migrate(ctx, storeKey)
+		fx.index.EXPECT().CheckOwnership(ctx, storeKey, gomock.Any()).Return(nil)
 
 		fx.index.EXPECT().GroupInfo(ctx, storeKey.GroupId).Return(index.GroupInfo{
 			BytesUsage:   100,
@@ -446,20 +453,21 @@ func TestFileNode_StoreKey(t *testing.T) {
 		defer fx.Finish(t)
 
 		spaceId := "spaceId"
-		aclState := defaultAclState(t, spaceId)
-		idRaw, _ := aclState.Identity().Marshall()
+		aclList := defaultAclList(t, spaceId)
+		idRaw, _ := aclList.AclState().Identity().Marshall()
 		ctx := peer.CtxWithIdentity(context.Background(), idRaw)
 
 		expectedStoreKey := index.Key{
-			GroupId: aclState.Identity().Account(),
+			GroupId: aclList.AclState().Identity().Account(),
 			SpaceId: "spaceId",
 		}
 
 		fx.index.EXPECT().Migrate(ctx, expectedStoreKey)
+		fx.index.EXPECT().CheckOwnership(ctx, expectedStoreKey, gomock.Any()).Return(nil)
 		fx.index.EXPECT().CheckLimits(ctx, expectedStoreKey)
-		fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
-				return fn(aclState)
+		fx.aclService.EXPECT().ReadList(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, spaceId string, fn func(list.AclList) error) error {
+				return fn(aclList)
 			})
 
 		actualStoreKey, err := fx.StoreKey(ctx, "spaceId", true)
@@ -478,28 +486,27 @@ func TestFileNode_StoreKey(t *testing.T) {
 		// checks permissions using Storage() fn, and acl test suit executor can't parse
 		// such commands with stringified binaries instead of names
 		spaceId := "spaceId"
-		aclState := oneToOneAclState(t, spaceId)
-		idRaw, _ := aclState.Identity().Marshall()
+		aclList := oneToOneAclList(t, spaceId)
+		idRaw, _ := aclList.AclState().Identity().Marshall()
 		ctx := peer.CtxWithIdentity(context.Background(), idRaw)
 
 		// make suffix via oneToOneSpaceId to avoid test flakiness:
 		// acltestsuite uses random to generate accounts.
 		// oneToOneSpaceId is tested separately.
-		statePubKeys, err := oneToOneParticipantPubKeys(aclState.CurrentAccounts())
+		statePubKeys, err := oneToOneParticipantPubKeys(aclList.AclState().CurrentAccounts())
 		require.NoError(t, err)
-		expectedSuffix, err := oneToOneSpaceId(aclState.Identity().Storage(), statePubKeys, spaceId)
+		expectedSuffix, err := oneToOneSpaceId(aclList.AclState().Identity().Storage(), statePubKeys, spaceId)
 		require.NoError(t, err)
 
 		expectedStoreKey := index.Key{
-			GroupId: aclState.Identity().Account(),
+			GroupId: aclList.AclState().Identity().Account(),
 			SpaceId: expectedSuffix,
 		}
 
-		fx.index.EXPECT().Migrate(ctx, expectedStoreKey)
 		fx.index.EXPECT().CheckLimits(ctx, expectedStoreKey)
-		fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
-				return fn(aclState)
+		fx.aclService.EXPECT().ReadList(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, spaceId string, fn func(list.AclList) error) error {
+				return fn(aclList)
 			})
 
 		actualStoreKey, err := fx.StoreKey(ctx, "spaceId", true)
@@ -513,12 +520,12 @@ func TestFileNode_StoreKey(t *testing.T) {
 		defer fx.Finish(t)
 
 		spaceId := "spaceId"
-		aclState := oneToOneAclState(t, spaceId)
+		aclList := oneToOneAclList(t, spaceId)
 		ctx, _ := newRandKey()
 
-		fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
-				return fn(aclState)
+		fx.aclService.EXPECT().ReadList(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, spaceId string, fn func(list.AclList) error) error {
+				return fn(aclList)
 			})
 
 		_, err := fx.StoreKey(ctx, "spaceId", true)
@@ -559,22 +566,23 @@ func TestFileNode_SpaceLimitSet(t *testing.T) {
 
 	_, storeKey := newRandKey()
 
-	aclState := defaultAclState(t, storeKey.SpaceId)
-	idRaw, _ := aclState.Identity().Marshall()
-	storeKey.GroupId = aclState.Identity().Account()
+	aclList := defaultAclList(t, storeKey.SpaceId)
+	idRaw, _ := aclList.AclState().Identity().Marshall()
+	storeKey.GroupId = aclList.AclState().Identity().Account()
 	ctx := peer.CtxWithIdentity(context.Background(), idRaw)
 
-	fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
-			return fn(aclState)
+	fx.aclService.EXPECT().ReadList(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, spaceId string, fn func(list.AclList) error) error {
+			return fn(aclList)
 		})
 
 	fx.index.EXPECT().Migrate(ctx, storeKey)
+	fx.index.EXPECT().CheckOwnership(ctx, storeKey, gomock.Any()).Return(nil)
 	fx.index.EXPECT().SetSpaceLimit(ctx, storeKey, uint64(12345))
 	require.NoError(t, fx.SpaceLimitSet(ctx, storeKey.SpaceId, 12345))
 }
 
-func newAclState(t *testing.T, spaceId string, initCmd string) *list.AclState {
+func newAclList(t *testing.T, spaceId string, initCmd string) list.AclList {
 	a := list.NewAclExecutor(spaceId)
 	cmds := []string{
 		initCmd,
@@ -583,14 +591,14 @@ func newAclState(t *testing.T, spaceId string, initCmd string) *list.AclState {
 		err := a.Execute(cmd)
 		require.NoError(t, err)
 	}
-	return a.ActualAccounts()["a"].Acl.AclState()
+	return a.ActualAccounts()["a"].Acl
 }
 
-func oneToOneAclState(t *testing.T, spaceId string) *list.AclState {
-	return newAclState(t, spaceId, "a;b.init-onetoone::a;b")
+func oneToOneAclList(t *testing.T, spaceId string) list.AclList {
+	return newAclList(t, spaceId, "a;b.init-onetoone::a;b")
 }
-func defaultAclState(t *testing.T, spaceId string) *list.AclState {
-	return newAclState(t, spaceId, "a.init::a")
+func defaultAclList(t *testing.T, spaceId string) list.AclList {
+	return newAclList(t, spaceId, "a.init::a")
 }
 
 func newFixture(t *testing.T) *fixture {

@@ -73,7 +73,8 @@ type Index interface {
 	SpaceDelete(ctx context.Context, key Key) (ok bool, err error)
 	MarkSpaceAsDeleted(ctx context.Context, key Key) (ok bool, err error)
 
-	Move(ctx context.Context, src, dest Key) (err error)
+	CheckOwnership(ctx context.Context, key Key, aclRecordIndex int) error
+
 	app.ComponentRunnable
 }
 
@@ -333,6 +334,10 @@ func FileKey(fileId string) string {
 func DelKey(k Key) string {
 	hash := strconv.FormatUint(uint64(xxhash.ChecksumString32(k.GroupId)), 36)
 	return "del:" + k.SpaceId + ".{" + hash + "}"
+}
+
+func OwnerKey(spaceId string) string {
+	return "o:" + spaceId
 }
 
 const infoKey = "info"

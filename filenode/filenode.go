@@ -181,12 +181,23 @@ func (fn *fileNode) StoreKey(ctx context.Context, spaceId string, checkLimit boo
 		return storageKey, fileprotoerr.ErrForbidden
 	}
 
-	var ownerPubKey crypto.PubKey
+	var (
+		ownerPubKey      crypto.PubKey
+		ownerRecordIndex int
+		isOneToOne       bool
+	)
 
-	err = fn.acl.ReadState(ctx, spaceId, func(aclState *list.AclState) error {
-		if ownerPubKey, err = aclState.OwnerPubKey(); err != nil {
+	err = fn.acl.ReadList(ctx, spaceId, func(aclList list.AclList) error {
+		aclState := aclList.AclState()
+		var ownerRecordId string
+		if ownerPubKey, ownerRecordId, err = aclState.OwnerPubKeyWithRecordId(); err != nil {
 			log.WarnCtx(ctx, "acl ownerPubKey error", zap.Error(err))
 			return fileprotoerr.ErrForbidden
+		}
+		ownerRecordIndex = aclList.GetRecordIndex(ownerRecordId)
+		if ownerRecordIndex < 0 {
+			log.ErrorCtx(ctx, "acl ownerRecordIndex not found", zap.String("spaceId", spaceId), zap.String("recordId", ownerRecordId), zap.Error(err))
+			return fileprotoerr.ErrUnexpected
 		}
 		if aclState.IsOneToOne() {
 			if aclState.Permissions(identity).NoPermissions() {
@@ -208,6 +219,7 @@ func (fn *fileNode) StoreKey(ctx context.Context, spaceId string, checkLimit boo
 				GroupId: identity.Account(),
 				SpaceId: newSpaceId,
 			}
+			isOneToOne = true
 		} else {
 			storageKey = index.Key{
 				GroupId: ownerPubKey.Account(),
@@ -232,10 +244,15 @@ func (fn *fileNode) StoreKey(ctx context.Context, spaceId string, checkLimit boo
 		}
 	}
 
-	if e := fn.index.Migrate(ctx, storageKey); e != nil {
-		log.WarnCtx(ctx, "space migrate error", zap.String("spaceId", spaceId), zap.Error(e))
+	if !isOneToOne {
+		if e := fn.index.Migrate(ctx, storageKey); e != nil {
+			log.WarnCtx(ctx, "space migrate error", zap.String("spaceId", spaceId), zap.Error(e))
+		}
+		if err = fn.index.CheckOwnership(ctx, storageKey, ownerRecordIndex); err != nil {
+			log.ErrorCtx(ctx, "check ownership error", zap.String("spaceId", spaceId), zap.Error(err))
+			return storageKey, fileprotoerr.ErrUnexpected
+		}
 	}
-
 	if checkLimit {
 		if err = fn.index.CheckLimits(ctx, storageKey); err != nil {
 			if errors.Is(err, index.ErrLimitExceed) {

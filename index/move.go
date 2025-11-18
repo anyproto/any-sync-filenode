@@ -2,16 +2,66 @@ package index
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
 
 	"github.com/redis/go-redis/v9"
+
+	"github.com/anyproto/any-sync-filenode/index/indexproto"
 )
 
-/**
-TODO: make a separate keys with status and history of ownership
-*/
+func (ri *redisIndex) CheckOwnership(ctx context.Context, key Key, aclRecordIndex int) (err error) {
+	oKey := OwnerKey(key.SpaceId)
+	_, release, err := ri.AcquireKey(ctx, oKey)
+	if err != nil {
+		return
+	}
+	defer release()
+
+	var (
+		ownerData = &indexproto.OwnershipRecord{}
+		notExists bool
+	)
+	result, err := ri.cl.Get(ctx, oKey).Result()
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			notExists = true
+		} else {
+			return
+		}
+	}
+
+	if !notExists {
+		if err = ownerData.UnmarshalVT([]byte(result)); err != nil {
+			return
+		}
+	}
+	var needUpdate bool
+	if ownerData.OwnerId != key.GroupId {
+		if err = ri.Move(ctx, key, Key{SpaceId: key.SpaceId, GroupId: ownerData.OwnerId}); err != nil {
+			return
+		}
+		ownerData.OwnerId = key.GroupId
+		needUpdate = true
+	}
+
+	if ownerData.AclRecordIndex != int64(aclRecordIndex) {
+		ownerData.AclRecordIndex = int64(aclRecordIndex)
+		needUpdate = true
+	}
+
+	if !needUpdate {
+		return
+	}
+
+	data, err := ownerData.MarshalVT()
+	if err != nil {
+		return err
+	}
+	return ri.cl.Set(ctx, oKey, data, 0).Err()
+}
 
 func (ri *redisIndex) Move(ctx context.Context, dest, src Key) (err error) {
 	if dest.SpaceId != src.SpaceId {

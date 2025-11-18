@@ -147,6 +147,20 @@ func (mr *MockIndexMockRecorder) CheckLimits(ctx, key any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckLimits", reflect.TypeOf((*MockIndex)(nil).CheckLimits), ctx, key)
 }
 
+// CheckOwnership mocks base method.
+func (m *MockIndex) CheckOwnership(ctx context.Context, key index.Key, aclRecordIndex int) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CheckOwnership", ctx, key, aclRecordIndex)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CheckOwnership indicates an expected call of CheckOwnership.
+func (mr *MockIndexMockRecorder) CheckOwnership(ctx, key, aclRecordIndex any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckOwnership", reflect.TypeOf((*MockIndex)(nil).CheckOwnership), ctx, key, aclRecordIndex)
+}
+
 // CidEntries mocks base method.
 func (m *MockIndex) CidEntries(ctx context.Context, cids []cid.Cid) (*index.CidEntries, error) {
 	m.ctrl.T.Helper()
@@ -345,20 +359,6 @@ func (m *MockIndex) Migrate(ctx context.Context, key index.Key) error {
 func (mr *MockIndexMockRecorder) Migrate(ctx, key any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Migrate", reflect.TypeOf((*MockIndex)(nil).Migrate), ctx, key)
-}
-
-// Move mocks base method.
-func (m *MockIndex) Move(ctx context.Context, src, dest index.Key) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Move", ctx, src, dest)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Move indicates an expected call of Move.
-func (mr *MockIndexMockRecorder) Move(ctx, src, dest any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Move", reflect.TypeOf((*MockIndex)(nil).Move), ctx, src, dest)
 }
 
 // Name mocks base method.
