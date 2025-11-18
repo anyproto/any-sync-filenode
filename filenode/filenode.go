@@ -17,6 +17,7 @@ import (
 	"github.com/anyproto/any-sync/net/peer"
 	"github.com/anyproto/any-sync/net/rpc/server"
 	"github.com/anyproto/any-sync/nodeconf"
+	"github.com/anyproto/any-sync/util/crypto"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	"go.uber.org/zap"
@@ -180,13 +181,13 @@ func (fn *fileNode) StoreKey(ctx context.Context, spaceId string, checkLimit boo
 		return storageKey, fileprotoerr.ErrForbidden
 	}
 
-	ownerPubKey, err := fn.acl.OwnerPubKey(ctx, spaceId)
-	if err != nil {
-		log.WarnCtx(ctx, "acl ownerPubKey error", zap.Error(err))
-		return storageKey, fileprotoerr.ErrForbidden
-	}
+	var ownerPubKey crypto.PubKey
 
 	err = fn.acl.ReadState(ctx, spaceId, func(aclState *list.AclState) error {
+		if ownerPubKey, err = aclState.OwnerPubKey(); err != nil {
+			log.WarnCtx(ctx, "acl ownerPubKey error", zap.Error(err))
+			return fileprotoerr.ErrForbidden
+		}
 		if aclState.IsOneToOne() {
 			if aclState.Permissions(identity).NoPermissions() {
 				return fileprotoerr.ErrForbidden
