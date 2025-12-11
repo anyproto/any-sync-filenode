@@ -16,16 +16,16 @@ func TestRedisIndex_SpaceDelete(t *testing.T) {
 		key := newRandKey()
 
 		// space not exists
-		ok, err := fx.SpaceDelete(ctx, key)
+		cids, err := fx.SpaceDelete(ctx, key)
 		require.NoError(t, err)
-		assert.False(t, ok)
+		assert.Empty(t, cids)
 
 		// add files
 		bs := testutil.NewRandBlocks(5)
 		require.NoError(t, fx.BlocksAdd(ctx, bs))
-		cids, err := fx.CidEntriesByBlocks(ctx, bs)
+		cidsEntries, err := fx.CidEntriesByBlocks(ctx, bs)
 		require.NoError(t, err)
-		cids.Release()
+		cidsEntries.Release()
 
 		// bind to files with intersected cids
 		fileId1 := testutil.NewRandCid().String()
@@ -49,9 +49,9 @@ func TestRedisIndex_SpaceDelete(t *testing.T) {
 		require.NoError(t, fx.SetGroupLimit(ctx, key.GroupId, 5000))
 		require.NoError(t, fx.SetSpaceLimit(ctx, key, 4000))
 
-		ok, err = fx.SpaceDelete(ctx, key)
+		cids, err = fx.SpaceDelete(ctx, key)
 		require.NoError(t, err)
-		assert.True(t, ok)
+		assert.NotEmpty(t, cids)
 
 		groupInfo, err = fx.GroupInfo(ctx, key.GroupId)
 		require.NoError(t, err)
@@ -61,9 +61,9 @@ func TestRedisIndex_SpaceDelete(t *testing.T) {
 		assert.Equal(t, uint64(5000), groupInfo.Limit)
 
 		// second call
-		ok, err = fx.SpaceDelete(ctx, key)
+		cids, err = fx.SpaceDelete(ctx, key)
 		require.NoError(t, err)
-		assert.False(t, ok)
+		assert.Empty(t, cids)
 	})
 	t.Run("delete from group", func(t *testing.T) {
 		fx := newFixture(t)
@@ -73,9 +73,9 @@ func TestRedisIndex_SpaceDelete(t *testing.T) {
 		// add files
 		bs := testutil.NewRandBlocks(5)
 		require.NoError(t, fx.BlocksAdd(ctx, bs))
-		cids, err := fx.CidEntriesByBlocks(ctx, bs)
+		cidsEntries, err := fx.CidEntriesByBlocks(ctx, bs)
 		require.NoError(t, err)
-		cids.Release()
+		cidsEntries.Release()
 
 		// bind to files with intersected cids
 		fileId1 := testutil.NewRandCid().String()
@@ -91,7 +91,8 @@ func TestRedisIndex_SpaceDelete(t *testing.T) {
 		require.NoError(t, fx.FileBind(ctx, key, fileId2, cids2))
 		cids2.Release()
 
-		require.NoError(t, fx.FileUnbind(ctx, key, fileId1, fileId2))
+		_, err = fx.FileUnbind(ctx, key, fileId1, fileId2)
+		require.NoError(t, err)
 
 		ok, err := fx.MarkSpaceAsDeleted(ctx, key)
 		require.NoError(t, err)
@@ -99,9 +100,9 @@ func TestRedisIndex_SpaceDelete(t *testing.T) {
 
 		require.NoError(t, fx.cl.Del(ctx, SpaceKey(key)).Err())
 
-		ok, err = fx.SpaceDelete(ctx, key)
+		cids, err := fx.SpaceDelete(ctx, key)
 		require.NoError(t, err)
-		assert.True(t, ok)
+		assert.Empty(t, cids) // Should be empty because removeSpaceFromGroup returns nil
 
 		groupInfo, err := fx.GroupInfo(ctx, key.GroupId)
 		require.NoError(t, err)

@@ -550,6 +550,34 @@ func TestFileNode_SpaceLimitSet(t *testing.T) {
 	require.NoError(t, fx.SpaceLimitSet(ctx, storeKey.SpaceId, 12345))
 }
 
+func TestFileNode_FilesDelete(t *testing.T) {
+	fx := newFixture(t)
+	defer fx.Finish(t)
+
+	var (
+		ctx, storeKey = newRandKey()
+		fileId1       = testutil.NewRandCid().String()
+		cids          = []cid.Cid{testutil.NewRandCid()}
+	)
+	fx.aclService.EXPECT().OwnerPubKey(ctx, storeKey.SpaceId).Return(mustPubKey(ctx), nil)
+	fx.aclService.EXPECT().ReadState(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, spaceId string, fn func(*list.AclState) error) error {
+			state := defaultAclState(t, spaceId)
+			return fn(state)
+		})
+
+	fx.index.EXPECT().Migrate(ctx, storeKey)
+	fx.index.EXPECT().FileUnbind(ctx, storeKey, fileId1).Return(cids, nil)
+	fx.store.EXPECT().DeleteMany(ctx, cids).Return(nil)
+
+	resp, err := fx.handler.FilesDelete(ctx, &fileproto.FilesDeleteRequest{
+		SpaceId: storeKey.SpaceId,
+		FileIds: []string{fileId1},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+}
+
 func newAclState(t *testing.T, spaceId string, initCmd string) *list.AclState {
 	a := list.NewAclExecutor(spaceId)
 	cmds := []string{

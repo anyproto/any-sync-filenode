@@ -14,7 +14,8 @@ func TestRedisIndex_UnBind(t *testing.T) {
 		fx := newFixture(t)
 		defer fx.Finish(t)
 		key := newRandKey()
-		require.NoError(t, fx.FileUnbind(ctx, key, testutil.NewRandCid().String()))
+		_, err := fx.FileUnbind(ctx, key, testutil.NewRandCid().String())
+		require.NoError(t, err)
 	})
 	t.Run("unbind single", func(t *testing.T) {
 		fx := newFixture(t)
@@ -30,7 +31,8 @@ func TestRedisIndex_UnBind(t *testing.T) {
 		require.NoError(t, fx.FileBind(ctx, key, fileId, cids))
 		cids.Release()
 
-		require.NoError(t, fx.FileUnbind(ctx, key, fileId))
+		_, err = fx.FileUnbind(ctx, key, fileId)
+		require.NoError(t, err)
 
 		groupInfo, err := fx.GroupInfo(ctx, key.GroupId)
 		require.NoError(t, err)
@@ -74,7 +76,8 @@ func TestRedisIndex_UnBind(t *testing.T) {
 		cids2.Release()
 
 		// remove file1
-		require.NoError(t, fx.FileUnbind(ctx, key, fileId1))
+		_, err = fx.FileUnbind(ctx, key, fileId1)
+		require.NoError(t, err)
 
 		groupInfo, err := fx.GroupInfo(ctx, key.GroupId)
 		require.NoError(t, err)

@@ -349,7 +349,16 @@ func (fn *fileNode) FilesDelete(ctx context.Context, spaceId string, fileIds []s
 	if err != nil {
 		return
 	}
-	return fn.index.FileUnbind(ctx, storeKey, fileIds...)
+	removedCids, err := fn.index.FileUnbind(ctx, storeKey, fileIds...)
+	if err != nil {
+		return err
+	}
+	if len(removedCids) > 0 {
+		if err := fn.store.DeleteMany(ctx, removedCids); err != nil {
+			log.WarnCtx(ctx, "failed to delete cids from store", zap.Error(err))
+		}
+	}
+	return nil
 }
 
 func (fn *fileNode) FileInfo(ctx context.Context, spaceId string, fileIds ...string) (info []*fileproto.FileInfo, err error) {

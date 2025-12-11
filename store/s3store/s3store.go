@@ -189,10 +189,47 @@ func (s *s3store) Add(ctx context.Context, bs []blocks.Block) error {
 }
 
 func (s *s3store) DeleteMany(ctx context.Context, ks []cid.Cid) error {
-	for _, k := range ks {
-		if e := s.Delete(ctx, k); e != nil {
-			log.Warn("can't delete cid", zap.Error(e))
+	if len(ks) == 0 {
+		return nil
+	}
+	// S3 DeleteObjects supports up to 1000 keys per request.
+	const batchSize = 1000
+	for i := 0; i < len(ks); i += batchSize {
+		end := i + batchSize
+		if end > len(ks) {
+			end = len(ks)
 		}
+		batch := ks[i:end]
+
+		deleteInput := &s3.DeleteObjectsInput{
+			Bucket: s.bucket,
+			Delete: &s3.Delete{
+				Objects: make([]*s3.ObjectIdentifier, len(batch)),
+				Quiet:   aws.Bool(true),
+			},
+		}
+		for j, c := range batch {
+			deleteInput.Delete.Objects[j] = &s3.ObjectIdentifier{
+				Key: aws.String(c.String()),
+			}
+		}
+
+		st := time.Now()
+		s.limiter <- struct{}{}
+		wait := time.Since(st)
+
+		_, err := s.client.DeleteObjectsWithContext(ctx, deleteInput)
+		<-s.limiter
+
+		if err != nil {
+			log.Warn("s3 delete objects error", zap.Error(err))
+			return err
+		}
+		log.Debug("s3 delete many",
+			zap.Duration("total", time.Since(st)),
+			zap.Duration("wait", wait),
+			zap.Int("count", len(batch)),
+		)
 	}
 	return nil
 }

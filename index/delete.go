@@ -7,14 +7,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ipfs/go-cid"
 	"github.com/redis/go-redis/v9"
 )
 
-func (ri *redisIndex) SpaceDelete(ctx context.Context, key Key) (ok bool, err error) {
+func (ri *redisIndex) SpaceDelete(ctx context.Context, key Key) (removedCids []cid.Cid, err error) {
 	entry, release, err := ri.AcquireSpace(ctx, key)
 	if err != nil {
 		if errors.Is(err, ErrSpaceIsDeleted) {
-			return ri.removeSpaceFromGroup(ctx, key)
+			_, err = ri.removeSpaceFromGroup(ctx, key)
+			return nil, err
 		}
 		return
 	}
@@ -23,9 +25,9 @@ func (ri *redisIndex) SpaceDelete(ctx context.Context, key Key) (ok bool, err er
 	return ri.spaceDelete(ctx, key, entry)
 }
 
-func (ri *redisIndex) spaceDelete(ctx context.Context, key Key, entry groupSpaceEntry) (ok bool, err error) {
+func (ri *redisIndex) spaceDelete(ctx context.Context, key Key, entry groupSpaceEntry) (removedCids []cid.Cid, err error) {
 	if !entry.spaceExists {
-		return false, nil
+		return nil, nil
 	}
 	sk := SpaceKey(key)
 
@@ -35,14 +37,16 @@ func (ri *redisIndex) spaceDelete(ctx context.Context, key Key, entry groupSpace
 	}
 	for _, k := range keys {
 		if strings.HasPrefix(k, "f:") {
-			if err = ri.fileUnbind(ctx, key, entry, k[2:]); err != nil {
-				return
+			rem, err := ri.fileUnbind(ctx, key, entry, k[2:])
+			if err != nil {
+				return nil, err
 			}
+			removedCids = append(removedCids, rem...)
 		}
 	}
 
 	if !slices.Contains(entry.group.SpaceIds, key.SpaceId) {
-		return false, nil
+		return nil, nil
 	}
 	entry.group.SpaceIds = slices.DeleteFunc(entry.group.SpaceIds, func(spaceId string) bool {
 		return spaceId == key.SpaceId
@@ -59,9 +63,9 @@ func (ri *redisIndex) spaceDelete(ctx context.Context, key Key, entry groupSpace
 		return nil
 	})
 	if err != nil {
-		return
+		return nil, err
 	}
-	return true, nil
+	return
 }
 
 func (ri *redisIndex) MarkSpaceAsDeleted(ctx context.Context, key Key) (ok bool, err error) {

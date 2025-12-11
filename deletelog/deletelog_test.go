@@ -6,9 +6,11 @@ import (
 	"time"
 
 	"github.com/anyproto/any-sync/app"
+	"github.com/anyproto/any-sync/commonfile/fileblockstore"
 	"github.com/anyproto/any-sync/coordinator/coordinatorclient"
 	"github.com/anyproto/any-sync/coordinator/coordinatorclient/mock_coordinatorclient"
 	"github.com/anyproto/any-sync/coordinator/coordinatorproto"
+	"github.com/ipfs/go-cid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -16,6 +18,8 @@ import (
 	"github.com/anyproto/any-sync-filenode/index"
 	"github.com/anyproto/any-sync-filenode/index/mock_index"
 	"github.com/anyproto/any-sync-filenode/redisprovider/testredisprovider"
+	"github.com/anyproto/any-sync-filenode/store/mock_store"
+	"github.com/anyproto/any-sync-filenode/testutil"
 )
 
 var ctx = context.Background()
@@ -51,7 +55,9 @@ func TestDeleteLog_checkLog(t *testing.T) {
 			GroupId: "f2",
 			SpaceId: "s2",
 		}
-		fx.index.EXPECT().SpaceDelete(ctx, key)
+		cids := []cid.Cid{testutil.NewRandCid()}
+		fx.index.EXPECT().SpaceDelete(ctx, key).Return(cids, nil)
+		fx.store.EXPECT().DeleteMany(ctx, cids).Return(nil)
 		fx.index.EXPECT().MarkSpaceAsDeleted(ctx, key)
 		require.NoError(t, fx.checkLog(ctx))
 		lastId, err := fx.redis.Get(ctx, lastKey).Result()
@@ -68,6 +74,7 @@ func newFixture(t *testing.T) *fixture {
 		a:         new(app.App),
 		coord:     mock_coordinatorclient.NewMockCoordinatorClient(ctrl),
 		index:     mock_index.NewMockIndex(ctrl),
+		store:     mock_store.NewMockStore(ctrl),
 		deleteLog: New().(*deleteLog),
 	}
 	fx.disableTicker = true
@@ -77,8 +84,10 @@ func newFixture(t *testing.T) *fixture {
 	fx.index.EXPECT().Init(gomock.Any()).AnyTimes()
 	fx.index.EXPECT().Run(gomock.Any()).AnyTimes()
 	fx.index.EXPECT().Close(gomock.Any()).AnyTimes()
+	fx.store.EXPECT().Name().Return(fileblockstore.CName).AnyTimes()
+	fx.store.EXPECT().Init(gomock.Any()).AnyTimes()
 
-	fx.a.Register(testredisprovider.NewTestRedisProviderNum(7)).Register(fx.coord).Register(fx.index).Register(fx.deleteLog)
+	fx.a.Register(testredisprovider.NewTestRedisProviderNum(7)).Register(fx.coord).Register(fx.index).Register(fx.store).Register(fx.deleteLog)
 	require.NoError(t, fx.a.Start(ctx))
 
 	return fx
@@ -89,6 +98,7 @@ type fixture struct {
 	a     *app.App
 	coord *mock_coordinatorclient.MockCoordinatorClient
 	index *mock_index.MockIndex
+	store *mock_store.MockStore
 	*deleteLog
 }
 

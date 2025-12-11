@@ -255,15 +255,16 @@ func (mr *MockIndexMockRecorder) FileInfo(arg0, arg1 any, arg2 ...any) *gomock.C
 }
 
 // FileUnbind mocks base method.
-func (m *MockIndex) FileUnbind(arg0 context.Context, arg1 index.Key, arg2 ...string) error {
+func (m *MockIndex) FileUnbind(arg0 context.Context, arg1 index.Key, arg2 ...string) ([]cid.Cid, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "FileUnbind", varargs...)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].([]cid.Cid)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // FileUnbind indicates an expected call of FileUnbind.
@@ -420,10 +421,10 @@ func (mr *MockIndexMockRecorder) SetSpaceLimit(arg0, arg1, arg2 any) *gomock.Cal
 }
 
 // SpaceDelete mocks base method.
-func (m *MockIndex) SpaceDelete(arg0 context.Context, arg1 index.Key) (bool, error) {
+func (m *MockIndex) SpaceDelete(arg0 context.Context, arg1 index.Key) ([]cid.Cid, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SpaceDelete", arg0, arg1)
-	ret0, _ := ret[0].(bool)
+	ret0, _ := ret[0].([]cid.Cid)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

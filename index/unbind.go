@@ -3,25 +3,28 @@ package index
 import (
 	"context"
 
+	"github.com/ipfs/go-cid"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
-func (ri *redisIndex) FileUnbind(ctx context.Context, key Key, fileIds ...string) (err error) {
+func (ri *redisIndex) FileUnbind(ctx context.Context, key Key, fileIds ...string) (removedCids []cid.Cid, err error) {
 	entry, release, err := ri.AcquireSpace(ctx, key)
 	if err != nil {
 		return
 	}
 	defer release()
 	for _, fileId := range fileIds {
-		if err = ri.fileUnbind(ctx, key, entry, fileId); err != nil {
-			return
+		rem, err := ri.fileUnbind(ctx, key, entry, fileId)
+		if err != nil {
+			return removedCids, err
 		}
+		removedCids = append(removedCids, rem...)
 	}
 	return
 }
 
-func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, entry groupSpaceEntry, fileId string) (err error) {
+func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, entry groupSpaceEntry, fileId string) (removedCids []cid.Cid, err error) {
 	var (
 		sk = SpaceKey(key)
 		gk = GroupKey(key)
@@ -33,13 +36,13 @@ func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, entry groupSpaceE
 	}
 	if isNewFile {
 		// means file doesn't exist
-		return nil
+		return nil, nil
 	}
 
 	// fetch cids
 	cids, err := ri.CidEntriesByString(ctx, fileInfo.Cids)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer cids.Release()
 
@@ -81,7 +84,7 @@ func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, entry groupSpaceE
 		if !isolatedSpace {
 			res, err := groupCidRefs[i].Result()
 			if err != nil {
-				return err
+				return nil, err
 			}
 			if res == "1" {
 				groupRemoveKeys = append(groupRemoveKeys, ck)
@@ -101,7 +104,7 @@ func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, entry groupSpaceE
 		}
 		res, err := spaceCidRefs[i].Result()
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if res == "1" {
 			spaceRemoveKeys = append(spaceRemoveKeys, ck)
@@ -152,6 +155,9 @@ func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, entry groupSpaceE
 		} else {
 			log.WarnCtx(ctx, "cid: unable to decrement 0-ref", zap.String("cid", cids.entries[idx].Cid.String()), zap.String("spaceId", key.SpaceId))
 			continue
+		}
+		if cids.entries[idx].Refs == 0 {
+			removedCids = append(removedCids, cids.entries[idx].Cid)
 		}
 		if saveErr := cids.entries[idx].Save(ctx, ri.cl); saveErr != nil {
 			log.WarnCtx(ctx, "unable to save cid info", zap.Error(saveErr), zap.String("cid", cids.entries[idx].Cid.String()), zap.String("spaceId", key.SpaceId))
