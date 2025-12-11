@@ -41,7 +41,7 @@ const (
 
 type Index interface {
 	FileBind(ctx context.Context, key Key, fileId string, cidEntries *CidEntries) (err error)
-	FileUnbind(ctx context.Context, kye Key, fileIds ...string) (err error)
+	FileUnbind(ctx context.Context, key Key, fileIds ...string) (removedCids []cid.Cid, err error)
 	FileInfo(ctx context.Context, key Key, fileIds ...string) (fileInfo []FileInfo, err error)
 	FilesList(ctx context.Context, key Key) (fileIds []string, err error)
 
@@ -70,7 +70,7 @@ type Index interface {
 	Check(ctx context.Context, key Key, doFix bool) (checkResults []CheckResult, err error)
 	CheckDeletedSpaces(ctx context.Context, key Key, resolve func(spaceIds []string) (deletedIds []string, err error), doFix bool) (toBeDeleted []string, err error)
 
-	SpaceDelete(ctx context.Context, key Key) (ok bool, err error)
+	SpaceDelete(ctx context.Context, key Key) (removedCids []cid.Cid, err error)
 	MarkSpaceAsDeleted(ctx context.Context, key Key) (ok bool, err error)
 	app.ComponentRunnable
 }

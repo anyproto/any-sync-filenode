@@ -395,8 +395,14 @@ func (ri *redisIndex) CheckDeletedSpaces(
 		ctx = context.WithValue(ctx, ctxForceSpaceGet, true)
 		for _, toDeleteSpaceId := range deletedIds {
 			key := Key{GroupId: key.GroupId, SpaceId: toDeleteSpaceId}
-			if _, err = ri.SpaceDelete(ctx, key); err != nil {
+			cids, err := ri.SpaceDelete(ctx, key)
+			if err != nil {
 				return nil, err
+			}
+			if len(cids) > 0 {
+				if err := ri.persistStore.DeleteMany(ctx, cids); err != nil {
+					return nil, err
+				}
 			}
 			_, _ = ri.MarkSpaceAsDeleted(ctx, key)
 		}

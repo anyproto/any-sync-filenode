@@ -38,6 +38,9 @@ type cidEntry struct {
 }
 
 func (ce *cidEntry) Save(ctx context.Context, cl redis.Cmdable) error {
+	if ce.Refs == 0 {
+		return cl.Del(ctx, CidKey(ce.Cid)).Err()
+	}
 	ce.UpdateTime = time.Now().Unix()
 	data, err := ce.Marshal()
 	if err != nil {

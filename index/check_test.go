@@ -5,6 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 
 	"github.com/anyproto/any-sync-filenode/testutil"
 )
@@ -98,10 +99,12 @@ func TestRedisIndex_CheckDeletedSpaces(t *testing.T) {
 
 	require.NoError(t, fx.BlocksAdd(ctx, bs))
 	key := newRandKey()
-	cids, err := fx.CidEntriesByBlocks(ctx, bs[:2])
+	cidsEntries, err := fx.CidEntriesByBlocks(ctx, bs[:2])
 	require.NoError(t, err)
-	require.NoError(t, fx.FileBind(ctx, key, fileId1, cids))
-	cids.Release()
+	require.NoError(t, fx.FileBind(ctx, key, fileId1, cidsEntries))
+	cidsEntries.Release()
+
+	fx.persistStore.EXPECT().DeleteMany(ctx, gomock.Any()).Return(nil)
 
 	result, err := fx.CheckDeletedSpaces(ctx, key, func(spaceIds []string) (deletedIds []string, err error) {
 		return spaceIds, nil
