@@ -38,6 +38,7 @@ type persistentStore interface {
 	IndexDelete(ctx context.Context, key string) (err error)
 
 	Get(ctx context.Context, k cid.Cid) (blocks.Block, error)
+	DeleteMany(ctx context.Context, ks []cid.Cid) error
 }
 
 func bloomFilterKey(key string) string {
