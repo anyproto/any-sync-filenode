@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	cidSizeLimit     = 4 << 20 // 4 Mb
-	fileInfoReqLimit = 1000
+	blockPushManyTotalLimit = 20 << 20 // 20 Mb
+	cidSizeLimit            = 4 << 20  // 4 Mb
+	fileInfoReqLimit        = 1000
 )
 
 type rpcHandler struct {
@@ -133,7 +134,7 @@ func (r rpcHandler) BlockPushMany(ctx context.Context, req *fileproto.BlockPushM
 				return nil, ErrWrongHash
 			}
 			dataSum += len(b.RawData())
-			if dataSum > fileInfoReqLimit {
+			if dataSum > blockPushManyTotalLimit {
 				return nil, fileprotoerr.ErrQuerySizeExceeded
 			}
 			bs = append(bs, b)
