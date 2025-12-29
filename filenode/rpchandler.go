@@ -328,6 +328,11 @@ func (r rpcHandler) SpaceLimitSet(ctx context.Context, req *fileproto.SpaceLimit
 	return &fileproto.Ok{}, nil
 }
 
+func (r rpcHandler) OwnershipTransfer(ctx context.Context, request *fileproto.OwnershipTransferRequest) (*fileproto.Ok, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func convertCids(bCids [][]byte) (cids []cid.Cid) {
 	cids = make([]cid.Cid, 0, len(bCids))
 	var uniqMap map[string]struct{}

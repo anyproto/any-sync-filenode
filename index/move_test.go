@@ -9,6 +9,10 @@ import (
 	"github.com/anyproto/any-sync-filenode/testutil"
 )
 
+func TestRedisIndex_CheckOwnership(t *testing.T) {
+
+}
+
 func TestRedisIndex_Move(t *testing.T) {
 	var test = func(aliceKey, bobKey Key) {
 		fx := newFixture(t)
