@@ -10,7 +10,32 @@ import (
 )
 
 func TestRedisIndex_CheckOwnership(t *testing.T) {
-
+	t.Run("same owner", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
+		err := fx.CheckOwnership(ctx, Key{"o1", "s1"}, 0)
+		require.NoError(t, err)
+		err = fx.CheckOwnership(ctx, Key{"o1", "s1"}, 0)
+		require.NoError(t, err)
+		err = fx.CheckOwnership(ctx, Key{"o1", "s1"}, 22)
+		require.NoError(t, err)
+	})
+	t.Run("change owner", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
+		err := fx.CheckOwnership(ctx, Key{"alice", "s1"}, 0)
+		require.NoError(t, err)
+		err = fx.CheckOwnership(ctx, Key{GroupId: "bob", SpaceId: "s1"}, 1)
+		require.NoError(t, err)
+	})
+	t.Run("old index", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
+		err := fx.CheckOwnership(ctx, Key{"alice", "s1"}, 11)
+		require.NoError(t, err)
+		err = fx.CheckOwnership(ctx, Key{"bob", "s1"}, 9)
+		require.NoError(t, err)
+	})
 }
 
 func TestRedisIndex_Move(t *testing.T) {

@@ -28,6 +28,7 @@ func (ri *redisIndex) CheckOwnership(ctx context.Context, key Key, aclRecordInde
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
 			notExists = true
+			err = nil
 		} else {
 			return
 		}
@@ -39,7 +40,7 @@ func (ri *redisIndex) CheckOwnership(ctx context.Context, key Key, aclRecordInde
 		}
 	}
 	var needUpdate bool
-	if ownerData.OwnerId != key.GroupId {
+	if ownerData.OwnerId != key.GroupId && ownerData.AclRecordIndex < int64(aclRecordIndex) {
 		if err = ri.Move(ctx, key, Key{SpaceId: key.SpaceId, GroupId: ownerData.OwnerId}); err != nil {
 			return
 		}
@@ -47,7 +48,7 @@ func (ri *redisIndex) CheckOwnership(ctx context.Context, key Key, aclRecordInde
 		needUpdate = true
 	}
 
-	if ownerData.AclRecordIndex != int64(aclRecordIndex) {
+	if ownerData.AclRecordIndex < int64(aclRecordIndex) {
 		ownerData.AclRecordIndex = int64(aclRecordIndex)
 		needUpdate = true
 	}
