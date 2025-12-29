@@ -328,9 +328,21 @@ func (r rpcHandler) SpaceLimitSet(ctx context.Context, req *fileproto.SpaceLimit
 	return &fileproto.Ok{}, nil
 }
 
-func (r rpcHandler) OwnershipTransfer(ctx context.Context, request *fileproto.OwnershipTransferRequest) (*fileproto.Ok, error) {
-	//TODO implement me
-	panic("implement me")
+func (r rpcHandler) OwnershipTransfer(ctx context.Context, req *fileproto.OwnershipTransferRequest) (resp *fileproto.Ok, err error) {
+	st := time.Now()
+	defer func() {
+		r.f.metric.RequestLog(ctx,
+			"file.ownershipTransfer",
+			metric.SpaceId(req.SpaceId),
+			metric.TotalDur(time.Since(st)),
+			zap.Error(err),
+		)
+	}()
+
+	if err = r.f.OwnershipTransfer(ctx, req.SpaceId, req.AclRecordId); err != nil {
+		return
+	}
+	return &fileproto.Ok{}, nil
 }
 
 func convertCids(bCids [][]byte) (cids []cid.Cid) {

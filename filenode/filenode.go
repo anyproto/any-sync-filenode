@@ -435,3 +435,17 @@ func (fn *fileNode) FilesGet(ctx context.Context, spaceId string) (fileIds []str
 	}
 	return fn.index.FilesList(ctx, storeKey)
 }
+
+func (fn *fileNode) OwnershipTransfer(ctx context.Context, spaceId, aclRecordId string) (err error) {
+	err = fn.acl.ReadList(ctx, spaceId, func(aclList list.AclList) error {
+		if !aclList.HasHead(aclRecordId) {
+			return fileprotoerr.ErrAclRecordNotFound
+		}
+		return nil
+	})
+	if err != nil {
+		return
+	}
+	_, err = fn.StoreKey(ctx, spaceId, false)
+	return
+}
