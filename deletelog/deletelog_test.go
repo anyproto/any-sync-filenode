@@ -13,6 +13,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
+	"github.com/anyproto/any-sync-filenode/filenode"
+	"github.com/anyproto/any-sync-filenode/filenode/mock_filenode"
 	"github.com/anyproto/any-sync-filenode/index"
 	"github.com/anyproto/any-sync-filenode/index/mock_index"
 	"github.com/anyproto/any-sync-filenode/redisprovider/testredisprovider"
@@ -59,6 +61,25 @@ func TestDeleteLog_checkLog(t *testing.T) {
 		assert.Equal(t, "2", lastId)
 	})
 
+	t.Run("ownership change", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.finish(t)
+		now := time.Now().Unix()
+		fx.coord.EXPECT().DeletionLog(ctx, "", recordsLimit).Return([]*coordinatorproto.DeletionLogRecord{
+			{
+				Id:          "1",
+				SpaceId:     "s1",
+				Status:      coordinatorproto.DeletionLogRecordStatus_OwnershipChange,
+				Timestamp:   now,
+				AclRecordId: "acl1",
+			},
+		}, nil)
+		fx.filenode.EXPECT().OwnershipTransfer(ctx, "s1", "acl1").Return(nil)
+		require.NoError(t, fx.checkLog(ctx))
+		lastId, err := fx.redis.Get(ctx, lastKey).Result()
+		require.NoError(t, err)
+		assert.Equal(t, "1", lastId)
+	})
 }
 
 func newFixture(t *testing.T) *fixture {
@@ -68,6 +89,7 @@ func newFixture(t *testing.T) *fixture {
 		a:         new(app.App),
 		coord:     mock_coordinatorclient.NewMockCoordinatorClient(ctrl),
 		index:     mock_index.NewMockIndex(ctrl),
+		filenode:  mock_filenode.NewMockService(ctrl),
 		deleteLog: New().(*deleteLog),
 	}
 	fx.disableTicker = true
@@ -77,18 +99,25 @@ func newFixture(t *testing.T) *fixture {
 	fx.index.EXPECT().Init(gomock.Any()).AnyTimes()
 	fx.index.EXPECT().Run(gomock.Any()).AnyTimes()
 	fx.index.EXPECT().Close(gomock.Any()).AnyTimes()
+	fx.filenode.EXPECT().Name().Return(filenode.CName).AnyTimes()
+	fx.filenode.EXPECT().Init(gomock.Any()).AnyTimes()
 
-	fx.a.Register(testredisprovider.NewTestRedisProviderNum(7)).Register(fx.coord).Register(fx.index).Register(fx.deleteLog)
+	fx.a.Register(testredisprovider.NewTestRedisProviderNum(7)).
+		Register(fx.coord).
+		Register(fx.index).
+		Register(fx.filenode).
+		Register(fx.deleteLog)
 	require.NoError(t, fx.a.Start(ctx))
 
 	return fx
 }
 
 type fixture struct {
-	ctrl  *gomock.Controller
-	a     *app.App
-	coord *mock_coordinatorclient.MockCoordinatorClient
-	index *mock_index.MockIndex
+	ctrl     *gomock.Controller
+	a        *app.App
+	coord    *mock_coordinatorclient.MockCoordinatorClient
+	index    *mock_index.MockIndex
+	filenode *mock_filenode.MockService
 	*deleteLog
 }
 

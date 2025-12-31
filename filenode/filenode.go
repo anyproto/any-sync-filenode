@@ -38,7 +38,9 @@ func New() Service {
 	return new(fileNode)
 }
 
+//go:generate mockgen -destination mock_filenode/mock_filenode.go github.com/anyproto/any-sync-filenode/filenode Service
 type Service interface {
+	OwnershipTransfer(ctx context.Context, spaceId, aclRecordId string) (err error)
 	app.Component
 }
 
