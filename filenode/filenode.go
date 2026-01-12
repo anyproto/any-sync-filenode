@@ -40,7 +40,7 @@ func New() Service {
 
 //go:generate mockgen -destination mock_filenode/mock_filenode.go github.com/anyproto/any-sync-filenode/filenode Service
 type Service interface {
-	OwnershipTransfer(ctx context.Context, spaceId, aclRecordId string) (err error)
+	OwnershipTransfer(ctx context.Context, spaceId, oldIdentity string, aclRecordId string) (err error)
 	app.Component
 }
 
@@ -250,7 +250,11 @@ func (fn *fileNode) StoreKey(ctx context.Context, spaceId string, checkLimit boo
 		if e := fn.index.Migrate(ctx, storageKey); e != nil {
 			log.WarnCtx(ctx, "space migrate error", zap.String("spaceId", spaceId), zap.Error(e))
 		}
-		if err = fn.index.CheckOwnership(ctx, storageKey, ownerRecordIndex); err != nil {
+		var oldIdentity string
+		if ownerRecordIndex == 0 {
+			oldIdentity = storageKey.GroupId
+		}
+		if err = fn.index.CheckOwnership(ctx, storageKey, oldIdentity, ownerRecordIndex); err != nil {
 			log.ErrorCtx(ctx, "check ownership error", zap.String("spaceId", spaceId), zap.Error(err))
 			return storageKey, fileprotoerr.ErrUnexpected
 		}
@@ -438,16 +442,34 @@ func (fn *fileNode) FilesGet(ctx context.Context, spaceId string) (fileIds []str
 	return fn.index.FilesList(ctx, storeKey)
 }
 
-func (fn *fileNode) OwnershipTransfer(ctx context.Context, spaceId, aclRecordId string) (err error) {
+func (fn *fileNode) OwnershipTransfer(ctx context.Context, spaceId, oldIdentity, aclRecordId string) (err error) {
+	var (
+		ownerPubKey      crypto.PubKey
+		ownerRecordIndex int
+	)
+	defer func() {
+		log.InfoCtx(ctx, "ownership transfer", zap.String("spaceId", spaceId), zap.String("recordId", aclRecordId), zap.Error(err))
+	}()
 	err = fn.acl.ReadList(ctx, spaceId, func(aclList list.AclList) error {
 		if !aclList.HasHead(aclRecordId) {
+			log.WarnCtx(ctx, "ownership transfer error: acl record not found", zap.String("spaceId", spaceId), zap.String("recordId", aclRecordId))
 			return fileprotoerr.ErrAclRecordNotFound
+		}
+		aclState := aclList.AclState()
+		var ownerRecordId string
+		if ownerPubKey, ownerRecordId, err = aclState.OwnerPubKeyWithRecordId(); err != nil {
+			log.WarnCtx(ctx, "acl ownerPubKey error", zap.Error(err))
+			return fileprotoerr.ErrForbidden
+		}
+		ownerRecordIndex = aclList.GetRecordIndex(ownerRecordId)
+		if ownerRecordIndex < 0 {
+			log.ErrorCtx(ctx, "acl ownerRecordIndex not found", zap.String("spaceId", spaceId), zap.String("recordId", ownerRecordId), zap.Error(err))
+			return fileprotoerr.ErrUnexpected
 		}
 		return nil
 	})
 	if err != nil {
 		return
 	}
-	_, err = fn.StoreKey(ctx, spaceId, false)
-	return
+	return fn.index.CheckOwnership(ctx, index.Key{GroupId: ownerPubKey.Account(), SpaceId: spaceId}, oldIdentity, ownerRecordIndex)
 }

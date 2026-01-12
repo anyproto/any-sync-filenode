@@ -8,7 +8,7 @@ require (
 	github.com/OneOfOne/xxhash v1.2.8
 	github.com/ahmetb/govvv v0.3.0
 	github.com/anyproto/any-store v0.4.3
-	github.com/anyproto/any-sync v0.11.7-0.20251231130638-04e6ddb5367e
+	github.com/anyproto/any-sync v0.11.7
 	github.com/aws/aws-sdk-go v1.55.8
 	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/go-redsync/redsync/v4 v4.14.0
@@ -71,7 +71,7 @@ require (
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.66.1 // indirect
 	github.com/prometheus/procfs v0.17.0 // indirect
-	github.com/quic-go/quic-go v0.57.1 // indirect
+	github.com/quic-go/quic-go v0.58.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/tyler-smith/go-bip39 v1.1.0 // indirect

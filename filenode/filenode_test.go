@@ -53,7 +53,7 @@ func TestFileNode_Add(t *testing.T) {
 
 		fx.index.EXPECT().CheckLimits(ctx, storeKey)
 		fx.index.EXPECT().Migrate(ctx, storeKey)
-		fx.index.EXPECT().CheckOwnership(ctx, storeKey, gomock.Any()).Return(nil)
+		fx.index.EXPECT().CheckOwnership(ctx, storeKey, storeKey.GroupId, gomock.Any()).Return(nil)
 		fx.index.EXPECT().BlocksLock(ctx, []blocks.Block{b}).Return(func() {}, nil)
 		fx.index.EXPECT().BlocksGetNonExistent(ctx, []blocks.Block{b}).Return([]blocks.Block{b}, nil)
 		fx.store.EXPECT().Add(ctx, []blocks.Block{b})
@@ -92,7 +92,7 @@ func TestFileNode_Add(t *testing.T) {
 			})
 
 		fx.index.EXPECT().Migrate(ctx, storeKey)
-		fx.index.EXPECT().CheckOwnership(ctx, storeKey, gomock.Any()).Return(nil)
+		fx.index.EXPECT().CheckOwnership(ctx, storeKey, storeKey.GroupId, gomock.Any()).Return(nil)
 		fx.index.EXPECT().CheckLimits(ctx, storeKey).Return(index.ErrLimitExceed)
 
 		resp, err := fx.handler.BlockPush(ctx, &fileproto.BlockPushRequest{
@@ -217,7 +217,7 @@ func TestFileNode_Check(t *testing.T) {
 		})
 
 	fx.index.EXPECT().Migrate(ctx, storeKey)
-	fx.index.EXPECT().CheckOwnership(ctx, storeKey, gomock.Any()).Return(nil)
+	fx.index.EXPECT().CheckOwnership(ctx, storeKey, storeKey.GroupId, gomock.Any()).Return(nil)
 	fx.index.EXPECT().CidExistsInSpace(ctx, storeKey, testutil.BlocksToKeys(bs)).Return(testutil.BlocksToKeys(bs[:1]), nil)
 	fx.index.EXPECT().CidExists(ctx, bs[1].Cid()).Return(true, nil)
 	fx.index.EXPECT().CidExists(ctx, bs[2].Cid()).Return(false, nil)
@@ -260,7 +260,7 @@ func TestFileNode_BlocksBind(t *testing.T) {
 
 	fx.index.EXPECT().CheckLimits(ctx, storeKey)
 	fx.index.EXPECT().Migrate(ctx, storeKey)
-	fx.index.EXPECT().CheckOwnership(ctx, storeKey, gomock.Any()).Return(nil)
+	fx.index.EXPECT().CheckOwnership(ctx, storeKey, storeKey.GroupId, gomock.Any()).Return(nil)
 	fx.index.EXPECT().CidEntries(ctx, cids).Return(cidEntries, nil)
 	fx.index.EXPECT().FileBind(ctx, storeKey, fileId, cidEntries)
 
@@ -295,7 +295,7 @@ func TestFileNode_FileInfo(t *testing.T) {
 		})
 
 	fx.index.EXPECT().Migrate(ctx, storeKey)
-	fx.index.EXPECT().CheckOwnership(ctx, storeKey, gomock.Any()).Return(nil)
+	fx.index.EXPECT().CheckOwnership(ctx, storeKey, storeKey.GroupId, gomock.Any()).Return(nil)
 	fx.index.EXPECT().FileInfo(ctx, storeKey, fileId1, fileId2).Return([]index.FileInfo{{1, 1}, {2, 2}}, nil)
 
 	resp, err := fx.handler.FilesInfo(ctx, &fileproto.FilesInfoRequest{
@@ -376,7 +376,7 @@ func TestFileNode_SpaceInfo(t *testing.T) {
 			})
 
 		fx.index.EXPECT().Migrate(ctx, storeKey)
-		fx.index.EXPECT().CheckOwnership(ctx, storeKey, gomock.Any()).Return(nil)
+		fx.index.EXPECT().CheckOwnership(ctx, storeKey, storeKey.GroupId, gomock.Any()).Return(nil)
 
 		fx.index.EXPECT().GroupInfo(ctx, storeKey.GroupId).Return(index.GroupInfo{
 			BytesUsage:   100,
@@ -421,7 +421,7 @@ func TestFileNode_SpaceInfo(t *testing.T) {
 			})
 
 		fx.index.EXPECT().Migrate(ctx, storeKey)
-		fx.index.EXPECT().CheckOwnership(ctx, storeKey, gomock.Any()).Return(nil)
+		fx.index.EXPECT().CheckOwnership(ctx, storeKey, storeKey.GroupId, gomock.Any()).Return(nil)
 
 		fx.index.EXPECT().GroupInfo(ctx, storeKey.GroupId).Return(index.GroupInfo{
 			BytesUsage:   100,
@@ -463,7 +463,7 @@ func TestFileNode_StoreKey(t *testing.T) {
 		}
 
 		fx.index.EXPECT().Migrate(ctx, expectedStoreKey)
-		fx.index.EXPECT().CheckOwnership(ctx, expectedStoreKey, gomock.Any()).Return(nil)
+		fx.index.EXPECT().CheckOwnership(ctx, expectedStoreKey, expectedStoreKey.GroupId, gomock.Any()).Return(nil)
 		fx.index.EXPECT().CheckLimits(ctx, expectedStoreKey)
 		fx.aclService.EXPECT().ReadList(gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, spaceId string, fn func(list.AclList) error) error {
@@ -577,7 +577,7 @@ func TestFileNode_SpaceLimitSet(t *testing.T) {
 		})
 
 	fx.index.EXPECT().Migrate(ctx, storeKey)
-	fx.index.EXPECT().CheckOwnership(ctx, storeKey, gomock.Any()).Return(nil)
+	fx.index.EXPECT().CheckOwnership(ctx, storeKey, storeKey.GroupId, gomock.Any()).Return(nil)
 	fx.index.EXPECT().SetSpaceLimit(ctx, storeKey, uint64(12345))
 	require.NoError(t, fx.SpaceLimitSet(ctx, storeKey.SpaceId, 12345))
 }

@@ -73,7 +73,7 @@ type Index interface {
 	SpaceDelete(ctx context.Context, key Key) (ok bool, err error)
 	MarkSpaceAsDeleted(ctx context.Context, key Key) (ok bool, err error)
 
-	CheckOwnership(ctx context.Context, key Key, aclRecordIndex int) error
+	CheckOwnership(ctx context.Context, key Key, oldIdentity string, aclRecordIndex int) error
 
 	app.ComponentRunnable
 }

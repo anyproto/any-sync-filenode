@@ -70,15 +70,15 @@ func (mr *MockServiceMockRecorder) Name() *gomock.Call {
 }
 
 // OwnershipTransfer mocks base method.
-func (m *MockService) OwnershipTransfer(ctx context.Context, spaceId, aclRecordId string) error {
+func (m *MockService) OwnershipTransfer(ctx context.Context, spaceId, oldIdentity, aclRecordId string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "OwnershipTransfer", ctx, spaceId, aclRecordId)
+	ret := m.ctrl.Call(m, "OwnershipTransfer", ctx, spaceId, oldIdentity, aclRecordId)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // OwnershipTransfer indicates an expected call of OwnershipTransfer.
-func (mr *MockServiceMockRecorder) OwnershipTransfer(ctx, spaceId, aclRecordId any) *gomock.Call {
+func (mr *MockServiceMockRecorder) OwnershipTransfer(ctx, spaceId, oldIdentity, aclRecordId any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OwnershipTransfer", reflect.TypeOf((*MockService)(nil).OwnershipTransfer), ctx, spaceId, aclRecordId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OwnershipTransfer", reflect.TypeOf((*MockService)(nil).OwnershipTransfer), ctx, spaceId, oldIdentity, aclRecordId)
 }

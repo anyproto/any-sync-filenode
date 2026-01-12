@@ -8,11 +8,12 @@ import (
 	"strings"
 
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 
 	"github.com/anyproto/any-sync-filenode/index/indexproto"
 )
 
-func (ri *redisIndex) CheckOwnership(ctx context.Context, key Key, aclRecordIndex int) (err error) {
+func (ri *redisIndex) CheckOwnership(ctx context.Context, key Key, oldIdentity string, aclRecordIndex int) (err error) {
 	oKey := OwnerKey(key.SpaceId)
 	_, release, err := ri.AcquireKey(ctx, oKey)
 	if err != nil {
@@ -21,7 +22,9 @@ func (ri *redisIndex) CheckOwnership(ctx context.Context, key Key, aclRecordInde
 	defer release()
 
 	var (
-		ownerData = &indexproto.OwnershipRecord{}
+		ownerData = &indexproto.OwnershipRecord{
+			OwnerId: oldIdentity,
+		}
 		notExists bool
 	)
 	result, err := ri.cl.Get(ctx, oKey).Result()
@@ -38,9 +41,12 @@ func (ri *redisIndex) CheckOwnership(ctx context.Context, key Key, aclRecordInde
 		if err = ownerData.UnmarshalVT([]byte(result)); err != nil {
 			return
 		}
+	} else if oldIdentity == "" {
+		return fmt.Errorf("previous owner not found")
 	}
+	
 	var needUpdate bool
-	if ownerData.OwnerId != key.GroupId && ownerData.AclRecordIndex < int64(aclRecordIndex) {
+	if ownerData.OwnerId != key.GroupId && ownerData.AclRecordIndex <= int64(aclRecordIndex) {
 		if err = ri.Move(ctx, key, Key{SpaceId: key.SpaceId, GroupId: ownerData.OwnerId}); err != nil {
 			return
 		}
@@ -65,8 +71,9 @@ func (ri *redisIndex) CheckOwnership(ctx context.Context, key Key, aclRecordInde
 }
 
 func (ri *redisIndex) Move(ctx context.Context, dest, src Key) (err error) {
+	log.InfoCtx(ctx, "move space", zap.String("spaceId", dest.SpaceId), zap.String("src", src.GroupId), zap.String("dest", dest.GroupId))
 	if dest.SpaceId != src.SpaceId {
-		return fmt.Errorf("spaceIs should be the same for both keys")
+		return fmt.Errorf("spaceId should be the same for both keys")
 	}
 	srcEntry, scrRelease, err := ri.AcquireSpace(ctx, src)
 	if err != nil {

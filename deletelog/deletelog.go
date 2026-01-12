@@ -129,7 +129,7 @@ func (d *deleteLog) handleDeletion(ctx context.Context, rec *coordinatorproto.De
 }
 
 func (d *deleteLog) handleOwnershipTransfer(ctx context.Context, rec *coordinatorproto.DeletionLogRecord) (err error) {
-	return d.filenode.OwnershipTransfer(ctx, rec.SpaceId, rec.AclRecordId)
+	return d.filenode.OwnershipTransfer(ctx, rec.SpaceId, rec.FileGroup, rec.AclRecordId)
 }
 
 func (d *deleteLog) Close(ctx context.Context) (err error) {

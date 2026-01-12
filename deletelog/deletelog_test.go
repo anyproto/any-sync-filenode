@@ -71,10 +71,11 @@ func TestDeleteLog_checkLog(t *testing.T) {
 				SpaceId:     "s1",
 				Status:      coordinatorproto.DeletionLogRecordStatus_OwnershipChange,
 				Timestamp:   now,
+				FileGroup:   "f1",
 				AclRecordId: "acl1",
 			},
 		}, nil)
-		fx.filenode.EXPECT().OwnershipTransfer(ctx, "s1", "acl1").Return(nil)
+		fx.filenode.EXPECT().OwnershipTransfer(ctx, "s1", "f1", "acl1").Return(nil)
 		require.NoError(t, fx.checkLog(ctx))
 		lastId, err := fx.redis.Get(ctx, lastKey).Result()
 		require.NoError(t, err)
