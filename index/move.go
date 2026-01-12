@@ -44,7 +44,7 @@ func (ri *redisIndex) CheckOwnership(ctx context.Context, key Key, oldIdentity s
 	} else if oldIdentity == "" {
 		return fmt.Errorf("previous owner not found")
 	}
-	
+
 	var needUpdate bool
 	if ownerData.OwnerId != key.GroupId && ownerData.AclRecordIndex <= int64(aclRecordIndex) {
 		if err = ri.Move(ctx, key, Key{SpaceId: key.SpaceId, GroupId: ownerData.OwnerId}); err != nil {
@@ -131,6 +131,9 @@ func (ri *redisIndex) Move(ctx context.Context, dest, src Key) (err error) {
 		}
 		return nil
 	})
+	if err != nil {
+		return
+	}
 
 	// calculate the dest group sums
 	for i, cmd := range cmdGroupExists {
