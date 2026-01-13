@@ -103,6 +103,20 @@ func (mr *MockIndexMockRecorder) Check(ctx, key, doFix any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Check", reflect.TypeOf((*MockIndex)(nil).Check), ctx, key, doFix)
 }
 
+// CheckAndMoveOwnership mocks base method.
+func (m *MockIndex) CheckAndMoveOwnership(ctx context.Context, key index.Key, oldIdentity string, aclRecordIndex int) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CheckAndMoveOwnership", ctx, key, oldIdentity, aclRecordIndex)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CheckAndMoveOwnership indicates an expected call of CheckAndMoveOwnership.
+func (mr *MockIndexMockRecorder) CheckAndMoveOwnership(ctx, key, oldIdentity, aclRecordIndex any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckAndMoveOwnership", reflect.TypeOf((*MockIndex)(nil).CheckAndMoveOwnership), ctx, key, oldIdentity, aclRecordIndex)
+}
+
 // CheckDeletedSpaces mocks base method.
 func (m *MockIndex) CheckDeletedSpaces(ctx context.Context, key index.Key, resolve func([]string) ([]string, error), doFix bool) ([]string, error) {
 	m.ctrl.T.Helper()
@@ -145,20 +159,6 @@ func (m *MockIndex) CheckLimits(ctx context.Context, key index.Key) error {
 func (mr *MockIndexMockRecorder) CheckLimits(ctx, key any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckLimits", reflect.TypeOf((*MockIndex)(nil).CheckLimits), ctx, key)
-}
-
-// CheckOwnership mocks base method.
-func (m *MockIndex) CheckOwnership(ctx context.Context, key index.Key, oldIdentity string, aclRecordIndex int) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CheckOwnership", ctx, key, oldIdentity, aclRecordIndex)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// CheckOwnership indicates an expected call of CheckOwnership.
-func (mr *MockIndexMockRecorder) CheckOwnership(ctx, key, oldIdentity, aclRecordIndex any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckOwnership", reflect.TypeOf((*MockIndex)(nil).CheckOwnership), ctx, key, oldIdentity, aclRecordIndex)
 }
 
 // CidEntries mocks base method.

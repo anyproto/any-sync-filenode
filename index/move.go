@@ -13,7 +13,7 @@ import (
 	"github.com/anyproto/any-sync-filenode/index/indexproto"
 )
 
-func (ri *redisIndex) CheckOwnership(ctx context.Context, key Key, oldIdentity string, aclRecordIndex int) (err error) {
+func (ri *redisIndex) CheckAndMoveOwnership(ctx context.Context, key Key, oldIdentity string, aclRecordIndex int) (err error) {
 	oKey := OwnerKey(key.SpaceId)
 	_, release, err := ri.AcquireKey(ctx, oKey)
 	if err != nil {

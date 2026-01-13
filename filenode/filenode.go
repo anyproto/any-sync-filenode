@@ -254,7 +254,7 @@ func (fn *fileNode) StoreKey(ctx context.Context, spaceId string, checkLimit boo
 		if ownerRecordIndex == 0 {
 			oldIdentity = storageKey.GroupId
 		}
-		if err = fn.index.CheckOwnership(ctx, storageKey, oldIdentity, ownerRecordIndex); err != nil {
+		if err = fn.index.CheckAndMoveOwnership(ctx, storageKey, oldIdentity, ownerRecordIndex); err != nil {
 			log.ErrorCtx(ctx, "check ownership error", zap.String("spaceId", spaceId), zap.Error(err))
 			return storageKey, fileprotoerr.ErrUnexpected
 		}
@@ -471,5 +471,5 @@ func (fn *fileNode) OwnershipTransfer(ctx context.Context, spaceId, oldIdentity,
 	if err != nil {
 		return
 	}
-	return fn.index.CheckOwnership(ctx, index.Key{GroupId: ownerPubKey.Account(), SpaceId: spaceId}, oldIdentity, ownerRecordIndex)
+	return fn.index.CheckAndMoveOwnership(ctx, index.Key{GroupId: ownerPubKey.Account(), SpaceId: spaceId}, oldIdentity, ownerRecordIndex)
 }
