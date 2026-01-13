@@ -69,4 +69,4 @@ network:
 networkStorePath: .
 networkUpdateIntervalSec: 600
 defaultLimit: 1073741824
-persistTtl: 300
+persistTtl: 1800

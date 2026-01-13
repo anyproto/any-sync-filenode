@@ -85,10 +85,10 @@ func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, entry groupSpaceE
 			}
 			if res == "1" {
 				groupRemoveKeys = append(groupRemoveKeys, ck)
-				if entry.group.Size_-c.Size_ > entry.group.Size_ {
-					log.WarnCtx(ctx, "group: unable to decrement size", zap.Uint64("before", entry.group.Size_), zap.Uint64("size", c.Size_), zap.String("spaceId", key.SpaceId))
+				if entry.group.Size-c.Size > entry.group.Size {
+					log.WarnCtx(ctx, "group: unable to decrement size", zap.Uint64("before", entry.group.Size), zap.Uint64("size", c.Size), zap.String("spaceId", key.SpaceId))
 				} else {
-					entry.group.Size_ -= c.Size_
+					entry.group.Size -= c.Size
 				}
 				if entry.group.CidCount != 0 {
 					entry.group.CidCount--
@@ -105,10 +105,10 @@ func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, entry groupSpaceE
 		}
 		if res == "1" {
 			spaceRemoveKeys = append(spaceRemoveKeys, ck)
-			if entry.space.Size_-c.Size_ > entry.space.Size_ {
-				log.WarnCtx(ctx, "space: unable to decrement size", zap.Uint64("before", entry.space.Size_), zap.Uint64("size", c.Size_), zap.String("spaceId", key.SpaceId))
+			if entry.space.Size-c.Size > entry.space.Size {
+				log.WarnCtx(ctx, "space: unable to decrement size", zap.Uint64("before", entry.space.Size), zap.Uint64("size", c.Size), zap.String("spaceId", key.SpaceId))
 			} else {
-				entry.space.Size_ -= c.Size_
+				entry.space.Size -= c.Size
 			}
 			if entry.space.CidCount != 0 {
 				entry.space.CidCount--

@@ -72,6 +72,9 @@ type Index interface {
 
 	SpaceDelete(ctx context.Context, key Key) (ok bool, err error)
 	MarkSpaceAsDeleted(ctx context.Context, key Key) (ok bool, err error)
+
+	CheckAndMoveOwnership(ctx context.Context, key Key, oldIdentity string, aclRecordIndex int) error
+
 	app.ComponentRunnable
 }
 
@@ -183,7 +186,7 @@ func (ri *redisIndex) FileInfo(ctx context.Context, key Key, fileIds ...string) 
 			return nil, err
 		}
 		fileInfos[i] = FileInfo{
-			BytesUsage: fEntry.Size_,
+			BytesUsage: fEntry.Size,
 			CidsCount:  uint64(len(fEntry.Cids)),
 		}
 	}
@@ -274,7 +277,7 @@ func (ri *redisIndex) GroupInfo(ctx context.Context, groupId string) (info Group
 		return
 	}
 	return GroupInfo{
-		BytesUsage:   sEntry.Size_,
+		BytesUsage:   sEntry.Size,
 		CidsCount:    sEntry.CidCount,
 		AccountLimit: sEntry.AccountLimit,
 		Limit:        sEntry.Limit,
@@ -293,7 +296,7 @@ func (ri *redisIndex) SpaceInfo(ctx context.Context, key Key) (info SpaceInfo, e
 		return
 	}
 	return SpaceInfo{
-		BytesUsage: sEntry.Size_,
+		BytesUsage: sEntry.Size,
 		CidsCount:  sEntry.CidCount,
 		Limit:      sEntry.Limit,
 		FileCount:  sEntry.FileCount,
@@ -331,6 +334,10 @@ func FileKey(fileId string) string {
 func DelKey(k Key) string {
 	hash := strconv.FormatUint(uint64(xxhash.ChecksumString32(k.GroupId)), 36)
 	return "del:" + k.SpaceId + ".{" + hash + "}"
+}
+
+func OwnerKey(spaceId string) string {
+	return "o:" + spaceId
 }
 
 const infoKey = "info"

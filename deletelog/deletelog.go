@@ -15,6 +15,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 
+	"github.com/anyproto/any-sync-filenode/filenode"
 	"github.com/anyproto/any-sync-filenode/index"
 	"github.com/anyproto/any-sync-filenode/redisprovider"
 )
@@ -37,6 +38,7 @@ type deleteLog struct {
 	redsync           *redsync.Redsync
 	ticker            periodicsync.PeriodicSync
 	index             index.Index
+	filenode          filenode.Service
 	disableTicker     bool
 }
 
@@ -45,6 +47,7 @@ func (d *deleteLog) Init(a *app.App) (err error) {
 	d.coordinatorClient = a.MustComponent(coordinatorclient.CName).(coordinatorclient.CoordinatorClient)
 	d.redsync = redsync.New(goredis.NewPool(d.redis))
 	d.index = a.MustComponent(index.CName).(index.Index)
+	d.filenode = a.MustComponent(filenode.CName).(filenode.Service)
 	return
 }
 
@@ -79,24 +82,20 @@ func (d *deleteLog) checkLog(ctx context.Context) (err error) {
 		return
 	}
 	var handledCount, deletedCount int
-	var ok bool
 	for _, rec := range recs {
-		if rec.Status == coordinatorproto.DeletionLogRecordStatus_Remove && rec.FileGroup != "" {
-			key := index.Key{
-				GroupId: rec.FileGroup,
-				SpaceId: rec.SpaceId,
-			}
-			ok, err = d.index.SpaceDelete(ctx, key)
-			if err != nil && !errors.Is(err, redis.Nil) && !errors.Is(err, index.ErrSpaceIsDeleted) {
-				return
-			}
-			handledCount++
-			if _, err = d.index.MarkSpaceAsDeleted(ctx, key); err != nil {
-				return
-			}
-			if ok {
-				deletedCount++
-			}
+		var ok bool
+		switch rec.Status {
+		case coordinatorproto.DeletionLogRecordStatus_Remove:
+			ok, err = d.handleDeletion(ctx, rec)
+		case coordinatorproto.DeletionLogRecordStatus_OwnershipChange:
+			err = d.handleOwnershipTransfer(ctx, rec)
+		}
+		if err != nil {
+			return
+		}
+		handledCount++
+		if ok {
+			deletedCount++
 		}
 		if err = d.redis.Set(ctx, lastKey, rec.Id, 0).Err(); err != nil {
 			return
@@ -109,6 +108,28 @@ func (d *deleteLog) checkLog(ctx context.Context) (err error) {
 		zap.Duration("dur", time.Since(st)),
 	)
 	return
+}
+
+func (d *deleteLog) handleDeletion(ctx context.Context, rec *coordinatorproto.DeletionLogRecord) (ok bool, err error) {
+	if rec.FileGroup == "" {
+		return
+	}
+	key := index.Key{
+		GroupId: rec.FileGroup,
+		SpaceId: rec.SpaceId,
+	}
+	ok, err = d.index.SpaceDelete(ctx, key)
+	if err != nil && !errors.Is(err, redis.Nil) && !errors.Is(err, index.ErrSpaceIsDeleted) {
+		return
+	}
+	if _, err = d.index.MarkSpaceAsDeleted(ctx, key); err != nil {
+		return
+	}
+	return ok, nil
+}
+
+func (d *deleteLog) handleOwnershipTransfer(ctx context.Context, rec *coordinatorproto.DeletionLogRecord) (err error) {
+	return d.filenode.OwnershipTransfer(ctx, rec.SpaceId, rec.FileGroup, rec.AclRecordId)
 }
 
 func (d *deleteLog) Close(ctx context.Context) (err error) {

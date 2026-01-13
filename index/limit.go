@@ -23,14 +23,14 @@ func (ri *redisIndex) CheckLimits(ctx context.Context, key Key) (err error) {
 
 	// isolated space
 	if entry.space.Limit != 0 {
-		if entry.space.Size_ >= entry.space.Limit {
+		if entry.space.Size >= entry.space.Limit {
 			return ErrLimitExceed
 		}
 		return
 	}
 
 	// group limit
-	if entry.group.Size_ >= entry.group.Limit {
+	if entry.group.Size >= entry.group.Limit {
 		return ErrLimitExceed
 	}
 	return
@@ -149,12 +149,12 @@ func (op *spaceLimitOp) SetSpaceLimit(ctx context.Context, key Key, limit uint64
 		newGLimit := int64(op.groupEntry.Limit) - diff
 
 		// check the group limit
-		if newGLimit < int64(op.groupEntry.Size_) {
+		if newGLimit < int64(op.groupEntry.Size) {
 			return fileprotoerr.ErrNotEnoughSpace
 		}
 
 		// check the space limit
-		if entry.space.Size_ > limit {
+		if entry.space.Size > limit {
 			return fileprotoerr.ErrNotEnoughSpace
 		}
 		op.groupEntry.Limit = uint64(newGLimit)
@@ -232,7 +232,7 @@ func (op *spaceLimitOp) isolateSpace(ctx context.Context, entry groupSpaceEntry)
 		if _, err = op.cl.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
 			for _, idx := range toDeleteIdx {
 				pipe.HDel(ctx, gk, CidKey(cids[idx]))
-				op.groupEntry.Size_ -= cidEntries.entries[idx].Size_
+				op.groupEntry.Size -= cidEntries.entries[idx].Size
 				op.groupEntry.CidCount--
 			}
 			return nil
@@ -288,7 +288,7 @@ func (op *spaceLimitOp) uniteSpace(ctx context.Context, entry groupSpaceEntry) (
 	// make a list of cids without refs and increase the size
 	for i, res := range groupDecrResults {
 		if res.Val() == 1 {
-			op.groupEntry.Size_ += cidEntries.entries[i].Size_
+			op.groupEntry.Size += cidEntries.entries[i].Size
 			op.groupEntry.CidCount++
 		}
 	}

@@ -175,8 +175,8 @@ func Test_oneToOneParticipantPubKeys(t *testing.T) {
 	fx := newFixture(t)
 	defer fx.Finish(t)
 	spaceId := "spaceId"
-	aclState := oneToOneAclState(t, spaceId)
-	accounts := aclState.CurrentAccounts()
+	aclList := oneToOneAclList(t, spaceId)
+	accounts := aclList.AclState().CurrentAccounts()
 
 	t.Run("basic test", func(t *testing.T) {
 		writersPubKeys, err := oneToOneParticipantPubKeys(accounts)
@@ -184,7 +184,7 @@ func Test_oneToOneParticipantPubKeys(t *testing.T) {
 		require.NoError(t, err)
 		assert.False(t, bytes.Equal(writersPubKeys[0], writersPubKeys[1]))
 
-		ownerPubKey, _ := aclState.OwnerPubKey()
+		ownerPubKey, _ := aclList.AclState().OwnerPubKey()
 		ownerBytes := ownerPubKey.Storage()
 		assert.False(t, bytes.Equal(writersPubKeys[0], ownerBytes))
 		assert.False(t, bytes.Equal(writersPubKeys[1], ownerBytes))
