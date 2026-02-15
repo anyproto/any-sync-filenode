@@ -10,7 +10,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  release-reusable:
+  coverage-reusable:
     uses: anyproto/shared-actions/.github/workflows/coverage-go-daemons-reusable.yml@v1
     secrets: inherit # pass all secrets
     with:
