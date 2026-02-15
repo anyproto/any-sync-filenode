@@ -7,7 +7,7 @@ toolchain go1.24.9
 require (
 	github.com/OneOfOne/xxhash v1.2.8
 	github.com/ahmetb/govvv v0.3.0
-	github.com/anyproto/any-store v0.4.4
+	github.com/anyproto/any-store v0.4.6
 	github.com/anyproto/any-sync v0.11.13
 	github.com/aws/aws-sdk-go v1.55.8
 	github.com/cespare/xxhash/v2 v2.3.0
