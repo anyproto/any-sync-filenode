@@ -11,5 +11,7 @@ permissions:
 
 jobs:
   release-reusable:
-    uses: anyproto/any-sync-node/.github/workflows/coverage-reusable.yml@main
+    uses: anyproto/shared-actions/.github/workflows/coverage-go-daemons-reusable.yml@coverage-go-daemons
     secrets: inherit # pass all secrets
+    with:
+      start_redis: true
