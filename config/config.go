@@ -7,6 +7,7 @@ import (
 	"github.com/anyproto/any-sync/app"
 	"github.com/anyproto/any-sync/metric"
 	"github.com/anyproto/any-sync/net/rpc"
+	"github.com/anyproto/any-sync/net/secureservice"
 	"github.com/anyproto/any-sync/net/transport/quic"
 	"github.com/anyproto/any-sync/net/transport/yamux"
 	"github.com/anyproto/any-sync/nodeconf"
@@ -44,6 +45,7 @@ type Config struct {
 	NetworkUpdateIntervalSec int                    `yaml:"networkUpdateIntervalSec"`
 	DefaultLimit             uint64                 `yaml:"defaultLimit"`
 	PersistTtl               uint                   `yaml:"persistTtl"`
+	Secure                   secureservice.Config   `yaml:"secure"`
 }
 
 func (c *Config) Init(a *app.App) (err error) {
@@ -96,4 +98,8 @@ func (c *Config) GetYamux() yamux.Config {
 
 func (c *Config) GetQuic() quic.Config {
 	return c.Quic
+}
+
+func (c Config) GetSecureService() secureservice.Config {
+	return c.Secure
 }
