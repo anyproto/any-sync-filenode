@@ -198,7 +198,7 @@ func TestRedisIndex_CidExistsBulk(t *testing.T) {
 
 		for _, b := range bs {
 			b := b
-			fx.persistStore.EXPECT().IndexGet(ctx, CidKey(b.Cid())).
+			fx.persistStore.EXPECT().IndexGet(gomock.Any(), CidKey(b.Cid())).
 				DoAndReturn(func(_ context.Context, key string) ([]byte, error) {
 					return dumps[key], nil
 				})

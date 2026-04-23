@@ -139,7 +139,99 @@ func (ri *redisIndex) BlocksAdd(ctx context.Context, bs []blocks.Block) (err err
 // BlocksCheck: no distributed locks, no usage-tracker writes, no restore of
 // evicted keys. Order of the returned slice matches the input order.
 func (ri *redisIndex) CidExistsBulk(ctx context.Context, cids []cid.Cid) (exists []bool, err error) {
-	return nil, errors.New("CidExistsBulk: not implemented")
+	if len(cids) == 0 {
+		return nil, nil
+	}
+	exists = make([]bool, len(cids))
+
+	// Phase A: pipelined EXISTS against per-CID keys in Redis.
+	existsCmds := make([]*redis.IntCmd, len(cids))
+	if _, err = ri.cl.Pipelined(ctx, func(pipe redis.Pipeliner) error {
+		for i, c := range cids {
+			existsCmds[i] = pipe.Exists(ctx, CidKey(c))
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	type missed struct {
+		idx int
+		key string
+	}
+	missedByPart := make(map[string][]missed)
+	for i, c := range cids {
+		n, e := existsCmds[i].Result()
+		if e != nil {
+			return nil, e
+		}
+		if n > 0 {
+			exists[i] = true
+			continue
+		}
+		key := CidKey(c)
+		bfKey := bloomFilterKey(key)
+		missedByPart[bfKey] = append(missedByPart[bfKey], missed{idx: i, key: key})
+	}
+	if len(missedByPart) == 0 {
+		return exists, nil
+	}
+
+	// Phase B: pipelined BFMEXISTS per partition.
+	bfCmds := make(map[string]*redis.BoolSliceCmd, len(missedByPart))
+	if _, err = ri.cl.Pipelined(ctx, func(pipe redis.Pipeliner) error {
+		for bfKey, ms := range missedByPart {
+			items := make([]interface{}, len(ms))
+			for i, m := range ms {
+				items[i] = m.key
+			}
+			bfCmds[bfKey] = pipe.BFMExists(ctx, bfKey, items...)
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	type candidate struct {
+		idx int
+		key string
+	}
+	var candidates []candidate
+	for bfKey, ms := range missedByPart {
+		bfRes, e := bfCmds[bfKey].Result()
+		if e != nil {
+			return nil, e
+		}
+		for i, hit := range bfRes {
+			if hit {
+				candidates = append(candidates, candidate{idx: ms[i].idx, key: ms[i].key})
+			}
+		}
+	}
+	if len(candidates) == 0 {
+		return exists, nil
+	}
+
+	// Phase C: parallel persistStore fallback for bloom-positive candidates.
+	g, gctx := errgroup.WithContext(ctx)
+	g.SetLimit(10)
+	for _, cand := range candidates {
+		cand := cand
+		g.Go(func() error {
+			val, e := ri.persistStore.IndexGet(gctx, cand.key)
+			if e != nil {
+				return e
+			}
+			if val != nil {
+				exists[cand.idx] = true
+			}
+			return nil
+		})
+	}
+	if err = g.Wait(); err != nil {
+		return nil, err
+	}
+	return exists, nil
 }
 
 func (ri *redisIndex) CidExistsInSpace(ctx context.Context, k Key, cids []cid.Cid) (exists []cid.Cid, err error) {
