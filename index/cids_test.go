@@ -1,13 +1,17 @@
 package index
 
 import (
+	"context"
 	"fmt"
 	"testing"
+	"time"
 
+	"github.com/ipfs/go-cid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
+	"github.com/anyproto/any-sync-filenode/config"
 	"github.com/anyproto/any-sync-filenode/index/indexproto"
 	"github.com/anyproto/any-sync-filenode/testutil"
 )
@@ -146,4 +150,62 @@ func TestRedisIndex_CidExists(t *testing.T) {
 			assert.False(t, ok)
 		}
 	}
+}
+
+func TestRedisIndex_CidExistsBulk(t *testing.T) {
+	t.Run("empty", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
+
+		res, err := fx.CidExistsBulk(ctx, nil)
+		require.NoError(t, err)
+		assert.Nil(t, res)
+	})
+
+	t.Run("redis hits and misses", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
+
+		live := testutil.NewRandBlocks(3)
+		missing := testutil.NewRandBlocks(2)
+		require.NoError(t, fx.BlocksAdd(ctx, live))
+
+		all := append(append([]cid.Cid{}, testutil.BlocksToKeys(live)...), testutil.BlocksToKeys(missing)...)
+
+		res, err := fx.CidExistsBulk(ctx, all)
+		require.NoError(t, err)
+		require.Equal(t, []bool{true, true, true, false, false}, res)
+	})
+
+	t.Run("hit via persistStore after eviction", func(t *testing.T) {
+		fx := newFixtureConfig(t, &config.Config{DefaultLimit: 1024, PersistTtl: 1})
+		defer fx.Finish(t)
+
+		bs := testutil.NewRandBlocks(2)
+		require.NoError(t, fx.BlocksAdd(ctx, bs))
+
+		dumps := make(map[string][]byte, len(bs))
+		for _, b := range bs {
+			b := b
+			fx.persistStore.EXPECT().IndexPut(ctx, CidKey(b.Cid()), gomock.Any()).
+				Do(func(_ context.Context, key string, value []byte) {
+					dumps[key] = append([]byte(nil), value...)
+				})
+		}
+
+		time.Sleep(time.Second * 2)
+		fx.PersistKeys(ctx)
+
+		for _, b := range bs {
+			b := b
+			fx.persistStore.EXPECT().IndexGet(ctx, CidKey(b.Cid())).
+				DoAndReturn(func(_ context.Context, key string) ([]byte, error) {
+					return dumps[key], nil
+				})
+		}
+
+		res, err := fx.CidExistsBulk(ctx, testutil.BlocksToKeys(bs))
+		require.NoError(t, err)
+		assert.Equal(t, []bool{true, true}, res)
+	})
 }
