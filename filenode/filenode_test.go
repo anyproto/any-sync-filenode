@@ -219,8 +219,7 @@ func TestFileNode_Check(t *testing.T) {
 	fx.index.EXPECT().Migrate(ctx, storeKey)
 	fx.index.EXPECT().CheckAndMoveOwnership(ctx, storeKey, storeKey.GroupId, gomock.Any()).Return(nil)
 	fx.index.EXPECT().CidExistsInSpace(ctx, storeKey, testutil.BlocksToKeys(bs)).Return(testutil.BlocksToKeys(bs[:1]), nil)
-	fx.index.EXPECT().CidExists(ctx, bs[1].Cid()).Return(true, nil)
-	fx.index.EXPECT().CidExists(ctx, bs[2].Cid()).Return(false, nil)
+	fx.index.EXPECT().CidExistsBulk(ctx, testutil.BlocksToKeys(bs[1:])).Return([]bool{true, false}, nil)
 	resp, err := fx.handler.BlocksCheck(ctx, &fileproto.BlocksCheckRequest{
 		SpaceId: storeKey.SpaceId,
 		Cids:    cids,
