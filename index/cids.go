@@ -134,6 +134,14 @@ func (ri *redisIndex) BlocksAdd(ctx context.Context, bs []blocks.Block) (err err
 	return
 }
 
+// CidExistsBulk returns, for each input CID, whether it exists in the global
+// index (either live in Redis or in persistent store). It is optimized for
+// BlocksCheck: no distributed locks, no usage-tracker writes, no restore of
+// evicted keys. Order of the returned slice matches the input order.
+func (ri *redisIndex) CidExistsBulk(ctx context.Context, cids []cid.Cid) (exists []bool, err error) {
+	return nil, errors.New("CidExistsBulk: not implemented")
+}
+
 func (ri *redisIndex) CidExistsInSpace(ctx context.Context, k Key, cids []cid.Cid) (exists []cid.Cid, err error) {
 	_, release, err := ri.AcquireKey(ctx, SpaceKey(k))
 	if err != nil {
