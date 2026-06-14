@@ -2,6 +2,7 @@ package index
 
 import (
 	"context"
+	"errors"
 
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
@@ -144,8 +145,12 @@ func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, entry groupSpaceE
 		entry.group.Save(ctx, tx)
 		return nil
 	})
+	if err != nil {
+		return
+	}
 
 	// update cids
+	var saveErrs []error
 	for _, idx := range affectedCidIdx {
 		if cids.entries[idx].Refs != 0 {
 			cids.entries[idx].Refs--
@@ -155,7 +160,8 @@ func (ri *redisIndex) fileUnbind(ctx context.Context, key Key, entry groupSpaceE
 		}
 		if saveErr := cids.entries[idx].Save(ctx, ri.cl); saveErr != nil {
 			log.WarnCtx(ctx, "unable to save cid info", zap.Error(saveErr), zap.String("cid", cids.entries[idx].Cid.String()), zap.String("spaceId", key.SpaceId))
+			saveErrs = append(saveErrs, saveErr)
 		}
 	}
-	return
+	return errors.Join(saveErrs...)
 }
