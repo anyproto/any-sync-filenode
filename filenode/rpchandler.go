@@ -126,6 +126,9 @@ func (r rpcHandler) BlockPushMany(ctx context.Context, req *fileproto.BlockPushM
 			if err != nil {
 				return nil, err
 			}
+			if len(block.Data) > cidSizeLimit {
+				return nil, fileprotoerr.ErrQuerySizeExceeded
+			}
 			chkc, err := c.Prefix().Sum(block.Data)
 			if err != nil {
 				return nil, err
