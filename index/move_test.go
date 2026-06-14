@@ -3,6 +3,7 @@ package index
 import (
 	"testing"
 
+	"github.com/ipfs/go-cid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -87,6 +88,36 @@ func TestRedisIndex_Move(t *testing.T) {
 		assert.Len(t, bobGroupAfter.SpaceIds, 0)
 		assert.Len(t, aliceGroupAfter.SpaceIds, 2)
 		assert.Equal(t, int(spaceAfter.BytesUsage), int(spaceBefore.BytesUsage))
+
+		// file entries and per-cid refcounts must survive the move
+		movedKey := Key{aliceKey.GroupId, bobKey.SpaceId}
+		fileIds, err := fx.FilesList(ctx, movedKey)
+		require.NoError(t, err)
+		assert.Equal(t, []string{"f1"}, fileIds)
+
+		fileInfos, err := fx.FileInfo(ctx, movedKey, "f1")
+		require.NoError(t, err)
+		require.Len(t, fileInfos, 1)
+		assert.Equal(t, int(spaceBefore.BytesUsage), int(fileInfos[0].BytesUsage))
+		assert.Equal(t, len(bobBS), int(fileInfos[0].CidsCount))
+
+		bobCidList := make([]cid.Cid, len(bobBS))
+		for i, b := range bobBS {
+			bobCidList[i] = b.Cid()
+		}
+		inSpace, err := fx.CidExistsInSpace(ctx, movedKey, bobCidList)
+		require.NoError(t, err)
+		assert.Len(t, inSpace, len(bobBS))
+
+		// unbind after the move must release the usage from the new group
+		require.NoError(t, fx.FileUnbind(ctx, movedKey, "f1"))
+		aliceGroupFinal, err := fx.GroupInfo(ctx, aliceKey.GroupId)
+		require.NoError(t, err)
+		assert.Equal(t, int(aliceGroupBefore.BytesUsage), int(aliceGroupFinal.BytesUsage))
+		spaceFinal, err := fx.SpaceInfo(ctx, movedKey)
+		require.NoError(t, err)
+		assert.Equal(t, 0, int(spaceFinal.BytesUsage))
+		assert.Equal(t, 0, int(spaceFinal.FileCount))
 	}
 
 	t.Run("move", func(t *testing.T) {

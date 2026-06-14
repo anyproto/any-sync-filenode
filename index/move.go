@@ -179,12 +179,31 @@ func (ri *redisIndex) Move(ctx context.Context, dest, src Key) (err error) {
 		return
 	}
 
+	// migrate the whole space hash (file entries and per-cid refcounts) to the new key;
+	// the info field is overwritten with the updated entry below
+	if sSK != dSK {
+		var dump string
+		dump, err = ri.cl.Dump(ctx, sSK).Result()
+		if err != nil && !errors.Is(err, redis.Nil) {
+			return
+		}
+		if !errors.Is(err, redis.Nil) {
+			if err = ri.cl.RestoreReplace(ctx, dSK, 0, dump).Err(); err != nil {
+				return
+			}
+		}
+		err = nil
+	}
+
 	_, err = ri.cl.Pipelined(ctx, func(pipe redis.Pipeliner) error {
 		srcEntry.space.Save(ctx, dest, pipe)
 		destGroup.AddSpaceId(src.SpaceId)
 		destGroup.Save(ctx, pipe)
 		return nil
 	})
+	if err != nil {
+		return
+	}
 
 	if sSK != dSK {
 		if err = ri.cl.Del(ctx, sSK).Err(); err != nil {
