@@ -79,10 +79,9 @@ func (ri *redisIndex) CheckAndMoveOwnership(ctx context.Context, key Key, oldIde
 // move was already applied but the src cleanup didn't finish (crash between
 // the two scripts); the marker is removed after the src side succeeds.
 // KEYS: [1] dest space key, [2] dest group key
-// ARGV: [1] marker field, [2] marker token (src group id),
-//
-//	[3] space hash dump ('' - skip restore), [4] space info ('' - keep existing),
-//	[5] group info, [6..] cid field/delta pairs
+// ARGV: [1] marker field, [2] marker token (src group id), [3] space hash dump
+// (empty - skip restore), [4] space info (empty - keep existing), [5] group info,
+// [6..] cid field/delta pairs
 var moveDestScript = redis.NewScript(`
 if redis.call('HGET', KEYS[2], ARGV[1]) == ARGV[2] then
 	return 0
@@ -120,6 +119,12 @@ end
 return 1
 `)
 
+// moveMarker names the field in the dest group hash guarding against
+// re-applying the dest side of a crashed move; its value is the src group id
+func moveMarker(spaceId string) string {
+	return "mv:" + spaceId
+}
+
 // movePlan holds everything precomputed under the space/group locks so the
 // move applies as two atomic scripts: one per cluster slot side.
 type movePlan struct {
@@ -149,7 +154,9 @@ func (ri *redisIndex) Move(ctx context.Context, dest, src Key) (err error) {
 	if dest.SpaceId != src.SpaceId {
 		return fmt.Errorf("spaceId should be the same for both keys")
 	}
-	srcEntry, srcRelease, err := ri.AcquireSpace(ctx, src)
+	// accept a space already pointing at the dest group: with colliding group
+	// hashes the dest side of a crashed move rewrites the shared space key
+	srcEntry, srcRelease, err := ri.acquireSpace(ctx, src, dest.GroupId)
 	if err != nil {
 		return
 	}
@@ -164,6 +171,18 @@ func (ri *redisIndex) Move(ctx context.Context, dest, src Key) (err error) {
 	destGroup, err := ri.getGroupEntry(ctx, dest)
 	if err != nil {
 		return
+	}
+
+	if srcEntry.space.GetGroupId() == dest.GroupId {
+		// the dest side was already applied by a previous attempt; without the
+		// marker the whole move completed - nothing to do
+		token, e := ri.cl.HGet(ctx, GroupKey(dest), moveMarker(src.SpaceId)).Result()
+		if e != nil && !errors.Is(e, redis.Nil) {
+			return e
+		}
+		if token != src.GroupId {
+			return nil
+		}
 	}
 
 	// in case of hash collision, we don't need to lock the space key twice
@@ -198,7 +217,7 @@ func (ri *redisIndex) prepareMove(ctx context.Context, dest, src Key, srcEntry g
 		dSK:         SpaceKey(dest),
 		sGK:         GroupKey(src),
 		dGK:         GroupKey(dest),
-		marker:      "mv:" + src.SpaceId,
+		marker:      moveMarker(src.SpaceId),
 		markerToken: src.GroupId,
 	}
 
@@ -305,6 +324,21 @@ func (ri *redisIndex) prepareMove(ctx context.Context, dest, src Key, srcEntry g
 					log.WarnCtx(ctx, "group: unable to decrement 0-ref", zap.String("spaceId", src.SpaceId))
 				}
 			}
+		}
+	}
+
+	// an isolated space carries its reserved limit between the groups
+	// (group.Limit = AccountLimit - sum of the isolated space limits);
+	// the move can't be refused, so the dest side clamps instead of erroring -
+	// CheckLimits enforces the account limit afterwards
+	if srcEntry.space.Limit != 0 && src.GroupId != dest.GroupId {
+		srcEntry.group.Limit += srcEntry.space.Limit
+		if destGroup.Limit < srcEntry.space.Limit {
+			log.WarnCtx(ctx, "move: dest group limit underflow",
+				zap.Uint64("limit", destGroup.Limit), zap.Uint64("spaceLimit", srcEntry.space.Limit), zap.String("spaceId", src.SpaceId))
+			destGroup.Limit = 0
+		} else {
+			destGroup.Limit -= srcEntry.space.Limit
 		}
 	}
 

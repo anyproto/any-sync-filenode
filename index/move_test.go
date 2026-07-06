@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/ipfs/go-cid"
-	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -292,14 +291,7 @@ func TestRedisIndex_Move(t *testing.T) {
 		)
 
 		// isolate the space before any binds: binds don't count against the group
-		se, err := fx.getSpaceEntry(ctx, srcKey)
-		require.NoError(t, err)
-		se.Limit = 2048
-		_, err = fx.cl.Pipelined(ctx, func(pipe redis.Pipeliner) error {
-			se.Save(ctx, srcKey, pipe)
-			return nil
-		})
-		require.NoError(t, err)
+		require.NoError(t, fx.SetSpaceLimit(ctx, srcKey, 512))
 
 		bs := testutil.NewRandBlocks(3)
 		require.NoError(t, fx.BlocksAdd(ctx, bs))
@@ -326,12 +318,116 @@ func TestRedisIndex_Move(t *testing.T) {
 			}
 		}
 
+		// the reserved isolated limit moves with the space
+		srcGroup, err := fx.GroupInfo(ctx, srcKey.GroupId)
+		require.NoError(t, err)
+		assert.Equal(t, int(srcGroup.AccountLimit), int(srcGroup.Limit))
+		destGroup, err := fx.GroupInfo(ctx, movedKey.GroupId)
+		require.NoError(t, err)
+		assert.Equal(t, int(destGroup.AccountLimit)-512, int(destGroup.Limit))
+
 		// space data survives the move intact
 		spaceAfter, err := fx.SpaceInfo(ctx, movedKey)
 		require.NoError(t, err)
 		assert.Equal(t, int(spaceBefore.BytesUsage), int(spaceAfter.BytesUsage))
+		assert.Equal(t, 512, int(spaceAfter.Limit))
 		fileIds, err := fx.FilesList(ctx, movedKey)
 		require.NoError(t, err)
 		assert.Equal(t, []string{"f1"}, fileIds)
+	})
+
+	t.Run("interrupted move with colliding hash is finished by retry", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
+		// these groups has an identical xxhash, so both keys share the space hash
+		var (
+			srcKey   = Key{"3325572473", "s1"}
+			movedKey = Key{"8117876798", "s1"}
+		)
+
+		bs := testutil.NewRandBlocks(3)
+		require.NoError(t, fx.BlocksAdd(ctx, bs))
+		cids, err := fx.CidEntriesByBlocks(ctx, bs)
+		require.NoError(t, err)
+		require.NoError(t, fx.FileBind(ctx, srcKey, "f1", cids))
+		cids.Release()
+		sharedCids, err := fx.CidEntriesByBlocks(ctx, bs[:1])
+		require.NoError(t, err)
+		require.NoError(t, fx.FileBind(ctx, srcKey, "f2", sharedCids))
+		sharedCids.Release()
+
+		spaceBefore, err := fx.SpaceInfo(ctx, srcKey)
+		require.NoError(t, err)
+
+		// apply only the destination half, simulating a crash before the src cleanup
+		srcEntry, srcRelease, err := fx.AcquireSpace(ctx, srcKey)
+		require.NoError(t, err)
+		destGroup, err := fx.getGroupEntry(ctx, movedKey)
+		require.NoError(t, err)
+		plan, err := fx.prepareMove(ctx, movedKey, srcKey, srcEntry, destGroup, srcEntry.spaceExists)
+		require.NoError(t, err)
+		require.NoError(t, fx.applyMoveDest(ctx, plan))
+		plan.cids.Release()
+		srcRelease()
+
+		// the shared space key now points at the dest group; the retry must
+		// still complete the src side without double counting
+		require.NoError(t, fx.Move(ctx, movedKey, srcKey))
+
+		val, err := fx.cl.HGet(ctx, GroupKey(movedKey), CidKey(bs[0].Cid())).Result()
+		require.NoError(t, err)
+		assert.Equal(t, "2", val)
+		srcFields, err := fx.cl.HKeys(ctx, GroupKey(srcKey)).Result()
+		require.NoError(t, err)
+		for _, f := range srcFields {
+			assert.False(t, strings.HasPrefix(f, "c:"), "leftover src group cid ref %s", f)
+		}
+
+		spaceAfter, err := fx.SpaceInfo(ctx, movedKey)
+		require.NoError(t, err)
+		assert.Equal(t, int(spaceBefore.BytesUsage), int(spaceAfter.BytesUsage))
+		destGroupAfter, err := fx.GroupInfo(ctx, movedKey.GroupId)
+		require.NoError(t, err)
+		assert.Equal(t, int(spaceBefore.BytesUsage), int(destGroupAfter.BytesUsage))
+		srcGroupAfter, err := fx.GroupInfo(ctx, srcKey.GroupId)
+		require.NoError(t, err)
+		assert.Equal(t, 0, int(srcGroupAfter.BytesUsage))
+
+		require.NoError(t, fx.FileUnbind(ctx, movedKey, "f1", "f2"))
+		destGroupFinal, err := fx.GroupInfo(ctx, movedKey.GroupId)
+		require.NoError(t, err)
+		assert.Equal(t, 0, int(destGroupFinal.BytesUsage))
+	})
+
+	t.Run("repeated move with colliding hash is idempotent", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
+		// these groups has an identical xxhash, so both keys share the space hash
+		var (
+			srcKey   = Key{"3325572473", "s1"}
+			movedKey = Key{"8117876798", "s1"}
+		)
+
+		bs := testutil.NewRandBlocks(3)
+		require.NoError(t, fx.BlocksAdd(ctx, bs))
+		cids, err := fx.CidEntriesByBlocks(ctx, bs)
+		require.NoError(t, err)
+		require.NoError(t, fx.FileBind(ctx, srcKey, "f1", cids))
+		cids.Release()
+
+		spaceBefore, err := fx.SpaceInfo(ctx, srcKey)
+		require.NoError(t, err)
+
+		require.NoError(t, fx.Move(ctx, movedKey, srcKey))
+		// simulate a crash before the owner record was persisted: Move runs again
+		require.NoError(t, fx.Move(ctx, movedKey, srcKey))
+
+		val, err := fx.cl.HGet(ctx, GroupKey(movedKey), CidKey(bs[0].Cid())).Result()
+		require.NoError(t, err)
+		assert.Equal(t, "1", val)
+		spaceAfter, err := fx.SpaceInfo(ctx, movedKey)
+		require.NoError(t, err)
+		assert.Equal(t, int(spaceBefore.BytesUsage), int(spaceAfter.BytesUsage))
+		assert.Equal(t, int(spaceBefore.FileCount), int(spaceAfter.FileCount))
 	})
 }
