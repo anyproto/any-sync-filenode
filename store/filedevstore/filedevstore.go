@@ -145,6 +145,7 @@ func (s *fsstore) IndexGet(ctx context.Context, key string) (value []byte, err e
 		if errors.Is(err, anystore.ErrDocNotFound) {
 			return nil, nil
 		}
+		return nil, err
 	}
 	return slices.Clone(doc.Value().GetBytes("d")), nil
 }
