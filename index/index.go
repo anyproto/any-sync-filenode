@@ -57,6 +57,7 @@ type Index interface {
 
 	WaitCidExists(ctx context.Context, c cid.Cid) (err error)
 	CidExists(ctx context.Context, c cid.Cid) (ok bool, err error)
+	CidExistsBulk(ctx context.Context, cids []cid.Cid) (exists []bool, err error)
 	CidEntries(ctx context.Context, cids []cid.Cid) (entries *CidEntries, err error)
 	CidEntriesByBlocks(ctx context.Context, bs []blocks.Block) (entries *CidEntries, err error)
 	CidExistsInSpace(ctx context.Context, key Key, cids []cid.Cid) (exists []cid.Cid, err error)

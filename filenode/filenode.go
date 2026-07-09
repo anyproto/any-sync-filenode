@@ -140,20 +140,37 @@ func (fn *fileNode) Check(ctx context.Context, spaceId string, cids ...cid.Cid) 
 			inSpaceM[inSp.KeyString()] = struct{}{}
 		}
 	}
-	for _, k := range cids {
-		var res = &fileproto.BlockAvailability{
+
+	// Collect the CIDs not found in the space; resolve their global existence
+	// in one pipelined call.
+	missed := make([]cid.Cid, 0, len(cids))
+	missedIdx := make([]int, 0, len(cids))
+	for i, k := range cids {
+		if _, ok := inSpaceM[k.KeyString()]; !ok {
+			missed = append(missed, k)
+			missedIdx = append(missedIdx, i)
+		}
+	}
+	var globallyExists []bool
+	if len(missed) > 0 {
+		if globallyExists, err = fn.index.CidExistsBulk(ctx, missed); err != nil {
+			return nil, err
+		}
+	}
+	missedPos := make(map[int]int, len(missedIdx))
+	for pos, i := range missedIdx {
+		missedPos[i] = pos
+	}
+
+	for i, k := range cids {
+		res := &fileproto.BlockAvailability{
 			Cid:    k.Bytes(),
 			Status: fileproto.AvailabilityStatus_NotExists,
 		}
 		if _, ok := inSpaceM[k.KeyString()]; ok {
 			res.Status = fileproto.AvailabilityStatus_ExistsInSpace
-		} else {
-			var ex bool
-			if ex, err = fn.index.CidExists(ctx, k); err != nil {
-				return nil, err
-			} else if ex {
-				res.Status = fileproto.AvailabilityStatus_Exists
-			}
+		} else if pos, ok := missedPos[i]; ok && globallyExists[pos] {
+			res.Status = fileproto.AvailabilityStatus_Exists
 		}
 		result = append(result, res)
 	}
