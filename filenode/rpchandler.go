@@ -313,6 +313,26 @@ func (r rpcHandler) AccountLimitSet(ctx context.Context, req *fileproto.AccountL
 	return &fileproto.Ok{}, nil
 }
 
+func (r rpcHandler) BlockDeleteUnbound(ctx context.Context, req *fileproto.BlockDeleteUnboundRequest) (resp *fileproto.Ok, err error) {
+	var c cid.Cid
+	st := time.Now()
+	defer func() {
+		r.f.metric.RequestLog(ctx,
+			"file.blockDeleteUnbound",
+			metric.TotalDur(time.Since(st)),
+			metric.Cid(c.String()),
+			zap.Error(err),
+		)
+	}()
+	if c, err = cid.Cast(req.Cid); err != nil {
+		return
+	}
+	if err = r.f.BlockDeleteUnbound(ctx, c); err != nil {
+		return
+	}
+	return &fileproto.Ok{}, nil
+}
+
 func (r rpcHandler) SpaceLimitSet(ctx context.Context, req *fileproto.SpaceLimitSetRequest) (resp *fileproto.Ok, err error) {
 	st := time.Now()
 	defer func() {

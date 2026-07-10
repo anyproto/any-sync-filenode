@@ -31,6 +31,7 @@ var log = logger.NewNamed(CName)
 var (
 	ErrCidsNotExist   = errors.New("cids not exist")
 	ErrSpaceIsDeleted = errors.New("space is deleted")
+	ErrCidIsBound     = errors.New("cid is bound")
 )
 
 type ctxKey int
@@ -60,6 +61,7 @@ type Index interface {
 	CidEntries(ctx context.Context, cids []cid.Cid) (entries *CidEntries, err error)
 	CidEntriesByBlocks(ctx context.Context, bs []blocks.Block) (entries *CidEntries, err error)
 	CidExistsInSpace(ctx context.Context, key Key, cids []cid.Cid) (exists []cid.Cid, err error)
+	DeleteUnboundCid(ctx context.Context, c cid.Cid) (ok bool, err error)
 
 	SetGroupLimit(ctx context.Context, groupId string, limit uint64) (err error)
 	SetSpaceLimit(ctx context.Context, key Key, limit uint64) (err error)

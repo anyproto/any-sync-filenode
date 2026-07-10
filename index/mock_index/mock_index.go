@@ -235,6 +235,21 @@ func (mr *MockIndexMockRecorder) Close(ctx any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockIndex)(nil).Close), ctx)
 }
 
+// DeleteUnboundCid mocks base method.
+func (m *MockIndex) DeleteUnboundCid(ctx context.Context, c cid.Cid) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteUnboundCid", ctx, c)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteUnboundCid indicates an expected call of DeleteUnboundCid.
+func (mr *MockIndexMockRecorder) DeleteUnboundCid(ctx, c any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUnboundCid", reflect.TypeOf((*MockIndex)(nil).DeleteUnboundCid), ctx, c)
+}
+
 // FileBind mocks base method.
 func (m *MockIndex) FileBind(ctx context.Context, key index.Key, fileId string, cidEntries *index.CidEntries) error {
 	m.ctrl.T.Helper()

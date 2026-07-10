@@ -582,6 +582,71 @@ func TestFileNode_SpaceLimitSet(t *testing.T) {
 	require.NoError(t, fx.SpaceLimitSet(ctx, storeKey.SpaceId, 12345))
 }
 
+func TestFileNode_BlockDeleteUnbound(t *testing.T) {
+	var peerId = "peerId"
+
+	t.Run("success", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
+		c := testutil.NewRandCid()
+		ctx := peer.CtxWithPeerId(context.Background(), peerId)
+
+		fx.nodeConf.EXPECT().NodeTypes(peerId).Return([]nodeconf.NodeType{nodeconf.NodeTypeCoordinator})
+		fx.index.EXPECT().DeleteUnboundCid(ctx, c).Return(true, nil)
+
+		resp, err := fx.handler.BlockDeleteUnbound(ctx, &fileproto.BlockDeleteUnboundRequest{Cid: c.Bytes()})
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+	})
+
+	t.Run("non-existent cid is ok", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
+		c := testutil.NewRandCid()
+		ctx := peer.CtxWithPeerId(context.Background(), peerId)
+
+		fx.nodeConf.EXPECT().NodeTypes(peerId).Return([]nodeconf.NodeType{nodeconf.NodeTypeCoordinator})
+		fx.index.EXPECT().DeleteUnboundCid(ctx, c).Return(false, nil)
+
+		_, err := fx.handler.BlockDeleteUnbound(ctx, &fileproto.BlockDeleteUnboundRequest{Cid: c.Bytes()})
+		require.NoError(t, err)
+	})
+
+	t.Run("bound cid forbidden", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
+		c := testutil.NewRandCid()
+		ctx := peer.CtxWithPeerId(context.Background(), peerId)
+
+		fx.nodeConf.EXPECT().NodeTypes(peerId).Return([]nodeconf.NodeType{nodeconf.NodeTypeCoordinator})
+		fx.index.EXPECT().DeleteUnboundCid(ctx, c).Return(false, index.ErrCidIsBound)
+
+		_, err := fx.handler.BlockDeleteUnbound(ctx, &fileproto.BlockDeleteUnboundRequest{Cid: c.Bytes()})
+		require.ErrorIs(t, err, fileprotoerr.ErrForbidden)
+	})
+
+	t.Run("non-coordinator peer forbidden", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
+		c := testutil.NewRandCid()
+		ctx := peer.CtxWithPeerId(context.Background(), peerId)
+
+		fx.nodeConf.EXPECT().NodeTypes(peerId).Return([]nodeconf.NodeType{nodeconf.NodeTypeFile})
+
+		_, err := fx.handler.BlockDeleteUnbound(ctx, &fileproto.BlockDeleteUnboundRequest{Cid: c.Bytes()})
+		require.ErrorIs(t, err, fileprotoerr.ErrForbidden)
+	})
+
+	t.Run("no peer id forbidden", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
+		c := testutil.NewRandCid()
+
+		_, err := fx.handler.BlockDeleteUnbound(context.Background(), &fileproto.BlockDeleteUnboundRequest{Cid: c.Bytes()})
+		require.ErrorIs(t, err, fileprotoerr.ErrForbidden)
+	})
+}
+
 func newAclList(t *testing.T, spaceId string, initCmd string) list.AclList {
 	a := list.NewAclExecutor(spaceId)
 	cmds := []string{

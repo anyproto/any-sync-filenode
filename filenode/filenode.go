@@ -412,6 +412,26 @@ func (fn *fileNode) AddNoBind(ctx context.Context, bs []blocks.Block) error {
 	return nil
 }
 
+func (fn *fileNode) BlockDeleteUnbound(ctx context.Context, c cid.Cid) (err error) {
+	peerId, err := peer.CtxPeerId(ctx)
+	if err != nil {
+		return fileprotoerr.ErrForbidden
+	}
+	// only the coordinator can delete unbound blocks
+	if !slices.Contains(fn.nodeConf.NodeTypes(peerId), nodeconf.NodeTypeCoordinator) {
+		return fileprotoerr.ErrForbidden
+	}
+	deleted, err := fn.index.DeleteUnboundCid(ctx, c)
+	if err != nil {
+		if errors.Is(err, index.ErrCidIsBound) {
+			return fileprotoerr.ErrForbidden
+		}
+		return
+	}
+	log.InfoCtx(ctx, "unbound block delete", zap.String("cid", c.String()), zap.Bool("deleted", deleted))
+	return
+}
+
 func (fn *fileNode) AccountLimitSet(ctx context.Context, identity string, limit uint64) (err error) {
 	peerId, err := peer.CtxPeerId(ctx)
 	if err != nil {
