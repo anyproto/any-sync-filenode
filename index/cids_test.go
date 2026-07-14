@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	blocks "github.com/ipfs/go-block-format"
+	"github.com/ipfs/go-cid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -146,4 +148,66 @@ func TestRedisIndex_CidExists(t *testing.T) {
 			assert.False(t, ok)
 		}
 	}
+}
+
+func TestRedisIndex_DeleteUnboundCid(t *testing.T) {
+	t.Run("unbound cid deleted", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
+		b := testutil.NewRandBlock(1024)
+		c := b.Cid()
+		require.NoError(t, fx.BlocksAdd(ctx, []blocks.Block{b}))
+
+		countBefore, err := fx.cl.Get(ctx, cidCount).Int64()
+		require.NoError(t, err)
+		sizeBefore, err := fx.cl.Get(ctx, cidSizeSumKey).Int64()
+		require.NoError(t, err)
+
+		fx.persistStore.EXPECT().DeleteMany(gomock.Any(), []cid.Cid{c}).Return(nil)
+		fx.persistStore.EXPECT().IndexDelete(gomock.Any(), CidKey(c)).Return(nil)
+
+		ok, err := fx.DeleteUnboundCid(ctx, c)
+		require.NoError(t, err)
+		assert.True(t, ok)
+
+		exists, err := fx.CidExists(ctx, c)
+		require.NoError(t, err)
+		assert.False(t, exists)
+
+		countAfter, err := fx.cl.Get(ctx, cidCount).Int64()
+		require.NoError(t, err)
+		assert.Equal(t, countBefore-1, countAfter)
+		sizeAfter, err := fx.cl.Get(ctx, cidSizeSumKey).Int64()
+		require.NoError(t, err)
+		assert.Equal(t, sizeBefore-int64(len(b.RawData())), sizeAfter)
+	})
+
+	t.Run("bound cid refused", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
+		b := testutil.NewRandBlock(1024)
+		key := newRandKey()
+		fileId := testutil.NewRandCid().String()
+		require.NoError(t, fx.BlocksAdd(ctx, []blocks.Block{b}))
+		cids, err := fx.CidEntriesByBlocks(ctx, []blocks.Block{b})
+		require.NoError(t, err)
+		require.NoError(t, fx.FileBind(ctx, key, fileId, cids))
+		cids.Release()
+
+		_, err = fx.DeleteUnboundCid(ctx, b.Cid())
+		require.ErrorIs(t, err, ErrCidIsBound)
+
+		exists, err := fx.CidExists(ctx, b.Cid())
+		require.NoError(t, err)
+		assert.True(t, exists)
+	})
+
+	t.Run("non-existent cid is no-op", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
+
+		ok, err := fx.DeleteUnboundCid(ctx, testutil.NewRandCid())
+		require.NoError(t, err)
+		assert.False(t, ok)
+	})
 }

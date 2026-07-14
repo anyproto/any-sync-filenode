@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/go-redsync/redsync/v4"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	"github.com/redis/go-redis/v9"
@@ -157,6 +158,63 @@ func (ri *redisIndex) CidExistsInSpace(ctx context.Context, k Key, cids []cid.Ci
 		}
 	}
 	return
+}
+
+// DeleteUnboundCid physically removes a block that is not referenced by any file (refs == 0).
+// It returns ErrCidIsBound if the cid is referenced; ok is false if the cid doesn't exist.
+func (ri *redisIndex) DeleteUnboundCid(ctx context.Context, c cid.Cid) (ok bool, err error) {
+	// take the block lock to exclude a concurrent upload of the same cid
+	bMu := ri.redsync.NewMutex("_lock:b:"+c.String(), redsync.WithExpiry(time.Minute))
+	for {
+		err = bMu.LockContext(ctx)
+		var errTaken *redsync.ErrTaken
+		if errors.As(err, &errTaken) {
+			time.Sleep(time.Millisecond * 10)
+			continue
+		}
+		if err != nil {
+			return false, err
+		}
+		break
+	}
+	defer func() {
+		_, _ = bMu.Unlock()
+	}()
+
+	ck := CidKey(c)
+	exists, release, err := ri.AcquireKey(ctx, ck)
+	if err != nil {
+		return
+	}
+	defer release()
+	if !exists {
+		return false, nil
+	}
+	entry, err := ri.getCidEntry(ctx, c)
+	if err != nil {
+		return
+	}
+	if entry.Refs != 0 {
+		return false, ErrCidIsBound
+	}
+	// remove the block first: if we fail halfway, a retry will still see refs == 0 and finish the cleanup
+	if err = ri.persistStore.DeleteMany(ctx, []cid.Cid{c}); err != nil {
+		return
+	}
+	_, err = ri.cl.Pipelined(ctx, func(pipe redis.Pipeliner) error {
+		pipe.Del(ctx, ck)
+		pipe.DecrBy(ctx, cidSizeSumKey, int64(entry.Size))
+		pipe.Decr(ctx, cidCount)
+		return nil
+	})
+	if err != nil {
+		return
+	}
+	// also drop the entry from the persistent store in case it was offloaded from redis
+	if err = ri.persistStore.IndexDelete(ctx, ck); err != nil {
+		return
+	}
+	return true, nil
 }
 
 func (ri *redisIndex) getCidEntry(ctx context.Context, c cid.Cid) (entry *cidEntry, err error) {
