@@ -164,6 +164,32 @@ func TestFileNode_Add(t *testing.T) {
 	})
 }
 
+func TestFileNode_BlockPushMany(t *testing.T) {
+	t.Run("err single block too big", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
+		var (
+			ctx, key = newRandKey()
+			fileId   = testutil.NewRandCid().String()
+			b        = testutil.NewRandBlock(cidSizeLimit + 1)
+		)
+
+		resp, err := fx.handler.BlockPushMany(ctx, &fileproto.BlockPushManyRequest{
+			FileBlocks: []*fileproto.FileBlocks{
+				{
+					SpaceId: key.SpaceId,
+					FileId:  fileId,
+					Blocks: []*fileproto.Block{
+						{Cid: b.Cid().Bytes(), Data: b.RawData()},
+					},
+				},
+			},
+		})
+		require.EqualError(t, err, fileprotoerr.ErrQuerySizeExceeded.Error())
+		assert.Nil(t, resp)
+	})
+}
+
 func TestFileNode_Get(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		fx := newFixture(t)

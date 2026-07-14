@@ -250,7 +250,10 @@ func (ri *redisIndex) persistKeys(ctx context.Context, part int, stat *persistSt
 }
 
 func (ri *redisIndex) persistKey(ctx context.Context, storeKey, key string, deadline int64, stat *persistStat) (err error) {
-	mu := ri.redsync.NewMutex("_lock:" + key)
+	// use the same expiry as acquireKey: the default 8s expiry can elapse during slow
+	// persistent-store IO, letting a concurrent acquireKey mutate the key between our
+	// dump and the final delete, losing the update
+	mu := ri.redsync.NewMutex("_lock:"+key, redsync.WithExpiry(time.Minute*20))
 	if err = mu.LockContext(ctx); err != nil {
 		return
 	}
