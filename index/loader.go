@@ -78,6 +78,13 @@ func (ri *redisIndex) AcquireKey(ctx context.Context, key string) (exists bool, 
 }
 
 func (ri *redisIndex) AcquireSpace(ctx context.Context, key Key) (entry groupSpaceEntry, release func(), err error) {
+	return ri.acquireSpace(ctx, key, "")
+}
+
+// acquireSpace does the same as AcquireSpace; a non-empty altGroupId is an
+// additionally accepted owner group of the space - Move uses it to resume a
+// half-applied ownership transfer that has already rewritten the space info
+func (ri *redisIndex) acquireSpace(ctx context.Context, key Key, altGroupId string) (entry groupSpaceEntry, release func(), err error) {
 	gExists, gRelease, err := ri.AcquireKey(ctx, GroupKey(key))
 	if err != nil {
 		return
@@ -123,7 +130,7 @@ func (ri *redisIndex) AcquireSpace(ctx context.Context, key Key) (entry groupSpa
 		return
 	}
 
-	if entry.space.GetGroupId() != key.GroupId {
+	if gid := entry.space.GetGroupId(); gid != key.GroupId && (altGroupId == "" || gid != altGroupId) {
 		gRelease()
 		sRelease()
 		err = fmt.Errorf("space and group mismatched")
