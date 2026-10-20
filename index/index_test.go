@@ -6,6 +6,7 @@ import (
 
 	"github.com/anyproto/any-sync/app"
 	blocks "github.com/ipfs/go-block-format"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -65,7 +66,7 @@ func newFixture(t *testing.T) (fx *fixture) {
 	return newFixtureConfig(t, nil)
 }
 
-func newFixtureConfig(t *testing.T, conf *config.Config) (fx *fixture) {
+func newFixtureConfig(t *testing.T, conf *config.Config, hooks ...redis.Hook) (fx *fixture) {
 	ctrl := gomock.NewController(t)
 	fx = &fixture{
 		redisIndex:   New().(*redisIndex),
@@ -78,7 +79,7 @@ func newFixtureConfig(t *testing.T, conf *config.Config) (fx *fixture) {
 	if conf == nil {
 		conf = &config.Config{DefaultLimit: 1024, PersistTtl: 3600}
 	}
-	fx.a.Register(testredisprovider.NewTestRedisProvider()).Register(fx.redisIndex).Register(fx.persistStore).Register(conf)
+	fx.a.Register(testredisprovider.NewTestRedisProvider().WithHooks(hooks...)).Register(fx.redisIndex).Register(fx.persistStore).Register(conf)
 	require.NoError(t, fx.a.Start(ctx))
 	return
 }

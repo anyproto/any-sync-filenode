@@ -2,9 +2,14 @@ package index
 
 import (
 	"context"
+	"errors"
+	"net"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	blocks "github.com/ipfs/go-block-format"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -54,6 +59,78 @@ func TestRedisIndex_PersistKeys(t *testing.T) {
 			assert.True(t, res)
 		}
 	})
+	t.Run("bloom filter tx error", func(t *testing.T) {
+		hook := &failBFAddHook{}
+		fx := newFixtureConfig(t, &config.Config{PersistTtl: 1}, hook)
+		defer fx.Finish(t)
+
+		b := testutil.NewRandBlock(10)
+		k := CidKey(b.Cid())
+		require.NoError(t, fx.BlocksAdd(ctx, []blocks.Block{b}))
+		time.Sleep(time.Second * 3)
+
+		// the tx fails: the key has to stay in redis and in the queue
+		hook.fail.Store(true)
+		fx.persistStore.EXPECT().IndexPut(ctx, k, gomock.Any())
+		fx.PersistKeys(ctx)
+
+		ex, err := fx.cl.Exists(ctx, k).Result()
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), ex)
+		inBloom, err := fx.cl.BFExists(ctx, bloomFilterKey(k), k).Result()
+		require.NoError(t, err)
+		assert.False(t, inBloom)
+
+		// the next cycle persists the key again instead of deleting it from the persistent store
+		hook.fail.Store(false)
+		var persisted []byte
+		fx.persistStore.EXPECT().IndexPut(ctx, k, gomock.Any()).Do(func(_ context.Context, _ string, value []byte) {
+			persisted = value
+		})
+		fx.PersistKeys(ctx)
+
+		ex, err = fx.cl.Exists(ctx, k).Result()
+		require.NoError(t, err)
+		assert.Equal(t, int64(0), ex)
+		inBloom, err = fx.cl.BFExists(ctx, bloomFilterKey(k), k).Result()
+		require.NoError(t, err)
+		assert.True(t, inBloom)
+
+		fx.persistStore.EXPECT().IndexGet(ctx, k).Return(persisted, nil)
+		exists, err := fx.CidExists(ctx, b.Cid())
+		require.NoError(t, err)
+		assert.True(t, exists)
+	})
+}
+
+// failBFAddHook fails a pipeline that contains BF.ADD before it is sent, like a broken connection would
+type failBFAddHook struct {
+	fail atomic.Bool
+}
+
+func (h *failBFAddHook) DialHook(next redis.DialHook) redis.DialHook {
+	return func(ctx context.Context, network, addr string) (net.Conn, error) {
+		return next(ctx, network, addr)
+	}
+}
+
+func (h *failBFAddHook) ProcessHook(next redis.ProcessHook) redis.ProcessHook {
+	return func(ctx context.Context, cmd redis.Cmder) error {
+		return next(ctx, cmd)
+	}
+}
+
+func (h *failBFAddHook) ProcessPipelineHook(next redis.ProcessPipelineHook) redis.ProcessPipelineHook {
+	return func(ctx context.Context, cmds []redis.Cmder) error {
+		if h.fail.Load() {
+			for _, cmd := range cmds {
+				if cmd.Name() == "bf.add" {
+					return errors.New("injected tx error")
+				}
+			}
+		}
+		return next(ctx, cmds)
+	}
 }
 
 func TestRedisIndex_AcquireKey(t *testing.T) {

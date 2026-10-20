@@ -293,11 +293,16 @@ func (ri *redisIndex) persistKey(ctx context.Context, storeKey, key string, dead
 		return
 	}
 	// remove from queue and add to bloom filter
-	_, err = ri.cl.TxPipelined(ctx, func(tx redis.Pipeliner) error {
+	if _, err = ri.cl.TxPipelined(ctx, func(tx redis.Pipeliner) error {
 		tx.ZRem(ctx, storeKey, key)
 		tx.BFAdd(ctx, bloomFilterKey(key), key)
 		return nil
-	})
+	}); err != nil {
+		// keep the key in redis: without the bloom filter entry the persisted copy is unreachable,
+		// and a key left in the queue without a value is removed from the persistent store
+		stat.errors.Add(1)
+		return
+	}
 
 	stat.moved.Add(1)
 	stat.movedBytes.Add(int32(len(dump)))

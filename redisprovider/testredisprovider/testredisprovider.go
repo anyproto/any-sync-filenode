@@ -28,6 +28,7 @@ type TestRedisProvider struct {
 	client       redis.UniversalClient
 	flushOnStart bool
 	db           int
+	hooks        []redis.Hook
 }
 
 func (t *TestRedisProvider) Init(a *app.App) (err error) {
@@ -36,6 +37,9 @@ func (t *TestRedisProvider) Init(a *app.App) (err error) {
 		return
 	}
 	t.client = redis.NewClient(opts)
+	for _, h := range t.hooks {
+		t.client.AddHook(h)
+	}
 	return nil
 }
 
@@ -65,5 +69,11 @@ func (t *TestRedisProvider) WithDb(db int) *TestRedisProvider {
 
 func (t *TestRedisProvider) WithFLush(flushOnStart bool) *TestRedisProvider {
 	t.flushOnStart = flushOnStart
+	return t
+}
+
+// WithHooks adds hooks to the client before any component uses it
+func (t *TestRedisProvider) WithHooks(hooks ...redis.Hook) *TestRedisProvider {
+	t.hooks = hooks
 	return t
 }
