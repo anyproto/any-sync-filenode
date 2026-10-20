@@ -163,3 +163,36 @@ func TestRedisIndex_AcquireKey(t *testing.T) {
 	}
 
 }
+
+func TestRedisIndex_AcquireSpace(t *testing.T) {
+	inPersistQueue := func(fx *fixture, key string) bool {
+		_, err := fx.cl.ZScore(ctx, storeKey(key), key).Result()
+		if errors.Is(err, redis.Nil) {
+			return false
+		}
+		require.NoError(t, err)
+		return true
+	}
+
+	fx := newFixture(t)
+	defer fx.Finish(t)
+	key := newRandKey()
+
+	entry, release, err := fx.AcquireSpace(ctx, key)
+	require.NoError(t, err)
+	release()
+	assert.False(t, entry.spaceExists)
+	// the space and group keys are created by the caller, so they are queued even if absent
+	assert.True(t, inPersistQueue(fx, SpaceKey(key)))
+	assert.True(t, inPersistQueue(fx, GroupKey(key)))
+	// the del key is only checked, an absent one must not be queued
+	assert.False(t, inPersistQueue(fx, DelKey(key)))
+
+	ok, err := fx.MarkSpaceAsDeleted(ctx, key)
+	require.NoError(t, err)
+	require.True(t, ok)
+	assert.True(t, inPersistQueue(fx, DelKey(key)))
+
+	_, _, err = fx.AcquireSpace(ctx, key)
+	assert.ErrorIs(t, err, ErrSpaceIsDeleted)
+}

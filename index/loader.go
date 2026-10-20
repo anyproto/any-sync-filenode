@@ -91,12 +91,11 @@ func (ri *redisIndex) AcquireSpace(ctx context.Context, key Key) (entry groupSpa
 	isForceLoad, _ := ctx.Value(ctxForceSpaceGet).(bool)
 	if !isForceLoad {
 		// check if space marked as deleted
-		var (
-			delKey     = DelKey(key)
-			delRelease func()
-			delExists  bool
-		)
-		if delExists, delRelease, err = ri.AcquireKey(ctx, delKey); err != nil {
+		// CheckKey adds the key to the persist queue only if it exists: the del key is absent
+		// for almost every space, and queueing it would cost a lock, a dump and a persistent
+		// store delete per space on every persist cycle
+		var delExists bool
+		if delExists, err = ri.CheckKey(ctx, DelKey(key)); err != nil {
 			gRelease()
 			sRelease()
 			return
@@ -104,11 +103,8 @@ func (ri *redisIndex) AcquireSpace(ctx context.Context, key Key) (entry groupSpa
 		if delExists {
 			gRelease()
 			sRelease()
-			delRelease()
 			err = ErrSpaceIsDeleted
 			return
-		} else {
-			delRelease()
 		}
 	}
 
