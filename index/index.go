@@ -12,6 +12,7 @@ import (
 	"github.com/OneOfOne/xxhash"
 	"github.com/anyproto/any-sync/app"
 	"github.com/anyproto/any-sync/app/logger"
+	"github.com/anyproto/any-sync/metric"
 	"github.com/anyproto/any-sync/util/periodicsync"
 	"github.com/go-redsync/redsync/v4"
 	"github.com/go-redsync/redsync/v4/redis/goredis/v9"
@@ -138,6 +139,8 @@ type redisIndex struct {
 	cidSubscriptionsMu sync.Mutex
 	cidSubscriptions   map[string]map[chan struct{}]struct{}
 
+	bloomStat bloomStat
+
 	ctx       context.Context
 	ctxCancel context.CancelFunc
 }
@@ -158,6 +161,9 @@ func (ri *redisIndex) Init(a *app.App) (err error) {
 	}
 	ri.cidSubscriptions = make(map[string]map[chan struct{}]struct{})
 	ri.ctx, ri.ctxCancel = context.WithCancel(context.Background())
+	if m := a.Component(metric.CName); m != nil {
+		registerMetric(&ri.bloomStat, m.(metric.Metric).Registry())
+	}
 	return
 }
 

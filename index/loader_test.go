@@ -162,6 +162,22 @@ func TestRedisIndex_AcquireKey(t *testing.T) {
 		release()
 	}
 
+	// all the keys were in the bloom filter, the first one was missing in the persistent store
+	assert.Equal(t, uint64(len(bs)), fx.bloomStat.positive.Load())
+	assert.Equal(t, uint64(1), fx.bloomStat.falsePositive.Load())
+
+	// restored keys are in redis: no bloom filter lookups
+	for _, b := range bs[1:] {
+		ex, err := fx.CheckKey(ctx, CidKey(b.Cid()))
+		require.NoError(t, err)
+		require.True(t, ex)
+	}
+	// absent keys that are not in the bloom filter don't count
+	ex, err := fx.CheckKey(ctx, CidKey(testutil.NewRandCid()))
+	require.NoError(t, err)
+	require.False(t, ex)
+	assert.Equal(t, uint64(len(bs)), fx.bloomStat.positive.Load())
+	assert.Equal(t, uint64(1), fx.bloomStat.falsePositive.Load())
 }
 
 func TestRedisIndex_AcquireSpace(t *testing.T) {

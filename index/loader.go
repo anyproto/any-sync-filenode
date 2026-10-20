@@ -167,6 +167,7 @@ func (ri *redisIndex) acquireKey(ctx context.Context, key string) (exists bool, 
 	if !bloomEx {
 		return false, release, nil
 	}
+	ri.bloomStat.positive.Add(1)
 
 	// try to load from persistent store
 	val, err := ri.persistStore.IndexGet(ctx, key)
@@ -176,6 +177,8 @@ func (ri *redisIndex) acquireKey(ctx context.Context, key string) (exists bool, 
 	}
 	// nil means not found
 	if val == nil {
+		// a bloom filter false positive or a stale entry of a removed key
+		ri.bloomStat.falsePositive.Add(1)
 		return false, release, nil
 	}
 	if err = ri.cl.Restore(ctx, key, 0, string(val)).Err(); err != nil {
