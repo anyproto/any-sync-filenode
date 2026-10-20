@@ -298,8 +298,13 @@ func (ri *redisIndex) persistKey(ctx context.Context, storeKey, key string, dead
 		return nil
 	}); err != nil {
 		// keep the key in redis: without the bloom filter entry the persisted copy is unreachable,
-		// and a key left in the queue without a value is removed from the persistent store
+		// and a key left in the queue without a value is removed from the persistent store.
+		// MULTI/EXEC doesn't roll back, so ZREM may be applied (BF.ADD failed in exec or the reply
+		// was lost): put the key back in the queue with its score, the next cycle persists it again
 		stat.errors.Add(1)
+		if zErr := ri.cl.ZAdd(ctx, storeKey, redis.Z{Score: res[0], Member: key}).Err(); zErr != nil {
+			log.Warn("can't requeue the key after a persist tx error", zap.String("key", key), zap.Error(zErr))
+		}
 		return
 	}
 
