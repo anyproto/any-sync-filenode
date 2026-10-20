@@ -46,6 +46,7 @@ type Config struct {
 	DefaultLimit             uint64                 `yaml:"defaultLimit"`
 	PersistTtl               uint                   `yaml:"persistTtl"`
 	Secure                   secureservice.Config   `yaml:"secure"`
+	MutexProfileFraction     int                    `yaml:"mutexProfileFraction"`
 }
 
 func (c *Config) Init(a *app.App) (err error) {

@@ -91,12 +91,11 @@ func (ri *redisIndex) AcquireSpace(ctx context.Context, key Key) (entry groupSpa
 	isForceLoad, _ := ctx.Value(ctxForceSpaceGet).(bool)
 	if !isForceLoad {
 		// check if space marked as deleted
-		var (
-			delKey     = DelKey(key)
-			delRelease func()
-			delExists  bool
-		)
-		if delExists, delRelease, err = ri.AcquireKey(ctx, delKey); err != nil {
+		// CheckKey adds the key to the persist queue only if it exists: the del key is absent
+		// for almost every space, and queueing it would cost a lock, a dump and a persistent
+		// store delete per space on every persist cycle
+		var delExists bool
+		if delExists, err = ri.CheckKey(ctx, DelKey(key)); err != nil {
 			gRelease()
 			sRelease()
 			return
@@ -104,11 +103,8 @@ func (ri *redisIndex) AcquireSpace(ctx context.Context, key Key) (entry groupSpa
 		if delExists {
 			gRelease()
 			sRelease()
-			delRelease()
 			err = ErrSpaceIsDeleted
 			return
-		} else {
-			delRelease()
 		}
 	}
 
@@ -171,6 +167,7 @@ func (ri *redisIndex) acquireKey(ctx context.Context, key string) (exists bool, 
 	if !bloomEx {
 		return false, release, nil
 	}
+	ri.bloomStat.positive.Add(1)
 
 	// try to load from persistent store
 	val, err := ri.persistStore.IndexGet(ctx, key)
@@ -180,6 +177,8 @@ func (ri *redisIndex) acquireKey(ctx context.Context, key string) (exists bool, 
 	}
 	// nil means not found
 	if val == nil {
+		// a bloom filter false positive or a stale entry of a removed key
+		ri.bloomStat.falsePositive.Add(1)
 		return false, release, nil
 	}
 	if err = ri.cl.Restore(ctx, key, 0, string(val)).Err(); err != nil {
@@ -293,11 +292,21 @@ func (ri *redisIndex) persistKey(ctx context.Context, storeKey, key string, dead
 		return
 	}
 	// remove from queue and add to bloom filter
-	_, err = ri.cl.TxPipelined(ctx, func(tx redis.Pipeliner) error {
+	if _, err = ri.cl.TxPipelined(ctx, func(tx redis.Pipeliner) error {
 		tx.ZRem(ctx, storeKey, key)
 		tx.BFAdd(ctx, bloomFilterKey(key), key)
 		return nil
-	})
+	}); err != nil {
+		// keep the key in redis: without the bloom filter entry the persisted copy is unreachable,
+		// and a key left in the queue without a value is removed from the persistent store.
+		// MULTI/EXEC doesn't roll back, so ZREM may be applied (BF.ADD failed in exec or the reply
+		// was lost): put the key back in the queue with its score, the next cycle persists it again
+		stat.errors.Add(1)
+		if zErr := ri.cl.ZAdd(ctx, storeKey, redis.Z{Score: res[0], Member: key}).Err(); zErr != nil {
+			log.Warn("can't requeue the key after a persist tx error", zap.String("key", key), zap.Error(zErr))
+		}
+		return
+	}
 
 	stat.moved.Add(1)
 	stat.movedBytes.Add(int32(len(dump)))

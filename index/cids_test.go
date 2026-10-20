@@ -3,6 +3,7 @@ package index
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
@@ -10,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
+	"github.com/anyproto/any-sync-filenode/config"
 	"github.com/anyproto/any-sync-filenode/index/indexproto"
 	"github.com/anyproto/any-sync-filenode/testutil"
 )
@@ -148,6 +150,37 @@ func TestRedisIndex_CidExists(t *testing.T) {
 			assert.False(t, ok)
 		}
 	}
+}
+
+func TestRedisIndex_CidsMayExist(t *testing.T) {
+	fx := newFixtureConfig(t, &config.Config{PersistTtl: 1})
+	defer fx.Finish(t)
+
+	// bs[0:2] are persisted: only in the bloom filter, bs[2:4] are in redis, bs[4] doesn't exist
+	bs := testutil.NewRandBlocks(5)
+	require.NoError(t, fx.BlocksAdd(ctx, bs[:2]))
+	for _, b := range bs[:2] {
+		fx.persistStore.EXPECT().IndexPut(ctx, CidKey(b.Cid()), gomock.Any())
+	}
+	time.Sleep(time.Second * 3)
+	fx.PersistKeys(ctx)
+	require.NoError(t, fx.BlocksAdd(ctx, bs[2:4]))
+
+	// no IndexGet calls: the persisted keys are not restored
+	mayExist, err := fx.CidsMayExist(ctx, testutil.BlocksToKeys(bs))
+	require.NoError(t, err)
+	assert.Equal(t, testutil.BlocksToKeys(bs[:4]), mayExist)
+	ex, err := fx.cl.Exists(ctx, CidKey(bs[0].Cid())).Result()
+	require.NoError(t, err)
+	assert.Equal(t, int64(0), ex)
+
+	mayExist, err = fx.CidsMayExist(ctx, testutil.BlocksToKeys(bs[4:]))
+	require.NoError(t, err)
+	assert.Empty(t, mayExist)
+
+	mayExist, err = fx.CidsMayExist(ctx, nil)
+	require.NoError(t, err)
+	assert.Empty(t, mayExist)
 }
 
 func TestRedisIndex_DeleteUnboundCid(t *testing.T) {

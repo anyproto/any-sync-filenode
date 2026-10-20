@@ -221,6 +221,21 @@ func (mr *MockIndexMockRecorder) CidExistsInSpace(ctx, key, cids any) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CidExistsInSpace", reflect.TypeOf((*MockIndex)(nil).CidExistsInSpace), ctx, key, cids)
 }
 
+// CidsMayExist mocks base method.
+func (m *MockIndex) CidsMayExist(ctx context.Context, cids []cid.Cid) ([]cid.Cid, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CidsMayExist", ctx, cids)
+	ret0, _ := ret[0].([]cid.Cid)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CidsMayExist indicates an expected call of CidsMayExist.
+func (mr *MockIndexMockRecorder) CidsMayExist(ctx, cids any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CidsMayExist", reflect.TypeOf((*MockIndex)(nil).CidsMayExist), ctx, cids)
+}
+
 // Close mocks base method.
 func (m *MockIndex) Close(ctx context.Context) error {
 	m.ctrl.T.Helper()

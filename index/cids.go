@@ -24,6 +24,46 @@ func (ri *redisIndex) CidExists(ctx context.Context, c cid.Cid) (ok bool, err er
 	return ri.CheckKey(ctx, CidKey(c))
 }
 
+// CidsMayExist returns the cids that are either in redis or in the bloom filter. It takes no locks
+// and doesn't restore keys, so the result is a hint: a returned cid has to be confirmed with CidExists,
+// and a cid that is not returned may have been created a moment ago.
+// Use it only where a stale "not exists" is harmless.
+func (ri *redisIndex) CidsMayExist(ctx context.Context, cids []cid.Cid) (mayExist []cid.Cid, err error) {
+	if len(cids) == 0 {
+		return
+	}
+	var existsRes = make([]*redis.IntCmd, len(cids))
+	if _, err = ri.cl.Pipelined(ctx, func(pipe redis.Pipeliner) error {
+		for i, c := range cids {
+			existsRes[i] = pipe.Exists(ctx, CidKey(c))
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	// check the bloom filter only after EXISTS has returned: persistKey adds a key to the filter
+	// before deleting it from redis, so a key that is already gone from redis is in the filter.
+	// One pipeline doesn't guarantee this order on a cluster, where it is split by node
+	var bloomRes = make([]*redis.BoolCmd, len(cids))
+	if _, err = ri.cl.Pipelined(ctx, func(pipe redis.Pipeliner) error {
+		for i, c := range cids {
+			if existsRes[i].Val() == 0 {
+				key := CidKey(c)
+				bloomRes[i] = pipe.BFExists(ctx, bloomFilterKey(key), key)
+			}
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	for i, c := range cids {
+		if existsRes[i].Val() > 0 || (bloomRes[i] != nil && bloomRes[i].Val()) {
+			mayExist = append(mayExist, c)
+		}
+	}
+	return
+}
+
 func (ri *redisIndex) CidEntries(ctx context.Context, cids []cid.Cid) (entries *CidEntries, err error) {
 	entries = &CidEntries{}
 	for _, c := range cids {

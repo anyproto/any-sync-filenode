@@ -140,6 +140,26 @@ func (fn *fileNode) Check(ctx context.Context, spaceId string, cids ...cid.Cid) 
 			inSpaceM[inSp.KeyString()] = struct{}{}
 		}
 	}
+	// filter out cids that are neither in redis nor in the bloom filter with one lock-free batch,
+	// only the rest go through the locked CidExists check.
+	// A stale "not exists" here only makes the client upload the block again,
+	// and the upload re-checks the cid under the lock
+	var notInSpace []cid.Cid
+	for _, k := range cids {
+		if _, ok := inSpaceM[k.KeyString()]; !ok {
+			notInSpace = append(notInSpace, k)
+		}
+	}
+	var mayExistM = make(map[string]struct{})
+	if len(notInSpace) > 0 {
+		mayExist, err := fn.index.CidsMayExist(ctx, notInSpace)
+		if err != nil {
+			return nil, err
+		}
+		for _, k := range mayExist {
+			mayExistM[k.KeyString()] = struct{}{}
+		}
+	}
 	for _, k := range cids {
 		var res = &fileproto.BlockAvailability{
 			Cid:    k.Bytes(),
@@ -147,7 +167,7 @@ func (fn *fileNode) Check(ctx context.Context, spaceId string, cids ...cid.Cid) 
 		}
 		if _, ok := inSpaceM[k.KeyString()]; ok {
 			res.Status = fileproto.AvailabilityStatus_ExistsInSpace
-		} else {
+		} else if _, ok = mayExistM[k.KeyString()]; ok {
 			var ex bool
 			if ex, err = fn.index.CidExists(ctx, k); err != nil {
 				return nil, err
