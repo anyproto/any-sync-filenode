@@ -223,39 +223,86 @@ func TestFileNode_Get(t *testing.T) {
 }
 
 func TestFileNode_Check(t *testing.T) {
-	fx := newFixture(t)
-	defer fx.Finish(t)
-	var _, storeKey = newRandKey()
-	var bs = testutil.NewRandBlocks(3)
-	cids := make([][]byte, len(bs))
-	for _, b := range bs {
-		cids = append(cids, b.Cid().Bytes())
-	}
+	t.Run("in space", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
+		var _, storeKey = newRandKey()
+		var bs = testutil.NewRandBlocks(4)
+		cids := make([][]byte, len(bs))
+		for _, b := range bs {
+			cids = append(cids, b.Cid().Bytes())
+		}
 
-	aclList := defaultAclList(t, storeKey.SpaceId)
-	idRaw, _ := aclList.AclState().Identity().Marshall()
-	storeKey.GroupId = aclList.AclState().Identity().Account()
-	ctx := peer.CtxWithIdentity(context.Background(), idRaw)
+		aclList := defaultAclList(t, storeKey.SpaceId)
+		idRaw, _ := aclList.AclState().Identity().Marshall()
+		storeKey.GroupId = aclList.AclState().Identity().Account()
+		ctx := peer.CtxWithIdentity(context.Background(), idRaw)
 
-	fx.aclService.EXPECT().ReadList(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, spaceId string, fn func(list.AclList) error) error {
-			return fn(aclList)
+		fx.aclService.EXPECT().ReadList(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, spaceId string, fn func(list.AclList) error) error {
+				return fn(aclList)
+			})
+
+		fx.index.EXPECT().Migrate(ctx, storeKey)
+		fx.index.EXPECT().CheckAndMoveOwnership(ctx, storeKey, storeKey.GroupId, gomock.Any()).Return(nil)
+		fx.index.EXPECT().CidExistsInSpace(ctx, storeKey, testutil.BlocksToKeys(bs)).Return(testutil.BlocksToKeys(bs[:1]), nil)
+		// bs[3] is absent in redis and in the bloom filter: no locked check for it
+		fx.index.EXPECT().CidsMayExist(ctx, testutil.BlocksToKeys(bs[1:])).Return(testutil.BlocksToKeys(bs[1:3]), nil)
+		fx.index.EXPECT().CidExists(ctx, bs[1].Cid()).Return(true, nil)
+		fx.index.EXPECT().CidExists(ctx, bs[2].Cid()).Return(false, nil)
+		resp, err := fx.handler.BlocksCheck(ctx, &fileproto.BlocksCheckRequest{
+			SpaceId: storeKey.SpaceId,
+			Cids:    cids,
 		})
-
-	fx.index.EXPECT().Migrate(ctx, storeKey)
-	fx.index.EXPECT().CheckAndMoveOwnership(ctx, storeKey, storeKey.GroupId, gomock.Any()).Return(nil)
-	fx.index.EXPECT().CidExistsInSpace(ctx, storeKey, testutil.BlocksToKeys(bs)).Return(testutil.BlocksToKeys(bs[:1]), nil)
-	fx.index.EXPECT().CidExists(ctx, bs[1].Cid()).Return(true, nil)
-	fx.index.EXPECT().CidExists(ctx, bs[2].Cid()).Return(false, nil)
-	resp, err := fx.handler.BlocksCheck(ctx, &fileproto.BlocksCheckRequest{
-		SpaceId: storeKey.SpaceId,
-		Cids:    cids,
+		require.NoError(t, err)
+		require.Len(t, resp.BlocksAvailability, len(bs))
+		assert.Equal(t, fileproto.AvailabilityStatus_ExistsInSpace, resp.BlocksAvailability[0].Status)
+		assert.Equal(t, fileproto.AvailabilityStatus_Exists, resp.BlocksAvailability[1].Status)
+		assert.Equal(t, fileproto.AvailabilityStatus_NotExists, resp.BlocksAvailability[2].Status)
+		assert.Equal(t, fileproto.AvailabilityStatus_NotExists, resp.BlocksAvailability[3].Status)
 	})
-	require.NoError(t, err)
-	require.Len(t, resp.BlocksAvailability, len(bs))
-	assert.Equal(t, fileproto.AvailabilityStatus_ExistsInSpace, resp.BlocksAvailability[0].Status)
-	assert.Equal(t, fileproto.AvailabilityStatus_Exists, resp.BlocksAvailability[1].Status)
-	assert.Equal(t, fileproto.AvailabilityStatus_NotExists, resp.BlocksAvailability[2].Status)
+	t.Run("all in space", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
+		var _, storeKey = newRandKey()
+		var bs = testutil.NewRandBlocks(2)
+
+		aclList := defaultAclList(t, storeKey.SpaceId)
+		idRaw, _ := aclList.AclState().Identity().Marshall()
+		storeKey.GroupId = aclList.AclState().Identity().Account()
+		ctx := peer.CtxWithIdentity(context.Background(), idRaw)
+
+		fx.aclService.EXPECT().ReadList(gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, spaceId string, fn func(list.AclList) error) error {
+				return fn(aclList)
+			})
+
+		fx.index.EXPECT().Migrate(ctx, storeKey)
+		fx.index.EXPECT().CheckAndMoveOwnership(ctx, storeKey, storeKey.GroupId, gomock.Any()).Return(nil)
+		fx.index.EXPECT().CidExistsInSpace(ctx, storeKey, testutil.BlocksToKeys(bs)).Return(testutil.BlocksToKeys(bs), nil)
+		result, err := fx.Check(ctx, storeKey.SpaceId, testutil.BlocksToKeys(bs)...)
+		require.NoError(t, err)
+		require.Len(t, result, len(bs))
+		for _, res := range result {
+			assert.Equal(t, fileproto.AvailabilityStatus_ExistsInSpace, res.Status)
+		}
+	})
+	t.Run("no space", func(t *testing.T) {
+		fx := newFixture(t)
+		defer fx.Finish(t)
+		var (
+			bs  = testutil.NewRandBlocks(3)
+			ctx = context.Background()
+		)
+		fx.index.EXPECT().CidsMayExist(ctx, testutil.BlocksToKeys(bs)).Return(testutil.BlocksToKeys(bs[:1]), nil)
+		fx.index.EXPECT().CidExists(ctx, bs[0].Cid()).Return(true, nil)
+		result, err := fx.Check(ctx, "", testutil.BlocksToKeys(bs)...)
+		require.NoError(t, err)
+		require.Len(t, result, len(bs))
+		assert.Equal(t, fileproto.AvailabilityStatus_Exists, result[0].Status)
+		assert.Equal(t, fileproto.AvailabilityStatus_NotExists, result[1].Status)
+		assert.Equal(t, fileproto.AvailabilityStatus_NotExists, result[2].Status)
+	})
 }
 
 func TestFileNode_BlocksBind(t *testing.T) {
